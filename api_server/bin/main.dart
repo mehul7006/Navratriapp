@@ -49,6 +49,15 @@ Future<Connection> get db async {
     // Fix paid_by column type - must be varchar, not integer
     await _db!.execute("ALTER TABLE expenses DROP COLUMN IF EXISTS paid_by");
     await _db!.execute("ALTER TABLE expenses ADD COLUMN paid_by VARCHAR DEFAULT 'organizer'");
+    // Daily draws table for lucky draw spin
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS daily_draws (
+      id SERIAL PRIMARY KEY, day_number INT NOT NULL, ticket_id INT,
+      ticket_code VARCHAR, winner_id INT, house_number VARCHAR,
+      draw_number INT DEFAULT 1, drawn_by INT, drawn_at TIMESTAMP DEFAULT NOW(),
+      draw_date DATE DEFAULT CURRENT_DATE
+    )''');
+    // Gift assignments status column
+    await _db!.execute("ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
   } catch (_) {}
   return _db!;
 }
@@ -83,6 +92,7 @@ final router = Router()
   ..get('/api/aarti-bookings/my/<house>', _getMyAartiBookings)
   ..post('/api/aarti-bookings', _bookAartiSlot)
   ..put('/api/aarti-bookings/<id>/status', _updateBookingStatus)
+  ..put('/api/aarti-bookings/<id>/cancel', _cancelAartiBooking)
   ..get('/api/snacks', _getSnacks)
   ..get('/api/snacks/all', _getAllSnacks)
   ..post('/api/snacks', _addSnack)
@@ -91,11 +101,13 @@ final router = Router()
   ..get('/api/snack-orders/my/<house>', _getMySnackOrders)
   ..post('/api/snack-orders', _orderSnack)
   ..put('/api/snack-orders/<id>/status', _updateSnackOrderStatus)
+  ..put('/api/snack-orders/<id>/cancel', _cancelSnackOrder)
   ..get('/api/gifts', _getGifts)
   ..post('/api/gifts', _addGift)
   ..put('/api/gifts/<id>', _updateGift)
   ..get('/api/gift-assignments', _getGiftAssignments)
   ..post('/api/gift-assignments', _assignGift)
+  ..put('/api/gift-assignments/<id>/cancel', _cancelGiftAssignment)
   ..get('/api/gifts/my/<house>', _getMyGifts)
   ..get('/api/announcements', _getAnnouncements)
   ..post('/api/announcements', _createAnnouncement)
@@ -120,6 +132,12 @@ final router = Router()
   ..put('/api/profile/<id>', _updateProfile)
   ..get('/api/winners', _getWinners)
   ..get('/api/winners/history', _getDrawHistory)
+  ..post('/api/daily-draws/spin', _spinDraw)
+  ..get('/api/daily-draws/history', _getDailyDrawHistory)
+  ..get('/api/daily-draws/count', _getDailyDrawCount)
+  ..get('/api/daily-info', _getDailyInfo)
+  ..put('/api/navratri-days/<day>/start', _startDay)
+  ..put('/api/navratri-days/<day>/end', _endDay)
   ..post('/api/broadcasts', _createBroadcast)
   ..get('/api/broadcasts', _getBroadcasts)
   ..delete('/api/broadcasts/<id>', _deleteBroadcast)
@@ -1475,6 +1493,227 @@ Future<Response> _deleteBroadcast(Request request, String id) async {
     final conn = await db;
     await conn.execute(Sql.named('DELETE FROM announcements WHERE id = @id'), parameters: {'id': int.parse(id)});
     return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== CANCEL ENDPOINTS ==========
+
+Future<Response> _cancelAartiBooking(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named("UPDATE aarti_bookings SET status = 'cancelled' WHERE id = @id"),
+      parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _cancelSnackOrder(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named("UPDATE snack_orders SET status = 'cancelled' WHERE id = @id"),
+      parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _cancelGiftAssignment(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named("UPDATE gift_assignments SET status = 'cancelled' WHERE id = @id"),
+      parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== LUCKY DRAW / SPIN ==========
+
+Future<Response> _spinDraw(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final dayNumber = body['day_number'] as int;
+
+    final countResult = await conn.execute(
+      Sql.named("SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
+      parameters: {'day': dayNumber},
+    );
+    final spinsToday = countResult.first.toColumnMap()['cnt'] ?? 0;
+    if (spinsToday >= 6) return _errorResponse('Maximum 6 draws per day reached');
+
+    final ticketResult = await conn.execute(
+      Sql.named('''
+        SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
+        FROM draw_tickets dt
+        JOIN users u ON dt.user_id = u.id
+        WHERE dt.day_number = @day AND dt.is_assigned = TRUE AND dt.is_winner = FALSE
+        ORDER BY RANDOM() LIMIT 1
+      '''),
+      parameters: {'day': dayNumber},
+    );
+
+    if (ticketResult.isEmpty) return _errorResponse('No more tickets to draw for this day');
+
+    final ticket = _parseRow(ticketResult.first);
+    await conn.execute(
+      Sql.named('''
+        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by)
+        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy)
+      '''),
+      parameters: {
+        'day': dayNumber, 'ticketId': ticket['id'], 'ticketCode': ticket['ticket_code'],
+        'winnerId': ticket['user_id'], 'house': ticket['house_number'],
+        'drawNum': spinsToday + 1, 'drawnBy': body['drawn_by'],
+      },
+    );
+
+    await conn.execute(
+      Sql.named('UPDATE draw_tickets SET is_winner = TRUE WHERE id = @id'),
+      parameters: {'id': ticket['id']},
+    );
+
+    return _jsonResponse({
+      'ticket_code': ticket['ticket_code'],
+      'user_name': ticket['user_name'],
+      'house_number': ticket['house_number'],
+      'draw_number': spinsToday + 1,
+    });
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getDailyDrawHistory(Request request) async {
+  try {
+    final day = request.url.queryParameters['day'];
+    final conn = await db;
+    var sql = '''
+      SELECT dd.*, u.name as winner_name, u.house_number
+      FROM daily_draws dd
+      LEFT JOIN users u ON dd.winner_id = u.id
+    ''';
+    final params = <String, dynamic>{};
+    if (day != null) { sql += ' WHERE dd.day_number = @day'; params['day'] = int.parse(day); }
+    sql += ' ORDER BY dd.drawn_at DESC';
+    final results = await conn.execute(Sql.named(sql), parameters: params);
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getDailyDrawCount(Request request) async {
+  try {
+    final day = request.url.queryParameters['day'] ?? '1';
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named("SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
+      parameters: {'day': int.parse(day)},
+    );
+    return _jsonResponse({'count': results.first.toColumnMap()['cnt'] ?? 0, 'max': 6});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== DAILY INFO (for login marquee) ==========
+
+Future<Response> _getDailyInfo(Request request) async {
+  try {
+    final conn = await db;
+    final dayParam = request.url.queryParameters['day'];
+    int dayNumber = 1;
+    if (dayParam != null) {
+      dayNumber = int.parse(dayParam);
+    } else {
+      final activeDay = await conn.execute(Sql.named("SELECT day_number FROM navratri_days WHERE is_active = TRUE LIMIT 1"));
+      if (activeDay.isNotEmpty) dayNumber = activeDay.first.toColumnMap()['day_number'] ?? 1;
+    }
+
+    final dayData = await conn.execute(
+      Sql.named('SELECT * FROM navratri_days WHERE day_number = @day'),
+      parameters: {'day': dayNumber},
+    );
+
+    final aartiSlots = await conn.execute(
+      Sql.named("SELECT slot_label FROM aarti_slots WHERE day_number = @day AND is_active = TRUE"),
+      parameters: {'day': dayNumber},
+    );
+
+    final gifts = await conn.execute(
+      Sql.named('''
+        SELECT g.name, COALESCE(s.company_name, 'Community') as sponsor_name
+        FROM gifts g LEFT JOIN sponsors s ON g.sponsor_id = s.id
+        WHERE g.day_number = @day AND g.is_active = TRUE
+      '''),
+      parameters: {'day': dayNumber},
+    );
+
+    final snackSponsors = await conn.execute(
+      Sql.named('''
+        SELECT s.company_name, s.advertisement_text
+        FROM sponsors s
+        WHERE s.is_active = TRUE AND s.company_name IS NOT NULL AND s.company_name != ''
+        ORDER BY RANDOM() LIMIT 5
+      '''),
+    );
+
+    return _jsonResponse({
+      'day_number': dayNumber,
+      'day_info': dayData.isNotEmpty ? _parseRow(dayData.first) : null,
+      'aarti_slots': aartiSlots.map((r) => r.toColumnMap()['slot_label']).toList(),
+      'gifts': _parseResults(gifts),
+      'sponsors': _parseResults(snackSponsors),
+    });
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== START / END DAY ==========
+
+Future<Response> _startDay(Request request, String day) async {
+  try {
+    final conn = await db;
+    await conn.execute(Sql.named("UPDATE navratri_days SET is_active = FALSE"));
+    await conn.execute(
+      Sql.named("UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
+      parameters: {'day': int.parse(day)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _endDay(Request request, String day) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named("UPDATE navratri_days SET is_active = FALSE, is_completed = TRUE WHERE day_number = @day"),
+      parameters: {'day': int.parse(day)},
+    );
+    final nextDay = int.parse(day) + 1;
+    if (nextDay <= 9) {
+      await conn.execute(
+        Sql.named("UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
+        parameters: {'day': nextDay},
+      );
+    }
+    return _jsonResponse({'ok': true, 'next_day': nextDay <= 9 ? nextDay : null});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

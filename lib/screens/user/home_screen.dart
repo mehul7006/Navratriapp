@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
@@ -23,43 +22,24 @@ class UserHomeScreen extends StatefulWidget {
 
 class _UserHomeScreenState extends State<UserHomeScreen> {
   List<Map<String, dynamic>> _announcements = [];
-  List<Map<String, dynamic>> _gifts = [];
+  List<Map<String, dynamic>> _myBookings = [];
+  List<Map<String, dynamic>> _myOrders = [];
+  List<Map<String, dynamic>> _myGifts = [];
   List<Map<String, dynamic>> _days = [];
   Map<String, dynamic> _stats = {'bookings': 0, 'orders': 0, 'gifts': 0};
-  Timer? _countdownTimer;
-  Duration _countdown = Duration.zero;
-  bool _festivalStarted = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _startCountdown();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadData());
   }
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
+    _refreshTimer?.cancel();
     super.dispose();
-  }
-
-  void _startCountdown() {
-    final festivalStart = DateTime(2026, 9, 17);
-    final now = DateTime.now();
-    if (now.isAfter(festivalStart)) {
-      setState(() => _festivalStarted = true);
-      return;
-    }
-    _countdown = festivalStart.difference(now);
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final remaining = festivalStart.difference(DateTime.now());
-      if (remaining.isNegative) {
-        timer.cancel();
-        setState(() => _festivalStarted = true);
-      } else {
-        setState(() => _countdown = remaining);
-      }
-    });
   }
 
   Future<void> _loadData() async {
@@ -67,21 +47,25 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     final houseNumber = authProvider.houseNumber ?? '';
     
     final announcements = await DatabaseHelper.getAnnouncements();
-    final gifts = await DatabaseHelper.getMyGifts(houseNumber);
     final bookings = await DatabaseHelper.getMyAartiBookings(houseNumber);
     final orders = await DatabaseHelper.getMySnackOrders(houseNumber);
+    final gifts = await DatabaseHelper.getMyGifts(houseNumber);
     final days = await DatabaseHelper.getNavratriDays();
     
-    setState(() {
-      _announcements = announcements;
-      _gifts = gifts;
-      _days = days;
-      _stats = {
-        'bookings': bookings.length,
-        'orders': orders.length,
-        'gifts': gifts.length,
-      };
-    });
+    if (mounted) {
+      setState(() {
+        _announcements = announcements;
+        _myBookings = bookings.where((b) => b['status'] != 'cancelled').toList();
+        _myOrders = orders.where((o) => o['status'] != 'cancelled').toList();
+        _myGifts = gifts;
+        _days = days;
+        _stats = {
+          'bookings': _myBookings.length,
+          'orders': _myOrders.length,
+          'gifts': _myGifts.length,
+        };
+      });
+    }
   }
 
   @override
@@ -92,9 +76,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Navratri 2026'),
+        title: const Text('Navratri 2026', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        elevation: 0,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           IconButton(
@@ -106,26 +91,34 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildProfileCard(user),
-            const SizedBox(height: 16),
-            if (!_festivalStarted) ...[
-              _buildCountdownCard(),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        color: AppTheme.goldPrimary,
+        backgroundColor: AppTheme.purpleDark,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileCard(user),
               const SizedBox(height: 16),
+              _buildCurrentDayBanner(),
+              const SizedBox(height: 16),
+              _buildMyBookingsSummary(),
+              const SizedBox(height: 16),
+              _buildQuickActions(context, user),
+              const SizedBox(height: 16),
+              _buildStatsRow(),
+              const SizedBox(height: 16),
+              if (_announcements.isNotEmpty) ...[
+                _buildSectionTitle('Announcements'),
+                const SizedBox(height: 8),
+                _buildAnnouncementsCard(),
+                const SizedBox(height: 16),
+              ],
             ],
-            _buildQuickActions(context, user),
-            const SizedBox(height: 16),
-            _buildStatsRow(),
-            const SizedBox(height: 16),
-            _buildCurrentDayCard(),
-            const SizedBox(height: 16),
-            _buildAnnouncementsCard(),
-            const SizedBox(height: 16),
-            if (_gifts.isNotEmpty) _buildRecentGifts(),
-          ],
+          ),
         ),
       ),
     );
@@ -142,30 +135,28 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       child: Row(
         children: [
           Container(
-            width: 60, height: 60,
+            width: 56, height: 56,
             decoration: const BoxDecoration(gradient: AppTheme.goldGradient, shape: BoxShape.circle),
             child: Center(
               child: Text(user?['name']?.toString().substring(0, 1).toUpperCase() ?? 'U',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user?['name'] ?? 'User', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 4),
+                Text(user?['name'] ?? 'User', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 3),
                 Row(children: [
-                  const Icon(Icons.home, size: 14, color: AppTheme.goldPrimary),
+                  const Icon(Icons.home, size: 13, color: AppTheme.goldPrimary),
                   const SizedBox(width: 4),
-                  Text('House: ${user?['house_number'] ?? 'N/A'}', style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
-                ]),
-                const SizedBox(height: 2),
-                Row(children: [
-                  const Icon(Icons.phone, size: 14, color: AppTheme.goldPrimary),
+                  Text('${user?['house_number'] ?? 'N/A'}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.phone, size: 13, color: AppTheme.goldPrimary),
                   const SizedBox(width: 4),
-                  Text('Mobile: ${user?['mobile_number'] ?? 'N/A'}', style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+                  Text('${user?['mobile_number'] ?? 'N/A'}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 ]),
               ],
             ),
@@ -175,58 +166,129 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 
+  Widget _buildCurrentDayBanner() {
+    final activeDay = _days.where((d) => d['is_active'] == true).toList();
+    final dayData = activeDay.isNotEmpty ? activeDay.first : (_days.isNotEmpty ? _days.first : null);
+    final dayNum = dayData?['day_number'] ?? 1;
+    final goddess = dayData?['goddess_name'] ?? 'Festival';
+    final dressCode = dayData?['dress_code'] ?? '';
+    final dateStr = dayData?['date'] ?? '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF1a0a3e), Color(0xFF2d1b69)]),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5), width: 2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.15), borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('D$dayNum', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                const SizedBox(height: 2),
+                Text(dateStr.split('T').first.split('-').last, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(goddess, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                if (dressCode.isNotEmpty)
+                  Text('Dress: $dressCode', style: const TextStyle(fontSize: 12, color: AppTheme.goldPrimary)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: AppTheme.goldPrimary, borderRadius: BorderRadius.circular(20)),
+            child: Text('DAY $dayNum', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMyBookingsSummary() {
+    final activeBookings = _myBookings.where((b) => b['status'] == 'approved' || b['status'] == 'pending').toList();
+    final activeOrders = _myOrders.where((o) => o['status'] != 'delivered' && o['status'] != 'cancelled').toList();
+    
+    if (activeBookings.isEmpty && activeOrders.isEmpty && _myGifts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('My Activity'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            if (activeBookings.isNotEmpty)
+              _buildActivityChip(Icons.self_improvement, '${activeBookings.length} Aarti', Colors.orange),
+            if (activeOrders.isNotEmpty)
+              _buildActivityChip(Icons.restaurant, '${activeOrders.length} Food', Colors.blue),
+            if (_myGifts.isNotEmpty)
+              _buildActivityChip(Icons.card_giftcard, '${_myGifts.length} Gifts', Colors.purple),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityChip(IconData icon, String text, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.4))),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary));
+  }
+
   Widget _buildQuickActions(BuildContext context, Map<String, dynamic>? user) {
     return GridView.count(
-      crossAxisCount: 3,
+      crossAxisCount: 4,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 1.0,
+      childAspectRatio: 0.85,
       children: [
-        _buildActionCard(
-          icon: Icons.self_improvement,
-          title: 'Book Aarti',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen())),
-        ),
-        _buildActionCard(
-          icon: Icons.confirmation_number,
-          title: 'My Coupons',
-          onTap: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => UserCouponScreen(houseNumber: user?['house_number'] ?? '', userName: user?['name'] ?? ''),
-          )),
-        ),
-        _buildActionCard(
-          icon: Icons.restaurant,
-          title: 'Order Snacks',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSnacksScreen())),
-        ),
-        _buildActionCard(
-          icon: Icons.card_giftcard,
-          title: 'My Gifts',
-          badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserGiftsScreen())),
-        ),
-        _buildActionCard(
-          icon: Icons.person,
-          title: 'My Profile',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen())),
-        ),
-        _buildActionCard(
-          icon: Icons.event,
-          title: 'Schedule',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserScheduleScreen())),
-        ),
-        _buildActionCard(
-          icon: Icons.emoji_events,
-          title: 'Winners',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen())),
-        ),
-        _buildActionCard(
-          icon: Icons.receipt_long,
-          title: 'Payments',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen())),
-        ),
+        _buildActionCard(icon: Icons.self_improvement, title: 'Book Aarti', badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
+        _buildActionCard(icon: Icons.restaurant, title: 'Food', badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSnacksScreen()))),
+        _buildActionCard(icon: Icons.card_giftcard, title: 'Gifts', badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserGiftsScreen()))),
+        _buildActionCard(icon: Icons.confirmation_number, title: 'My Tickets',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserCouponScreen(houseNumber: user?['house_number'] ?? '', userName: user?['name'] ?? '')))),
+        _buildActionCard(icon: Icons.person, title: 'Profile',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()))),
+        _buildActionCard(icon: Icons.event, title: 'Schedule',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserScheduleScreen()))),
+        _buildActionCard(icon: Icons.emoji_events, title: 'Winners',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen()))),
+        _buildActionCard(icon: Icons.receipt_long, title: 'Payments',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
       ],
     );
   }
@@ -235,7 +297,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         decoration: AppTheme.hubItemDecoration,
         child: Stack(
           children: [
@@ -243,19 +305,19 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 36, color: AppTheme.goldPrimary),
-                  const SizedBox(height: 8),
-                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                  Icon(icon, size: 28, color: AppTheme.goldPrimary),
+                  const SizedBox(height: 6),
+                  Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
                 ],
               ),
             ),
             if (badge != null)
               Positioned(
-                right: 8, top: 8,
+                right: 6, top: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
-                  child: Text(badge, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                  child: Text(badge, style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
           ],
@@ -272,6 +334,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         _buildMiniStat('Orders', '${_stats['orders']}', Icons.restaurant, Colors.blue),
         const SizedBox(width: 8),
         _buildMiniStat('Gifts', '${_stats['gifts']}', Icons.card_giftcard, Colors.purple),
+        const SizedBox(width: 8),
+        _buildMiniStat('Tickets', '${_myBookings.length}', Icons.confirmation_number, Colors.amber),
       ],
     );
   }
@@ -279,184 +343,38 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget _buildMiniStat(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: AppTheme.hubItemDecoration,
         child: Column(
           children: [
-            Icon(icon, size: 20, color: color),
+            Icon(icon, size: 18, color: color),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: const TextStyle(fontSize: 9, color: AppTheme.textMuted)),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildCountdownCard() {
-    final days = _countdown.inDays;
-    final hours = _countdown.inHours % 24;
-    final minutes = _countdown.inMinutes % 60;
-    final seconds = _countdown.inSeconds % 60;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1a0a3e), Color(0xFF2d1b69)]),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.goldPrimary.withValues(alpha: 0.5), width: 2),
-      ),
-      child: Column(
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.timer, color: AppTheme.goldPrimary, size: 20),
-              SizedBox(width: 8),
-              Text('Festival Starts In', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _countdownUnit(days, 'DAYS'),
-              const Text(':', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 24, fontWeight: FontWeight.bold)),
-              _countdownUnit(hours, 'HRS'),
-              const Text(':', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 24, fontWeight: FontWeight.bold)),
-              _countdownUnit(minutes, 'MIN'),
-              const Text(':', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 24, fontWeight: FontWeight.bold)),
-              _countdownUnit(seconds, 'SEC'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _countdownUnit(int value, String label) {
-    return Column(
-      children: [
-        Container(
-          width: 56, height: 56,
-          decoration: BoxDecoration(
-            color: AppTheme.goldPrimary.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.goldPrimary.withValues(alpha: 0.3)),
-          ),
-          child: Center(
-            child: Text(value.toString().padLeft(2, '0'),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 9, color: Colors.white.withValues(alpha: 0.6))),
-      ],
-    );
-  }
-
-  Widget _buildCurrentDayCard() {
-    final now = DateTime.now();
-    final activeDay = _days.where((d) => d['is_active'] == true).toList();
-    final dayData = activeDay.isNotEmpty ? activeDay.first : (_days.isNotEmpty ? _days.first : null);
-    final dayNum = dayData?['day_number'] ?? 1;
-    final goddess = dayData?['goddess_name'] ?? 'Festival';
-    final dressCode = dayData?['dress_code'] ?? '';
-    final dateStr = dayData?['date'] ?? '';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.liveCardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: AppTheme.goldPrimary, borderRadius: BorderRadius.circular(10)),
-            child: Text('DAY $dayNum : $goddess', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleDark)),
-          ),
-          const SizedBox(height: 12),
-          Text(goddess, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-          if (dateStr.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(dateStr, style: const TextStyle(fontSize: 12, color: AppTheme.yellowLight)),
-          ],
-          if (dressCode.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text('Dress Code: $dressCode', style: const TextStyle(fontSize: 11, color: Colors.white)),
-          ],
-        ],
       ),
     );
   }
 
   Widget _buildAnnouncementsCard() {
-    if (_announcements.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: AppTheme.hubItemDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.announcement, color: AppTheme.goldPrimary, size: 20),
-              SizedBox(width: 8),
-              Text('Announcements', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ..._announcements.take(3).map((a) => _buildAnnouncementItem(a['title'] ?? '', a['message'] ?? '')),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnnouncementItem(String title, String message) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AppTheme.purpleDark.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
-          const SizedBox(height: 4),
-          Text(message, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentGifts() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.hubItemDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 20),
-              SizedBox(width: 8),
-              Text('Recent Gifts', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ..._gifts.take(3).map((g) => Container(
+          ..._announcements.take(3).map((a) => Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: AppTheme.purpleDark.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.card_giftcard, color: Colors.purple, size: 20),
-                const SizedBox(width: 8),
-                Expanded(child: Text(g['gift_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white))),
-                Text(g['assigned_at'] ?? '', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                Text(a['title'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                const SizedBox(height: 4),
+                Text(a['message'] ?? '', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           )),

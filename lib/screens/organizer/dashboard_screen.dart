@@ -15,6 +15,7 @@ import 'day_management_screen.dart';
 import 'sponsor_management_screen.dart';
 import 'reports_screen.dart';
 import 'draw_history_screen.dart';
+import 'lucky_draw_screen.dart';
 import 'broadcast_management_screen.dart';
 
 class OrganizerDashboardScreen extends StatefulWidget {
@@ -225,6 +226,9 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
             }),
             _buildQuickAction('Draw History', Icons.emoji_events_outlined, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DrawHistoryScreen()));
+            }),
+            _buildQuickAction('Lucky Draw Spin', Icons.casino, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const LuckyDrawScreen()));
             }),
             _buildQuickAction('Broadcasts', Icons.campaign, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const BroadcastManagementScreen()));

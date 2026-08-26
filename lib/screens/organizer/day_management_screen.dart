@@ -78,9 +78,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _schedule.isEmpty
-                            ? _buildEmptySchedule()
-                            : _buildScheduleList(),
+                        _schedule.isEmpty ? _buildEmptySchedule() : _buildScheduleList(),
                       ],
                     ),
                   ),
@@ -104,48 +102,26 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
           final isActive = dayData?['is_active'] == true;
           final isCompleted = dayData?['is_completed'] == true;
           return GestureDetector(
-            onTap: () {
-              setState(() => _selectedDay = dayNum);
-              _loadData();
-            },
+            onTap: () { setState(() => _selectedDay = dayNum); _loadData(); },
             child: Container(
               width: 70,
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: _selectedDay == dayNum
-                    ? AppTheme.goldPrimary
-                    : isCompleted
-                        ? Colors.green.withValues(alpha: 0.3)
-                        : AppTheme.cardBg,
+                color: _selectedDay == dayNum ? AppTheme.goldPrimary : (isCompleted ? Colors.green.withValues(alpha: 0.3) : AppTheme.cardBg),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _selectedDay == dayNum
-                      ? AppTheme.goldPrimary
-                      : isActive
-                          ? Colors.amber
-                          : Colors.white24,
-                  width: isActive ? 2 : 1,
-                ),
+                border: Border.all(color: _selectedDay == dayNum ? AppTheme.goldPrimary : (isActive ? Colors.amber : Colors.white24), width: isActive ? 2 : 1),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('D$dayNum', style: TextStyle(
-                    color: _selectedDay == dayNum ? Colors.black : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  )),
+                  Text('D$dayNum', style: TextStyle(color: _selectedDay == dayNum ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                   if (dayData != null)
                     Text(
                       (dayData['goddess_name'] ?? '').toString().substring(0, [dayData['goddess_name']?.toString().length ?? 0, 6].reduce((a, b) => a < b ? a : b)),
-                      style: TextStyle(
-                        color: _selectedDay == dayNum ? Colors.black87 : Colors.white70,
-                        fontSize: 9,
-                      ),
+                      style: TextStyle(color: _selectedDay == dayNum ? Colors.black87 : Colors.white70, fontSize: 9),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  if (isCompleted)
-                    const Icon(Icons.check_circle, size: 12, color: Colors.green),
+                  if (isCompleted) const Icon(Icons.check_circle, size: 12, color: Colors.green),
                 ],
               ),
             ),
@@ -158,6 +134,9 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
   Widget _buildDayCard() {
     final dayData = _getDayData(_selectedDay);
     if (dayData == null) return const SizedBox.shrink();
+    final isActive = dayData['is_active'] == true;
+    final isCompleted = dayData['is_completed'] == true;
+
     return Card(
       color: AppTheme.cardBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -172,11 +151,9 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                 Text('Day $_selectedDay', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
                 Row(
                   children: [
-                    _statusBadge(dayData['is_active'] == true ? 'Active' : 'Inactive',
-                        dayData['is_active'] == true ? Colors.green : Colors.grey),
+                    _statusBadge(isActive ? 'Active' : 'Inactive', isActive ? Colors.green : Colors.grey),
                     const SizedBox(width: 8),
-                    _statusBadge(dayData['is_completed'] == true ? 'Completed' : 'Pending',
-                        dayData['is_completed'] == true ? Colors.blue : Colors.orange),
+                    _statusBadge(isCompleted ? 'Completed' : 'Pending', isCompleted ? Colors.blue : Colors.orange),
                   ],
                 ),
               ],
@@ -186,37 +163,89 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
             _infoRow(Icons.checkroom, 'Dress Code', dayData['dress_code'] ?? 'Not set'),
             _infoRow(Icons.calendar_today, 'Date', dayData['date'] ?? 'Not set'),
             const SizedBox(height: 12),
+            
+            // Start/End Day buttons
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showEditDayDialog(dayData),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit Details'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.goldPrimary,
-                      side: const BorderSide(color: AppTheme.goldPrimary),
+                if (!isActive && !isCompleted)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: AppTheme.cardBg,
+                            title: Text('Start Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
+                            content: const Text('This will activate Day $_selectedDay and deactivate all other days.', style: TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Start', style: TextStyle(color: Colors.green))),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await DatabaseHelper.startDay(_selectedDay);
+                          _loadData();
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Day $_selectedDay started!'), backgroundColor: Colors.green));
+                        }
+                      },
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text('Start Day'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      await DatabaseHelper.updateNavratriDay(_selectedDay,
-                          isCompleted: !(dayData['is_completed'] == true));
-                      _loadData();
-                    },
-                    icon: Icon(dayData['is_completed'] == true ? Icons.undo : Icons.check, size: 16),
-                    label: Text(dayData['is_completed'] == true ? 'Mark Pending' : 'Mark Done'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: dayData['is_completed'] == true ? Colors.orange : Colors.green,
-                      side: BorderSide(color: dayData['is_completed'] == true ? Colors.orange : Colors.green),
+                if (isActive && !isCompleted) ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: AppTheme.cardBg,
+                            title: Text('End Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
+                            content: const Text('This will complete Day $_selectedDay and auto-start the next day.', style: TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('End Day', style: TextStyle(color: Colors.red))),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await DatabaseHelper.endDay(_selectedDay);
+                          _loadData();
+                          if (mounted) {
+                            final nextDay = (_selectedDay < 9) ? _selectedDay + 1 : null;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(nextDay != null ? 'Day $_selectedDay ended! Day $nextDay auto-started.' : 'Day $_selectedDay ended! Festival complete.'),
+                              backgroundColor: Colors.green,
+                            ));
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.stop, size: 18),
+                      label: const Text('End Day'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
+            
+            if (!isActive && !isCompleted) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showEditDayDialog(dayData),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Edit Details'),
+                      style: OutlinedButton.styleFrom(foregroundColor: AppTheme.goldPrimary, side: const BorderSide(color: AppTheme.goldPrimary)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -324,25 +353,18 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: goddessController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Goddess Name', labelStyle: TextStyle(color: Colors.white70)),
-            ),
+            TextField(controller: goddessController, style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Goddess Name', labelStyle: TextStyle(color: Colors.white70))),
             const SizedBox(height: 12),
-            TextField(
-              controller: dressController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Dress Code', labelStyle: TextStyle(color: Colors.white70)),
-            ),
+            TextField(controller: dressController, style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Dress Code', labelStyle: TextStyle(color: Colors.white70))),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              await DatabaseHelper.updateNavratriDay(_selectedDay,
-                  goddessName: goddessController.text, dressCode: dressController.text);
+              await DatabaseHelper.updateNavratriDay(_selectedDay, goddessName: goddessController.text, dressCode: dressController.text);
               Navigator.pop(ctx);
               _loadData();
             },
@@ -367,32 +389,17 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: timeController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Time (HH:MM)', labelStyle: TextStyle(color: Colors.white70),
-                  hintText: '19:00',
-                ),
-              ),
+              TextField(controller: timeController, style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Time (HH:MM)', labelStyle: TextStyle(color: Colors.white70), hintText: '19:00')),
               const SizedBox(height: 12),
-              TextField(
-                controller: nameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Event Name *', labelStyle: TextStyle(color: Colors.white70)),
-              ),
+              TextField(controller: nameController, style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Event Name *', labelStyle: TextStyle(color: Colors.white70))),
               const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: Colors.white70)),
-              ),
+              TextField(controller: descController, style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: Colors.white70))),
               const SizedBox(height: 12),
-              TextField(
-                controller: locationController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Location', labelStyle: TextStyle(color: Colors.white70)),
-              ),
+              TextField(controller: locationController, style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Location', labelStyle: TextStyle(color: Colors.white70))),
             ],
           ),
         ),
@@ -402,11 +409,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
             onPressed: () async {
               if (nameController.text.isNotEmpty && timeController.text.isNotEmpty) {
                 await DatabaseHelper.addScheduleEvent(
-                  dayNumber: _selectedDay,
-                  time: timeController.text,
-                  name: nameController.text,
-                  description: descController.text,
-                  location: locationController.text,
+                  dayNumber: _selectedDay, time: timeController.text, name: nameController.text,
+                  description: descController.text, location: locationController.text,
                 );
                 Navigator.pop(ctx);
                 _loadData();

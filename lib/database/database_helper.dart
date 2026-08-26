@@ -320,6 +320,10 @@ class DatabaseHelper {
     });
   }
 
+  static Future<void> cancelAartiBooking(int bookingId) async {
+    await _put('/api/aarti-bookings/$bookingId/cancel', {});
+  }
+
   // ========== SNACKS ==========
 
   static Future<List<Map<String, dynamic>>> getSnacks() async {
@@ -379,6 +383,10 @@ class DatabaseHelper {
     await _put('/api/snack-orders/$orderId/status', {'status': status});
   }
 
+  static Future<void> cancelSnackOrder(int orderId) async {
+    await _put('/api/snack-orders/$orderId/cancel', {});
+  }
+
   // ========== GIFTS ==========
 
   static Future<List<Map<String, dynamic>>> getGifts({int? dayNumber, String? giftType}) async {
@@ -430,6 +438,10 @@ class DatabaseHelper {
 
   static Future<List<Map<String, dynamic>>> getMyGifts(String houseNumber) async {
     return _get('/api/gifts/my/$houseNumber');
+  }
+
+  static Future<void> cancelGiftAssignment(int assignmentId) async {
+    await _put('/api/gift-assignments/$assignmentId/cancel', {});
   }
 
   // ========== ANNOUNCEMENTS ==========
@@ -613,5 +625,44 @@ class DatabaseHelper {
     final params = <String, String>{};
     if (day != null) params['day'] = day.toString();
     return _get('/api/winners', queryParams: params.isNotEmpty ? params : null);
+  }
+
+  // ========== LUCKY DRAW ==========
+
+  static Future<Map<String, dynamic>?> spinDraw({required int dayNumber, required int drawnBy}) async {
+    final result = await _post('/api/daily-draws/spin', {
+      'day_number': dayNumber,
+      'drawn_by': drawnBy,
+    });
+    return result;
+  }
+
+  static Future<Map<String, dynamic>> getDailyDrawCount(int dayNumber) async {
+    final response = await http.get(Uri.parse('$_apiBase/api/daily-draws/count?day=$dayNumber')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return {'count': 0, 'max': 6};
+    return jsonDecode(response.body);
+  }
+
+  static Future<List<Map<String, dynamic>>> getDailyDrawHistory({int? dayNumber}) async {
+    final params = dayNumber != null ? '?day=$dayNumber' : '';
+    return _get('/api/daily-draws/history$params');
+  }
+
+  static Future<Map<String, dynamic>?> getDailyInfo({int? dayNumber}) async {
+    final params = dayNumber != null ? '?day=$dayNumber' : '';
+    final response = await http.get(Uri.parse('$_apiBase/api/daily-info$params')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    return data is Map ? Map<String, dynamic>.from(data) : null;
+  }
+
+  // ========== START / END DAY ==========
+
+  static Future<void> startDay(int dayNumber) async {
+    await _put('/api/navratri-days/$dayNumber/start', {});
+  }
+
+  static Future<void> endDay(int dayNumber) async {
+    await _put('/api/navratri-days/$dayNumber/end', {});
   }
 }

@@ -221,6 +221,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
         switch (status) {
           case 'delivered': statusColor = Colors.green; break;
           case 'preparing': statusColor = Colors.blue; break;
+          case 'cancelled': statusColor = Colors.grey; break;
           default: statusColor = Colors.orange;
         }
 
@@ -240,6 +241,29 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                   ],
                 ),
               ),
+              if (status != 'cancelled')
+                IconButton(
+                  icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: AppTheme.cardBg,
+                        title: const Text('Cancel Order?', style: TextStyle(color: Colors.white)),
+                        content: const Text('Are you sure you want to cancel this snack order?', style: TextStyle(color: Colors.white70)),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await DatabaseHelper.cancelSnackOrder(order['id']);
+                      _loadData();
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cancelled'), backgroundColor: Colors.orange));
+                    }
+                  },
+                ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),

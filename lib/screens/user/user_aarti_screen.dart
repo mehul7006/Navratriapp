@@ -94,14 +94,14 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
 
   Widget _buildMyBookingCard(Map<String, dynamic> booking) {
     final status = booking['status'] ?? 'pending';
-    final statusColor = status == 'approved' ? Colors.green : (status == 'rejected' ? Colors.red : Colors.orange);
+    final statusColor = status == 'approved' ? Colors.green : (status == 'rejected' ? Colors.red : (status == 'cancelled' ? Colors.grey : Colors.orange));
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: statusColor.withOpacity(0.5))),
       child: Row(
         children: [
-          Icon(status == 'approved' ? Icons.check_circle : (status == 'rejected' ? Icons.cancel : Icons.pending), color: statusColor, size: 28),
+          Icon(status == 'approved' ? Icons.check_circle : (status == 'rejected' ? Icons.cancel : (status == 'cancelled' ? Icons.cancel : Icons.pending)), color: statusColor, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -113,6 +113,29 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
               ],
             ),
           ),
+          if (status != 'cancelled' && status != 'rejected')
+            IconButton(
+              icon: const Icon(Icons.cancel, color: Colors.red, size: 22),
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppTheme.cardBg,
+                    title: const Text('Cancel Booking?', style: TextStyle(color: Colors.white)),
+                    content: const Text('Are you sure you want to cancel this aarti booking?', style: TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await DatabaseHelper.cancelAartiBooking(booking['id']);
+                  _loadData();
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange));
+                }
+              },
+            ),
         ],
       ),
     );
