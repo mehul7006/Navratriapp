@@ -223,10 +223,13 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   }
 
   Widget _buildPaymentsList(List<Map<String, dynamic>> list) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: list.length,
-      itemBuilder: (context, i) => _buildPaymentCard(list[i]),
+    return RefreshIndicator(
+      onRefresh: _loadPayments,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: list.length,
+        itemBuilder: (context, i) => _buildPaymentCard(list[i]),
+      ),
     );
   }
 

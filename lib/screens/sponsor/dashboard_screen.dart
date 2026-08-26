@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
@@ -77,9 +80,11 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
                   _buildActionCard(
                     icon: Icons.upload,
                     title: 'My Advertisement',
-                    subtitle: _sponsorData?['advertisement_text']?.toString().isNotEmpty == true
-                        ? _sponsorData!['advertisement_text']
-                        : 'No advertisement uploaded',
+                    subtitle: _sponsorData?['advertisement_image']?.toString().isNotEmpty == true
+                        ? 'Image uploaded - tap to change'
+                        : (_sponsorData?['advertisement_text']?.toString().isNotEmpty == true
+                            ? _sponsorData!['advertisement_text']
+                            : 'No advertisement uploaded'),
                     onTap: () => _showAdDialog(),
                   ),
                   _buildActionCard(
@@ -191,16 +196,61 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
 
   void _showAdDialog() {
     final adText = _sponsorData?['advertisement_text'] ?? '';
+    final existingImage = _sponsorData?['advertisement_image'] ?? '';
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.purpleCard,
         title: const Text('My Advertisement', style: TextStyle(color: Colors.white)),
-        content: Text(adText.isNotEmpty ? adText : 'No advertisement uploaded yet.', style: const TextStyle(color: Colors.white70)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (existingImage.toString().isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(base64Decode(existingImage), height: 120, width: double.infinity, fit: BoxFit.cover),
+                ),
+                const SizedBox(height: 12),
+              ],
+              Text(adText.isNotEmpty ? adText : 'No advertisement uploaded yet.', style: const TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
         actions: [
+          TextButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _pickAndUploadImage();
+            },
+            icon: const Icon(Icons.camera_alt, color: AppTheme.goldPrimary, size: 18),
+            label: const Text('Upload Image', style: TextStyle(color: AppTheme.goldPrimary)),
+          ),
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close', style: TextStyle(color: AppTheme.goldPrimary))),
         ],
       ),
     );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked == null) return;
+    final bytes = await File(picked.path).readAsBytes();
+    final base64Image = base64Encode(bytes);
+    final auth = context.read<AuthProvider>();
+    final userId = auth.userId ?? 0;
+    try {
+      await DatabaseHelper.updateSponsorImage(userId, base64Image);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image uploaded successfully'), backgroundColor: Colors.green));
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
+      }
+    }
   }
 }

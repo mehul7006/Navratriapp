@@ -12,6 +12,7 @@ import 'user_gifts_screen.dart';
 import 'user_profile_screen.dart';
 import 'user_schedule_screen.dart';
 import 'user_winners_screen.dart';
+import 'user_payment_history_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -220,6 +221,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           icon: Icons.emoji_events,
           title: 'Winners',
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen())),
+        ),
+        _buildActionCard(
+          icon: Icons.receipt_long,
+          title: 'Payments',
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen())),
         ),
       ],
     );

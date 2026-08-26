@@ -121,10 +121,13 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   }
 
   Widget _buildMembersList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _filteredMembers.length,
-      itemBuilder: (context, index) => _buildMemberCard(_filteredMembers[index]),
+    return RefreshIndicator(
+      onRefresh: _loadMembers,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: _filteredMembers.length,
+        itemBuilder: (context, index) => _buildMemberCard(_filteredMembers[index]),
+      ),
     );
   }
 

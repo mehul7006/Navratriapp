@@ -301,10 +301,13 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
   }
 
   Widget _buildExpensesList(List<Map<String, dynamic>> list) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: list.length,
-      itemBuilder: (context, i) => _buildExpenseCard(list[i]),
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: list.length,
+        itemBuilder: (context, i) => _buildExpenseCard(list[i]),
+      ),
     );
   }
 
