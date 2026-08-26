@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # PostgreSQL Database Service
+  # ============================================
+  db:
+    image: postgres:15-alpine
+    container_name: navratri_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: navratri_2026
+      POSTGRES_USER: navratri_admin
+      POSTGRES_PASSWORD: navratri_secret_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U navratri_admin -d navratri_2026"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # pgAdmin (Database Management UI)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: navratri_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@navratri2026.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+
+# ============================================
+# Usage:
+# 1. Start: docker-compose up -d
+# 2. Stop: docker-compose down
+# 3. Reset: docker-compose down -v && docker-compose up -d
+# 4. pgAdmin: http://localhost:5050
+# ============================================

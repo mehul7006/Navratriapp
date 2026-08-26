@@ -1,0 +1,29 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Platform build artifacts
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Misc
+*.log
+*.pyc
+.DS_Store
+Thumbs.db
+
+# API server build
+api_server/.dart_tool/
+api_server/build/

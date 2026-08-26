@@ -1,0 +1,12 @@
+{
+    "name": "Navratri 2026 - Nishitpark",
+    "short_name": "Navratri 2026",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0C0117",
+    "theme_color": "#FFB703",
+    "description": "Nishitpark Society Navratri Mahotsav 2026 - Digital Festival App",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": []
+}

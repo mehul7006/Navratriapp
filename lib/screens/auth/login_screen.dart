@@ -1,0 +1,455 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../database/database_helper.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _userIdController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
+  String _selectedUserType = 'user';
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _userIdController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  String get _loginHint {
+    switch (_selectedUserType) {
+      case 'user':
+        return 'Enter your House Number';
+      case 'organizer':
+        return 'Enter organizer username';
+      case 'sponsor':
+        return 'Enter your House Number';
+      default:
+        return 'Enter User ID';
+    }
+  }
+
+  String get _passwordHint {
+    switch (_selectedUserType) {
+      case 'user':
+        return 'Enter your Mobile Number';
+      case 'organizer':
+        return 'Enter password';
+      case 'sponsor':
+        return 'Enter password';
+      default:
+        return 'Enter Password';
+    }
+  }
+
+  String get _userIdLabel {
+    switch (_selectedUserType) {
+      case 'user':
+        return 'House Number (e.g., A-402, B-101)';
+      case 'organizer':
+        return 'Username';
+      case 'sponsor':
+        return 'House Number (e.g., SP-001)';
+      default:
+        return 'User ID';
+    }
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      bool success = false;
+
+      switch (_selectedUserType) {
+        case 'user':
+          success = await authProvider.loginUser(
+            houseNumber: _userIdController.text.trim(),
+            mobileNumber: _passwordController.text.trim(),
+          );
+          break;
+        case 'organizer':
+          success = await authProvider.loginOrganizer(
+            username: _userIdController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+          break;
+        case 'sponsor':
+          success = await authProvider.loginSponsor(
+            houseNumber: _userIdController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+          break;
+      }
+
+      if (success && mounted) {
+        final userType = authProvider.currentUser?['user_type'];
+        switch (userType) {
+          case 'organizer':
+            Navigator.pushReplacementNamed(context, '/organizer/dashboard');
+            break;
+          case 'sponsor':
+            Navigator.pushReplacementNamed(context, '/sponsor/dashboard');
+            break;
+          default:
+            Navigator.pushReplacementNamed(context, '/user/home');
+        }
+      } else if (mounted) {
+        _showError(authProvider.error ?? 'Invalid credentials. Please try again.');
+      }
+    } catch (e) {
+      _showError('Login failed: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildLogo(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'NAVRATRI 2026',
+                    style: TextStyle(
+                      fontFamily: 'Cinzel',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.goldPrimary,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'NISHITPARK SOCIETY',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _buildLoginForm(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppTheme.goldPrimary,
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.goldPrimary.withOpacity(0.6),
+            blurRadius: 35,
+            spreadRadius: 5,
+          ),
+        ],
+        color: AppTheme.purpleCard.withOpacity(0.7),
+      ),
+      child: const Center(
+        child: Text(
+          '🪔',
+          style: TextStyle(fontSize: 44),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.purpleCard.withOpacity(0.88),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppTheme.goldPrimary.withOpacity(0.55),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Login as',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textMuted,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildUserTypeSelector(),
+            const SizedBox(height: 20),
+            _buildTextField(
+              controller: _userIdController,
+              label: _userIdLabel,
+              hint: _loginHint,
+              icon: _selectedUserType == 'organizer'
+                  ? Icons.person
+                  : Icons.home,
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              controller: _passwordController,
+              label: _selectedUserType == 'user' ? 'Mobile Number' : 'Password',
+              hint: _passwordHint,
+              icon: Icons.lock,
+              keyboardType: _selectedUserType == 'user'
+                  ? TextInputType.phone
+                  : TextInputType.visiblePassword,
+              obscureText: _obscurePassword,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  color: AppTheme.textMuted,
+                ),
+                onPressed: () {
+                  setState(() => _obscurePassword = !_obscurePassword);
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_selectedUserType == 'user')
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cyanAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppTheme.cyanAccent.withOpacity(0.3),
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: AppTheme.cyanAccent, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Use your House Number as User ID and Mobile Number as Password',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.cyanAccent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _handleLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.goldPrimary,
+                foregroundColor: AppTheme.purpleDark,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.purpleDark),
+                      ),
+                    )
+                  : const Text(
+                      'LOGIN',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 16),
+            if (_selectedUserType == 'user')
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/register');
+                },
+                child: const Text(
+                  'New User? Register Here',
+                  style: TextStyle(
+                    color: AppTheme.goldPrimary,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserTypeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.purpleDark.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.goldPrimary.withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          _buildUserTypeOption('User', 'user', Icons.person),
+          const SizedBox(width: 4),
+          _buildUserTypeOption('Organizer', 'organizer', Icons.admin_panel_settings),
+          const SizedBox(width: 4),
+          _buildUserTypeOption('Sponsor', 'sponsor', Icons.business),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserTypeOption(String label, String value, IconData icon) {
+    final isSelected = _selectedUserType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedUserType = value;
+            _userIdController.clear();
+            _passwordController.clear();
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted,
+                size: 20,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    Widget? suffixIcon,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: AppTheme.goldPrimary),
+        suffixIcon: suffixIcon,
+        labelStyle: const TextStyle(color: AppTheme.textMuted),
+        hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5)),
+        filled: true,
+        fillColor: AppTheme.purpleDark.withOpacity(0.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.goldPrimary, width: 2),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'This field is required';
+        }
+        return null;
+      },
+    );
+  }
+}

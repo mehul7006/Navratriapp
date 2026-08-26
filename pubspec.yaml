@@ -1,0 +1,31 @@
+name: navratri_app
+description: Nishitpark Society Navratri Mahotsav 2026 - Digital Festival App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  qr_flutter: ^4.1.0
+  url_launcher: ^6.2.1
+  intl: ^0.19.0
+  http: ^1.2.0
+  provider: ^6.1.1
+  fl_chart: ^0.68.0
+  pdf: ^3.10.7
+  printing: ^5.12.0
+  image_picker: ^1.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/BGIMAGE.png

@@ -1,0 +1,690 @@
+import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
+import '../../database/database_helper.dart';
+
+class TicketManagementScreen extends StatefulWidget {
+  const TicketManagementScreen({super.key});
+
+  @override
+  State<TicketManagementScreen> createState() => _TicketManagementScreenState();
+}
+
+class _TicketManagementScreenState extends State<TicketManagementScreen> {
+  List<Map<String, dynamic>> _tickets = [];
+  List<Map<String, dynamic>> _days = [];
+  bool _isLoading = true;
+  int _selectedDay = 0;
+  String _filter = 'all';
+  bool _isMultiSelectMode = false;
+  Set<int> _selectedTicketIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _toggleMultiSelect() {
+    setState(() {
+      _isMultiSelectMode = !_isMultiSelectMode;
+      if (!_isMultiSelectMode) _selectedTicketIds.clear();
+    });
+  }
+
+  void _toggleTicketSelection(int id) {
+    setState(() {
+      if (_selectedTicketIds.contains(id)) {
+        _selectedTicketIds.remove(id);
+      } else {
+        _selectedTicketIds.add(id);
+      }
+    });
+  }
+
+  void _selectAll() {
+    final filtered = _filter == 'winners' ? _tickets.where((t) => t['is_winner'] == true).toList() : _tickets;
+    setState(() {
+      if (_selectedTicketIds.length == filtered.length) {
+        _selectedTicketIds.clear();
+      } else {
+        _selectedTicketIds = filtered.map((t) => t['id'] as int).toSet();
+      }
+    });
+  }
+
+  void _showBatchDeleteDialog() {
+    if (_selectedTicketIds.isEmpty) return;
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: Text('Delete ${_selectedTicketIds.length} Tickets', style: const TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Permanently delete ${_selectedTicketIds.length} selected tickets?',
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              const Text('Reason (required)', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: reasonController,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                maxLines: 2,
+                decoration: InputDecoration(
+                  hintText: 'Enter reason for deletion...',
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                  filled: true,
+                  fillColor: AppTheme.purpleDark,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.red.withOpacity(0.5))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.red.withOpacity(0.5))),
+                ),
+                onChanged: (_) => setDialogState(() {}),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+            TextButton(
+              onPressed: reasonController.text.trim().isEmpty
+                  ? null
+                  : () async {
+                      await DatabaseHelper.batchDeleteTickets(_selectedTicketIds.toList(), reasonController.text.trim());
+                      Navigator.pop(ctx);
+                      setState(() { _isMultiSelectMode = false; _selectedTicketIds.clear(); });
+                      _loadData();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Tickets deleted'), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+              child: Text('Delete ${_selectedTicketIds.length}', style: TextStyle(color: reasonController.text.trim().isEmpty ? Colors.white38 : Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final days = await DatabaseHelper.getNavratriDays();
+      final dayParam = _selectedDay > 0 ? '$_selectedDay' : null;
+      final assignedParam = _filter == 'assigned' ? 'true' : _filter == 'unassigned' ? 'false' : null;
+      final tickets = await DatabaseHelper.getAllTickets(day: dayParam, assigned: assignedParam);
+      setState(() {
+        _days = days;
+        _tickets = tickets;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.purpleDark,
+      appBar: AppBar(
+        title: Text(_isMultiSelectMode ? '${_selectedTicketIds.length} Selected' : 'Draw Tickets', style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppTheme.purpleDeep,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (_isMultiSelectMode) ...[
+            IconButton(
+              icon: Icon(_selectedTicketIds.isEmpty ? Icons.select_all : Icons.deselect, color: Colors.white),
+              onPressed: _selectAll,
+              tooltip: _selectedTicketIds.isEmpty ? 'Select All' : 'Deselect All',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: _selectedTicketIds.isEmpty ? null : _showBatchDeleteDialog,
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white70),
+              onPressed: _toggleMultiSelect,
+            ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.checklist, color: Colors.white),
+              onPressed: _toggleMultiSelect,
+              tooltip: 'Multi-Select',
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: _loadData,
+            ),
+          ],
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildDaySelector(),
+          _buildFilterChips(),
+          _buildStats(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                : _tickets.isEmpty
+                    ? _buildEmptyState()
+                    : _buildTicketList(),
+          ),
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'generate',
+            backgroundColor: AppTheme.goldPrimary,
+            onPressed: _showGenerateDialog,
+            icon: const Icon(Icons.add, color: Colors.black),
+            label: const Text('Generate', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'assign',
+            backgroundColor: Colors.blue,
+            onPressed: _showAssignDialog,
+            icon: const Icon(Icons.person_add, color: Colors.white),
+            label: const Text('Assign', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDaySelector() {
+    return Container(
+      height: 60,
+      color: AppTheme.purpleDeep.withValues(alpha: 0.3),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilterChip(
+              label: const Text('All'),
+              selected: _selectedDay == 0,
+              selectedColor: AppTheme.goldPrimary,
+              onSelected: (s) { setState(() => _selectedDay = 0); _loadData(); },
+              labelStyle: TextStyle(color: _selectedDay == 0 ? Colors.black : Colors.white),
+            ),
+          ),
+          ...List.generate(9, (i) {
+            final dayNum = i + 1;
+            final dayData = _days.where((d) => d['day_number'] == dayNum).toList();
+            final goddess = dayData.isNotEmpty ? dayData[0]['goddess_name'] ?? '' : '';
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: FilterChip(
+                label: Text('D$dayNum${goddess.isNotEmpty ? " $goddess" : ""}'),
+                selected: _selectedDay == dayNum,
+                selectedColor: AppTheme.goldPrimary,
+                onSelected: (s) { setState(() => _selectedDay = dayNum); _loadData(); },
+                labelStyle: TextStyle(color: _selectedDay == dayNum ? Colors.black : Colors.white, fontSize: 12),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _chip('All', 'all'),
+          const SizedBox(width: 8),
+          _chip('Assigned', 'assigned'),
+          const SizedBox(width: 8),
+          _chip('Unassigned', 'unassigned'),
+          const SizedBox(width: 8),
+          _chip('Winners', 'winners'),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, String value) {
+    final selected = _filter == value;
+    return FilterChip(
+      label: Text(label, style: TextStyle(color: selected ? Colors.black : Colors.white70, fontSize: 12)),
+      selected: selected,
+      selectedColor: AppTheme.goldPrimary,
+      onSelected: (s) {
+        setState(() => _filter = value);
+        if (value != 'winners') _loadData();
+      },
+    );
+  }
+
+  Widget _buildStats() {
+    final total = _tickets.length;
+    final assigned = _tickets.where((t) => t['is_assigned'] == true).length;
+    final winners = _tickets.where((t) => t['is_winner'] == true).length;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _statItem('Total', '$total', Colors.blue),
+          _statItem('Assigned', '$assigned', Colors.green),
+          _statItem('Winners', '$winners', Colors.amber),
+          _statItem('Unassigned', '${total - assigned}', Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  Widget _statItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.confirmation_number, size: 64, color: Colors.white24),
+          SizedBox(height: 16),
+          Text('No tickets found', style: TextStyle(color: Colors.white54, fontSize: 16)),
+          SizedBox(height: 8),
+          Text('Generate tickets for a day or assign to members', style: TextStyle(color: Colors.white38, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTicketList() {
+    final filtered = _filter == 'winners' ? _tickets.where((t) => t['is_winner'] == true).toList() : _tickets;
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        final ticket = filtered[index];
+        return _buildTicketCard(ticket);
+      },
+    );
+  }
+
+  Widget _buildTicketCard(Map<String, dynamic> ticket) {
+    final isWinner = ticket['is_winner'] == true;
+    final isAssigned = ticket['is_assigned'] == true;
+    final isSelected = _selectedTicketIds.contains(ticket['id']);
+    return Card(
+      color: isSelected
+          ? Colors.blue.withOpacity(0.3)
+          : isWinner ? Colors.green.withValues(alpha: 0.2) : AppTheme.cardBg,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? Colors.blue : isWinner ? Colors.green : isAssigned ? Colors.blue : Colors.white24,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: ListTile(
+        leading: _isMultiSelectMode
+            ? Checkbox(
+                value: isSelected,
+                onChanged: (_) => _toggleTicketSelection(ticket['id']),
+                activeColor: Colors.blue,
+                checkColor: Colors.white,
+              )
+            : CircleAvatar(
+                backgroundColor: isWinner ? Colors.green : isAssigned ? Colors.blue : Colors.grey,
+                child: Icon(isWinner ? Icons.emoji_events : isAssigned ? Icons.person : Icons.confirmation_number, color: Colors.white, size: 20),
+              ),
+        title: Text(
+          ticket['ticket_code']?.toString().substring(0, [ticket['ticket_code']?.toString().length ?? 0, 30].reduce((a, b) => a < b ? a : b)) ?? 'Ticket',
+          style: TextStyle(color: isSelected ? Colors.blue : Colors.white, fontSize: 12, fontFamily: 'monospace'),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Day ${ticket['day_number'] ?? '?'} • ${ticket['goddess_name'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            if (isAssigned)
+              Text('House: ${ticket['assigned_house'] ?? ticket['house_number'] ?? ''} • ${ticket['user_name'] ?? ''}', style: const TextStyle(color: Colors.blue, fontSize: 11)),
+            if (isWinner)
+              const Text('WINNER', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)),
+          ],
+        ),
+        trailing: _isMultiSelectMode
+            ? null
+            : PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white70),
+                onSelected: (value) => _handleTicketAction(value, ticket),
+                itemBuilder: (context) => [
+                  if (!isWinner)
+                    const PopupMenuItem(value: 'winner', child: Text('Mark as Winner')),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Future<void> _handleTicketAction(String action, Map<String, dynamic> ticket) async {
+    if (action == 'winner') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Mark as Winner?'),
+          content: Text('Mark ticket ${ticket['ticket_code']} as winner?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm', style: TextStyle(color: Colors.green))),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        await DatabaseHelper.markWinner(ticket['id']);
+        _loadData();
+      }
+    } else if (action == 'delete') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Delete Ticket?'),
+          content: const Text('This cannot be undone.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        await DatabaseHelper.deleteTicket(ticket['id']);
+        _loadData();
+      }
+    }
+  }
+
+  void _showGenerateDialog() {
+    int selectedDay = 1;
+    int count = 50;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: const Text('Generate Tickets', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<int>(
+                value: selectedDay,
+                dropdownColor: AppTheme.purpleDeep,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Day', labelStyle: TextStyle(color: Colors.white70)),
+                items: List.generate(9, (i) => DropdownMenuItem(value: i + 1, child: Text('Day ${i + 1}'))),
+                onChanged: (v) => setDialogState(() => selectedDay = v ?? 1),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: '50',
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Number of tickets', labelStyle: TextStyle(color: Colors.white70)),
+                onChanged: (v) => count = int.tryParse(v) ?? 50,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () async {
+                await DatabaseHelper.generateTickets(dayNumber: selectedDay, count: count);
+                Navigator.pop(ctx);
+                _loadData();
+              },
+              child: const Text('Generate', style: TextStyle(color: AppTheme.goldPrimary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAssignDialog() {
+    String ticketCode = '';
+    String houseNumber = '';
+    List<Map<String, dynamic>> members = [];
+    int? selectedUserId;
+    bool showMembers = false;
+    bool showAddMember = false;
+    bool isSearching = false;
+    final nameController = TextEditingController();
+    final mobileController = TextEditingController();
+    final houseController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: const Text('Assign Ticket', style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Ticket Code', labelStyle: TextStyle(color: Colors.white70)),
+                  onChanged: (v) => ticketCode = v,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: houseController,
+                  style: const TextStyle(color: Colors.white),
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: 'House Number',
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    hintText: 'Type house number...',
+                    suffixIcon: isSearching
+                        ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary)))
+                        : (showMembers && members.isNotEmpty)
+                            ? Icon(Icons.check, color: Colors.green, size: 18)
+                            : null,
+                  ),
+                  onChanged: (v) async {
+                    houseNumber = v.toUpperCase();
+                    if (v.length >= 2) {
+                      setDialogState(() => isSearching = true);
+                      try {
+                        final result = await DatabaseHelper.getMembersByHouse(houseNumber);
+                        setDialogState(() {
+                          members = result;
+                          showMembers = result.isNotEmpty;
+                          showAddMember = result.isEmpty;
+                          selectedUserId = null;
+                          isSearching = false;
+                        });
+                      } catch (e) {
+                        setDialogState(() {
+                          members = [];
+                          showMembers = false;
+                          showAddMember = true;
+                          isSearching = false;
+                        });
+                      }
+                    } else {
+                      setDialogState(() { members = []; showMembers = false; showAddMember = false; isSearching = false; });
+                    }
+                  },
+                ),
+                if (showMembers && members.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('${members.length} member(s) found', style: const TextStyle(color: Colors.green, fontSize: 11)),
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleDark,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: members.length,
+                      itemBuilder: (context, index) {
+                        final m = members[index];
+                        final isSelected = selectedUserId == m['id'];
+                        final memberName = (m['name'] ?? '').toString();
+                        final memberMobile = (m['mobile_number'] ?? '').toString();
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            backgroundColor: isSelected ? Colors.green : AppTheme.goldPrimary,
+                            radius: 14,
+                            child: Text(memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
+                                style: const TextStyle(fontSize: 11, color: AppTheme.purpleDark, fontWeight: FontWeight.bold)),
+                          ),
+                          title: Text(memberName, style: TextStyle(color: isSelected ? Colors.green : Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                          subtitle: memberMobile.isNotEmpty && memberMobile != '0' ? Text(memberMobile, style: const TextStyle(color: Colors.white54, fontSize: 11)) : null,
+                          trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green, size: 20) : null,
+                          onTap: () {
+                            setDialogState(() {
+                              selectedUserId = m['id'];
+                              showAddMember = false;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                if (showAddMember && houseNumber.isNotEmpty && members.isEmpty && !isSearching) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('No members in $houseNumber. Add one?', style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: nameController,
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          textCapitalization: TextCapitalization.words,
+                          decoration: InputDecoration(
+                            hintText: 'Member name *',
+                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: mobileController,
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            hintText: 'Mobile number (optional)',
+                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(vertical: 8)),
+                            icon: const Icon(Icons.person_add, size: 14, color: Colors.white),
+                            label: const Text('Add & Select', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            onPressed: () async {
+                              if (nameController.text.trim().isNotEmpty) {
+                                try {
+                                  final userId = await DatabaseHelper.registerUser(
+                                    houseNumber: houseNumber,
+                                    name: nameController.text.trim(),
+                                    mobileNumber: mobileController.text.trim().isNotEmpty ? mobileController.text.trim() : '0000000000',
+                                    userType: 'user',
+                                  );
+                                  final result = await DatabaseHelper.getMembersByHouse(houseNumber);
+                                  setDialogState(() {
+                                    members = result;
+                                    showMembers = result.isNotEmpty;
+                                    showAddMember = false;
+                                    selectedUserId = userId;
+                                    nameController.clear();
+                                    mobileController.clear();
+                                  });
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('${nameController.text} added to $houseNumber'), backgroundColor: Colors.green),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error adding member: $e'), backgroundColor: Colors.red),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: (selectedUserId != null && ticketCode.isNotEmpty)
+                  ? () async {
+                      await DatabaseHelper.assignTicket(
+                        ticketCode: ticketCode,
+                        userId: selectedUserId!,
+                        houseNumber: houseNumber,
+                      );
+                      Navigator.pop(ctx);
+                      _loadData();
+                    }
+                  : null,
+              child: Text('Assign', style: TextStyle(color: selectedUserId != null ? AppTheme.goldPrimary : Colors.white38)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
