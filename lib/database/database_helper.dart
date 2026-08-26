@@ -592,6 +592,27 @@ class DatabaseHelper {
     return data is Map ? Map<String, dynamic>.from(data) : null;
   }
 
+  static Future<Map<String, dynamic>?> getPaymentsByHouseReport() async {
+    final response = await http.get(Uri.parse('$_apiBase/api/reports/payments-by-house')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    return data is Map ? Map<String, dynamic>.from(data) : null;
+  }
+
+  static Future<Map<String, dynamic>?> getExpensesByDateReport() async {
+    final response = await http.get(Uri.parse('$_apiBase/api/reports/expenses-by-date')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    return data is Map ? Map<String, dynamic>.from(data) : null;
+  }
+
+  static Future<Map<String, dynamic>?> getDailyActivityReport() async {
+    final response = await http.get(Uri.parse('$_apiBase/api/reports/daily-activity')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    return data is Map ? Map<String, dynamic>.from(data) : null;
+  }
+
   // ========== GENERIC QUERY ==========
 
   static Future<List<Map<String, dynamic>>> query(String sql, {Map<String, dynamic>? substitutionValues}) async {

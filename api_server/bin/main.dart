@@ -142,6 +142,9 @@ final router = Router()
   ..get('/api/broadcasts', _getBroadcasts)
   ..delete('/api/broadcasts/<id>', _deleteBroadcast)
   ..get('/api/reports/summary', _getReportSummary)
+  ..get('/api/reports/payments-by-house', _getPaymentsByHouseReport)
+  ..get('/api/reports/expenses-by-date', _getExpensesByDateReport)
+  ..get('/api/reports/daily-activity', _getDailyActivityReport)
   ..post('/api/query', _genericQuery)
   ..post('/api/execute', _genericExecute);
 
@@ -1748,6 +1751,117 @@ Future<Response> _getReportSummary(Request request) async {
       'ticket_assigned': _parseRow(ticketAssigned.first)['total'],
       'category_expenses': _parseResults(catExpenses),
     });
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== DETAILED REPORTS ==========
+
+Future<Response> _getPaymentsByHouseReport(Request request) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(Sql.named('''
+      SELECT house_number, payer_name, SUM(amount) as total_amount,
+             payment_method, payment_status, COUNT(*) as payment_count
+      FROM fund_collections
+      WHERE is_deleted IS NOT TRUE
+      GROUP BY house_number, payer_name, payment_method, payment_status
+      ORDER BY house_number ASC
+    '''));
+    final total = await conn.execute(Sql.named("SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
+    final sponsorTotal = await conn.execute(Sql.named("SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE is_active = TRUE"));
+    return _jsonResponse({
+      'payments': _parseResults(results),
+      'fund_total': _parseRow(total.first)['total'],
+      'sponsor_total': _parseRow(sponsorTotal.first)['total'],
+    });
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getExpensesByDateReport(Request request) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(Sql.named('''
+      SELECT e.expense_date, c.name as category_name, e.item_name,
+             e.amount, e.paid_to, e.paid_by, e.notes
+      FROM expenses e
+      JOIN expense_categories c ON e.category_id = c.id
+      WHERE e.is_deleted IS NOT TRUE
+      ORDER BY e.expense_date DESC, c.name
+    '''));
+    final byDate = await conn.execute(Sql.named('''
+      SELECT e.expense_date, COALESCE(SUM(e.amount), 0) as total
+      FROM expenses e WHERE e.is_deleted IS NOT TRUE
+      GROUP BY e.expense_date ORDER BY e.expense_date DESC
+    '''));
+    final total = await conn.execute(Sql.named("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE is_deleted IS NOT TRUE"));
+    return _jsonResponse({
+      'expenses': _parseResults(results),
+      'by_date': _parseResults(byDate),
+      'total': _parseRow(total.first)['total'],
+    });
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getDailyActivityReport(Request request) async {
+  try {
+    final conn = await db;
+    final days = await conn.execute(Sql.named('''
+      SELECT nd.day_number, nd.goddess_name, nd.date, nd.dress_code, nd.is_active, nd.is_completed
+      FROM navratri_days nd ORDER BY nd.day_number
+    '''));
+
+    final activity = <Map<String, dynamic>>[];
+    for (final dayRow in days.rows) {
+      final dayMap = dayRow.toColumnMap();
+      final dayNum = dayMap['day_number'];
+
+      final aarti = await conn.execute(Sql.named('''
+        SELECT ab.house_number, u.name, a.slot_time, a.slot_label, ab.status
+        FROM aarti_bookings ab
+        JOIN users u ON ab.user_id = u.id
+        JOIN aarti_slots a ON ab.slot_id = a.id
+        WHERE ab.day_number = @day AND ab.status != 'cancelled'
+        ORDER BY a.slot_time
+      '''), parameters: {'day': dayNum});
+
+      final foods = await conn.execute(Sql.named('''
+        SELECT so.house_number, u.name, s.name as snack_name, so.quantity, so.total_price, so.status
+        FROM snack_orders so
+        JOIN users u ON so.user_id = u.id
+        JOIN snacks s ON so.snack_id = s.id
+        WHERE so.day_number = @day AND so.status != 'cancelled'
+        ORDER BY u.house_number
+      '''), parameters: {'day': dayNum});
+
+      final gifts = await conn.execute(Sql.named('''
+        SELECT ga.house_number, u.name, g.name as gift_name, ga.status
+        FROM gift_assignments ga
+        JOIN users u ON ga.user_id = u.id
+        JOIN gifts g ON ga.gift_id = g.id
+        WHERE ga.day_number = @day AND ga.status != 'cancelled'
+        ORDER BY u.house_number
+      '''), parameters: {'day': dayNum});
+
+      activity.add({
+        'day_number': dayNum,
+        'goddess_name': dayMap['goddess_name'],
+        'date': dayMap['date'],
+        'dress_code': dayMap['dress_code'],
+        'is_active': dayMap['is_active'],
+        'is_completed': dayMap['is_completed'],
+        'aarti_bookings': _parseResults(aarti),
+        'food_orders': _parseResults(foods),
+        'gift_assignments': _parseResults(gifts),
+      });
+    }
+
+    return _jsonResponse({'days': activity});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
