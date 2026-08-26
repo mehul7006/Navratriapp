@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
@@ -12,7 +13,7 @@ class LuckyDrawScreen extends StatefulWidget {
   State<LuckyDrawScreen> createState() => _LuckyDrawScreenState();
 }
 
-class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProviderStateMixin {
+class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderStateMixin {
   int _selectedDay = 1;
   int _spinsToday = 0;
   int _maxSpins = 6;
@@ -22,6 +23,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
   List<Map<String, dynamic>> _drawHistory = [];
   List<Map<String, dynamic>> _days = [];
   AnimationController? _spinController;
+  Animation<double>? _spinAnimation;
+  final Random _random = Random();
 
   @override
   void initState() {
@@ -56,16 +59,23 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
 
   Future<void> _doSpin() async {
     if (_spinsToday >= _maxSpins || _isSpinning) return;
-    
-    setState(() => _isSpinning = true);
-    
+
+    setState(() {
+      _isSpinning = true;
+      _lastResult = null;
+    });
+
+    final spins = 5 + _random.nextInt(4);
     _spinController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     );
-    _spinController!.forward();
+    _spinAnimation = Tween<double>(
+      begin: 0,
+      end: spins * 2 * pi,
+    ).animate(CurvedAnimation(parent: _spinController!, curve: Curves.decelerate));
 
-    await Future.delayed(const Duration(seconds: 3));
+    _spinController!.forward();
 
     final auth = context.read<AuthProvider>();
     final result = await DatabaseHelper.spinDraw(
@@ -73,13 +83,16 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
       drawnBy: auth.currentUser?['id'] ?? 0,
     );
 
+    await _spinController!.forward();
+
+    _spinController?.dispose();
+    _spinController = null;
+    _spinAnimation = null;
+
     setState(() {
       _isSpinning = false;
       _lastResult = result;
     });
-
-    _spinController?.dispose();
-    _spinController = null;
 
     if (result != null) {
       _showWinnerDialog(result);
@@ -165,7 +178,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
   }
 
   Widget _buildDaySelector() {
-    return Container(
+    return SizedBox(
       height: 60,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -226,7 +239,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
           ),
           const SizedBox(height: 8),
           LinearProgressIndicator(
-            value: _spinsToday / _maxSpins,
+            value: _maxSpins > 0 ? _spinsToday / _maxSpins : 0,
             backgroundColor: Colors.white12,
             valueColor: AlwaysStoppedAnimation(remaining > 0 ? AppTheme.goldPrimary : Colors.red),
             minHeight: 6,
@@ -241,66 +254,100 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
 
   Widget _buildSpinWheel() {
     final canSpin = _spinsToday < _maxSpins && !_isSpinning;
-    return GestureDetector(
-      onTap: canSpin ? _doSpin : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: 200,
-        height: 200,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: canSpin
-              ? const RadialGradient(colors: [AppTheme.goldPrimary, Color(0xFFB8860B)])
-              : const RadialGradient(colors: [Colors.grey, Colors.black54]),
-          boxShadow: [
-            BoxShadow(
-              color: canSpin ? AppTheme.goldPrimary.withOpacity(0.4) : Colors.transparent,
-              blurRadius: 30,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 180,
-              height: 180,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.purpleDark,
-              ),
-              child: Center(
-                child: _isSpinning
-                    ? const CircularProgressIndicator(color: AppTheme.goldPrimary, strokeWidth: 3)
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.casino, size: 48, color: canSpin ? AppTheme.goldPrimary : Colors.grey),
-                          const SizedBox(height: 8),
-                          Text(
-                            canSpin ? 'SPIN' : (_spinsToday >= _maxSpins ? 'LIMIT\nREACHED' : ''),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: canSpin ? AppTheme.goldPrimary : Colors.grey),
-                          ),
-                        ],
+
+    final wheel = Container(
+      width: 220,
+      height: 220,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: canSpin ? AppTheme.goldPrimary.withOpacity(0.5) : Colors.grey.withOpacity(0.3),
+            blurRadius: 30,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: CustomPaint(
+        painter: _WheelPainter(isSpinning: _isSpinning),
+        child: Container(
+          margin: const EdgeInsets.all(10),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppTheme.purpleDark,
+          ),
+          child: Center(
+            child: _isSpinning
+                ? const CircularProgressIndicator(color: AppTheme.goldPrimary, strokeWidth: 3)
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.casino, size: 48, color: canSpin ? AppTheme.goldPrimary : Colors.grey),
+                      const SizedBox(height: 8),
+                      Text(
+                        canSpin ? 'TAP TO\nSPIN' : (_spinsToday >= _maxSpins ? 'LIMIT\nREACHED' : ''),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: canSpin ? AppTheme.goldPrimary : Colors.grey),
                       ),
-              ),
-            ),
-            // Pointer
-            Positioned(
-              top: 0,
-              child: Container(
-                width: 0,
-                height: 0,
-                decoration: const BoxDecoration(
-                  border: Border(left: BorderSide(width: 12, color: Colors.transparent), right: BorderSide(width: 12, color: Colors.transparent), top: BorderSide(width: 20, color: AppTheme.goldPrimary)),
-                ),
-              ),
-            ),
-          ],
+                    ],
+                  ),
+          ),
         ),
       ),
+    );
+
+    return Column(
+      children: [
+        // Pointer triangle on top
+        Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            const SizedBox(height: 24),
+            Container(
+              margin: const EdgeInsets.only(top: 120),
+              child: RotationTransition(
+                turns: _spinAnimation ?? const AlwaysStoppedAnimation(0),
+                child: wheel,
+              ),
+            ),
+            Positioned(
+              top: 0,
+              child: CustomPaint(
+                size: const Size(28, 24),
+                painter: _TrianglePainter(color: AppTheme.goldPrimary),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: canSpin ? _doSpin : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: canSpin
+                  ? const LinearGradient(colors: [AppTheme.goldPrimary, Color(0xFFB8860B)])
+                  : LinearGradient(colors: [Colors.grey, Colors.black54]),
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: canSpin
+                  ? [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.4), blurRadius: 12, spreadRadius: 2)]
+                  : [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_isSpinning ? Icons.hourglass_top : Icons.play_arrow, color: canSpin ? Colors.black : Colors.white70, size: 28),
+                const SizedBox(width: 8),
+                Text(
+                  _isSpinning ? 'SPINNING...' : (_spinsToday >= _maxSpins ? 'LIMIT REACHED' : 'SPIN NOW'),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: canSpin ? Colors.black : Colors.white70),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -363,4 +410,88 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
       ],
     );
   }
+}
+
+class _WheelPainter extends CustomPainter {
+  final bool isSpinning;
+  _WheelPainter({required this.isSpinning});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final colors = [
+      Colors.amber,
+      Colors.deepOrange,
+      Colors.pink,
+      Colors.purple,
+      Colors.indigo,
+      Colors.blue,
+      Colors.teal,
+      Colors.green,
+    ];
+    final sliceAngle = 2 * pi / colors.length;
+
+    for (int i = 0; i < colors.length; i++) {
+      final startAngle = i * sliceAngle - pi / 2;
+      final paint = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.fill;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sliceAngle,
+        true,
+        paint,
+      );
+
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: '${i + 1}',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: radius * 0.22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final textAngle = startAngle + sliceAngle / 2;
+      final textRadius = radius * 0.65;
+      final textOffset = Offset(
+        center.dx + textRadius * cos(textAngle) - textPainter.width / 2,
+        center.dy + textRadius * sin(textAngle) - textPainter.height / 2,
+      );
+      textPainter.paint(canvas, textOffset);
+    }
+
+    final borderPaint = Paint()
+      ..color = AppTheme.goldPrimary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(center, radius, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WheelPainter oldDelegate) => oldDelegate.isSpinning != isSpinning;
+}
+
+class _TrianglePainter extends CustomPainter {
+  final Color color;
+  _TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..style = PaintingStyle.fill;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
