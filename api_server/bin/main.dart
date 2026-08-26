@@ -1817,7 +1817,7 @@ Future<Response> _getDailyActivityReport(Request request) async {
     '''));
 
     final activity = <Map<String, dynamic>>[];
-    for (final dayRow in days.rows) {
+    for (final dayRow in days) {
       final dayMap = dayRow.toColumnMap();
       final dayNum = dayMap['day_number'];
 
