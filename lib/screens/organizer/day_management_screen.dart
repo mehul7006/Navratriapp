@@ -176,7 +176,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                           builder: (ctx) => AlertDialog(
                             backgroundColor: AppTheme.cardBg,
                             title: Text('Start Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
-                            content: const Text('This will activate Day $_selectedDay and deactivate all other days.', style: TextStyle(color: Colors.white70)),
+                            content: Text('This will activate Day $_selectedDay and deactivate all other days.',
+                            style: const TextStyle(color: Colors.white70)),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
                               TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Start', style: TextStyle(color: Colors.green))),
@@ -203,7 +204,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                           builder: (ctx) => AlertDialog(
                             backgroundColor: AppTheme.cardBg,
                             title: Text('End Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
-                            content: const Text('This will complete Day $_selectedDay and auto-start the next day.', style: TextStyle(color: Colors.white70)),
+                            content: Text('This will complete Day $_selectedDay and auto-start the next day.',
+                            style: const TextStyle(color: Colors.white70)),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
                               TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('End Day', style: TextStyle(color: Colors.red))),

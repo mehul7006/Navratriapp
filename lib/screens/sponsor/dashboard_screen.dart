@@ -240,7 +240,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
     final bytes = await File(picked.path).readAsBytes();
     final base64Image = base64Encode(bytes);
     final auth = context.read<AuthProvider>();
-    final userId = auth.userId ?? 0;
+    final userId = auth.currentUser?['id'] ?? 0;
     try {
       await DatabaseHelper.updateSponsorImage(userId, base64Image);
       if (mounted) {

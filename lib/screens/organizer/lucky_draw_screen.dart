@@ -63,9 +63,6 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with SingleTickerProv
       duration: const Duration(seconds: 3),
       vsync: this,
     );
-    _spinAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _spinController!, curve: Curves.easeOutCubic),
-    );
     _spinController!.forward();
 
     await Future.delayed(const Duration(seconds: 3));
