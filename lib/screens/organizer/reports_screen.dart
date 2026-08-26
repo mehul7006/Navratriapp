@@ -503,7 +503,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['', 'TOTAL EXPENSES', '₹${totalExpense.toStringAsFixed(0)}'],
+          data: [
+            ['', 'TOTAL EXPENSES', '₹${totalExpense.toStringAsFixed(0)}'],
+          ],
           cellAlignment: pw.Alignment.centerLeft,
         ),
         pw.SizedBox(height: 20),
@@ -573,7 +575,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (status == 'paid') grouped[house] = (grouped[house] ?? 0) + amount;
     }
     final sorted = grouped.keys.toList()..sort();
-    return sorted.asMap().entries.map((e) => ['${e.key + 1}', e.value, '₹${grouped[e.value].toStringAsFixed(0)}']).toList();
+    return sorted.asMap().entries.map((e) => ['${e.key + 1}', e.value, '₹${(grouped[e.value] ?? 0).toStringAsFixed(0)}']).toList();
   }
 
   List<pw.Widget> _buildExpensePdfSections(pw.Font font, pw.Font fontBold) {
