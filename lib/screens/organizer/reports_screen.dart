@@ -107,34 +107,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     if (payments.isEmpty) return _emptyCard('No payment data');
 
-    final grouped = <String, double>{};
-    for (final p in payments) {
-      final house = (p['house_number'] ?? '').toString();
-      final amount = _parseAmount(p['total_amount']);
-      final status = (p['payment_status'] ?? '').toString();
-      if (status == 'paid') {
-        grouped[house] = (grouped[house] ?? 0) + amount;
-      }
-    }
-
-    final sortedHouses = grouped.keys.toList()..sort();
+    final sortedPayments = List<Map<String, dynamic>>.from(payments)
+      ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
 
     return Column(
       children: [
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House Number', 'Amount']),
-              ...sortedHouses.asMap().entries.map((entry) {
-                final amount = grouped[entry.value] ?? 0;
+              _tableHeader(['#', 'House', 'Name', 'Amount']),
+              ...sortedPayments.asMap().entries.map((entry) {
+                final p = entry.value;
+                final status = (p['payment_status'] ?? '').toString();
+                if (status != 'paid') return const SizedBox.shrink();
+                final amount = _parseAmount(p['total_amount']);
                 return _tableRow([
                   '${entry.key + 1}',
-                  entry.value,
+                  '${p['house_number'] ?? ''}',
+                  '${p['name'] ?? ''}',
                   '₹${amount.toStringAsFixed(0)}',
                 ]);
               }),
               _divider(),
-              _tableRow(['', 'Subtotal (Fund Collection)', '₹${fundTotal.toStringAsFixed(0)}'], bold: true),
+              _tableRow(['', 'Subtotal (Fund Collection)', '', '₹${fundTotal.toStringAsFixed(0)}'], bold: true),
             ],
           ),
         ),
@@ -142,9 +137,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _card(
           child: Column(
             children: [
-              _tableRow(['', 'Sponsor Income', '₹${sponsorTotal.toStringAsFixed(0)}'], bold: true),
+              _tableRow(['', 'Sponsor Income', '', '₹${sponsorTotal.toStringAsFixed(0)}'], bold: true),
               _divider(),
-              _tableRow(['', 'TOTAL INCOME', '₹${grandTotal.toStringAsFixed(0)}'], bold: true, color: Colors.green),
+              _tableRow(['', 'TOTAL INCOME', '', '₹${grandTotal.toStringAsFixed(0)}'], bold: true, color: Colors.green),
             ],
           ),
         ),
@@ -171,6 +166,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       children: [
         ...sortedDates.map((date) {
           final dayExpenses = grouped[date]!;
+          dayExpenses.sort((a, b) => (a['category_name'] ?? '').toString().compareTo((b['category_name'] ?? '').toString()));
           double dayTotal = 0;
           for (final e in dayExpenses) dayTotal += _parseAmount(e['amount']);
 
@@ -185,21 +181,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Text(date, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
                 ),
                 const SizedBox(height: 8),
-                _tableHeader(['Category', 'Item', 'Amount']),
+                _tableHeader(['Category', 'Item', 'Notes', 'Paid To', 'Amount']),
                 ...dayExpenses.map((e) => _tableRow([
                   '${e['category_name'] ?? ''}',
                   '${e['item_name'] ?? ''}',
+                  '${e['notes'] ?? ''}',
+                  '${e['paid_to'] ?? ''}',
                   '₹${_parseAmount(e['amount']).toStringAsFixed(0)}',
                 ])),
                 _divider(),
-                _tableRow(['', 'Day Total', '₹${dayTotal.toStringAsFixed(0)}'], bold: true),
+                _tableRow(['', 'Day Total', '', '', '₹${dayTotal.toStringAsFixed(0)}'], bold: true),
               ],
             ),
           );
         }),
         const SizedBox(height: 8),
         _card(
-          child: _tableRow(['', 'TOTAL EXPENSES', '₹${totalExpense.toStringAsFixed(0)}'], bold: true, color: Colors.red),
+          child: _tableRow(['', 'TOTAL EXPENSES', '', '', '₹${totalExpense.toStringAsFixed(0)}'], bold: true, color: Colors.red),
         ),
       ],
     );
@@ -272,39 +270,69 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(height: 10),
                 const Text('Aarti Bookings', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
                 const SizedBox(height: 4),
-                _tableHeader(['House', 'Name', 'Slot', 'Status']),
-                ...aarti.map((a) => _tableRow([
-                  '${a['house_number'] ?? ''}',
-                  '${a['name'] ?? ''}',
-                  '${a['slot_time'] ?? ''} ${a['slot_label'] ?? ''}',
-                  '${(a['status'] ?? '').toString().toUpperCase()}',
-                ])),
+                ...aarti.map((a) {
+                  final status = (a['status'] ?? '').toString();
+                  final isApproved = status == 'approved';
+                  final name = a['name'] ?? '';
+                  final slot = '${a['slot_time'] ?? ''} ${a['slot_label'] ?? ''}'.trim();
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text('Aarti: $name ($slot)', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                        ),
+                        _approvalBadge(isApproved),
+                      ],
+                    ),
+                  );
+                }),
               ],
 
               if (foods.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 const Text('Food Orders', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue)),
                 const SizedBox(height: 4),
-                _tableHeader(['House', 'Name', 'Item', 'Qty', 'Amount']),
-                ...foods.map((f) => _tableRow([
-                  '${f['house_number'] ?? ''}',
-                  '${f['name'] ?? ''}',
-                  '${f['snack_name'] ?? ''}',
-                  '${f['quantity'] ?? ''}',
-                  '₹${_parseAmount(f['total_price']).toStringAsFixed(0)}',
-                ])),
+                ...foods.map((f) {
+                  final status = (f['status'] ?? '').toString();
+                  final isApproved = status == 'approved' || status == 'delivered';
+                  final name = f['name'] ?? '';
+                  final item = f['snack_name'] ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text('Food Provider: $name ($item)', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                        ),
+                        _approvalBadge(isApproved),
+                      ],
+                    ),
+                  );
+                }),
               ],
 
               if (gifts.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 const Text('Gifts Provided', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple)),
                 const SizedBox(height: 4),
-                _tableHeader(['House', 'Name', 'Gift']),
-                ...gifts.map((g) => _tableRow([
-                  '${g['house_number'] ?? ''}',
-                  '${g['name'] ?? ''}',
-                  '${g['gift_name'] ?? ''}',
-                ])),
+                ...gifts.map((g) {
+                  final status = (g['status'] ?? '').toString();
+                  final isApproved = status == 'approved' || status == 'delivered';
+                  final name = g['name'] ?? '';
+                  final gift = g['gift_name'] ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text('Gift Provider: $name ($gift)', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                        ),
+                        _approvalBadge(isApproved),
+                      ],
+                    ),
+                  );
+                }),
               ],
 
               if (aarti.isEmpty && foods.isEmpty && gifts.isEmpty)
@@ -316,6 +344,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _approvalBadge(bool isApproved) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isApproved ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        isApproved ? 'Approved' : 'Pending',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: isApproved ? Colors.green : Colors.orange,
+        ),
+      ),
     );
   }
 
@@ -475,7 +521,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['#', 'House Number', 'Amount (₹)'],
+          headers: ['#', 'House', 'Name', 'Amount (₹)'],
           data: _buildIncomeTableRows(),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -567,15 +613,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<List<String>> _buildIncomeTableRows() {
     final payments = _paymentReport?['payments'] as List? ?? [];
-    final grouped = <String, double>{};
-    for (final p in payments) {
-      final house = (p['house_number'] ?? '').toString();
-      final amount = _parseAmount(p['total_amount']);
+    final sortedPayments = List<Map<String, dynamic>>.from(payments)
+      ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
+    final rows = <List<String>>[];
+    int idx = 1;
+    for (final p in sortedPayments) {
       final status = (p['payment_status'] ?? '').toString();
-      if (status == 'paid') grouped[house] = (grouped[house] ?? 0) + amount;
+      if (status != 'paid') continue;
+      rows.add([
+        '${idx++}',
+        '${p['house_number'] ?? ''}',
+        '${p['name'] ?? ''}',
+        '₹${_parseAmount(p['total_amount']).toStringAsFixed(0)}',
+      ]);
     }
-    final sorted = grouped.keys.toList()..sort();
-    return sorted.asMap().entries.map((e) => ['${e.key + 1}', e.value, '₹${(grouped[e.value] ?? 0).toStringAsFixed(0)}']).toList();
+    return rows;
   }
 
   List<pw.Widget> _buildExpensePdfSections(pw.Font font, pw.Font fontBold) {
@@ -589,6 +641,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return sortedDates.map((date) {
       final dayExpenses = grouped[date]!;
+      dayExpenses.sort((a, b) => (a['category_name'] ?? '').toString().compareTo((b['category_name'] ?? '').toString()));
       double dayTotal = 0;
       for (final e in dayExpenses) dayTotal += _parseAmount(e['amount']);
       return pw.Column(
@@ -598,8 +651,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
           pw.SizedBox(height: 4),
           pw.Table.fromTextArray(
             context: null,
-            headers: ['Category', 'Item', 'Amount'],
-            data: dayExpenses.map((e) => ['${e['category_name']}', '${e['item_name']}', '₹${_parseAmount(e['amount']).toStringAsFixed(0)}']).toList(),
+            headers: ['Category', 'Item', 'Notes', 'Paid To', 'Amount'],
+            data: dayExpenses.map((e) => [
+              '${e['category_name'] ?? ''}',
+              '${e['item_name'] ?? ''}',
+              '${e['notes'] ?? ''}',
+              '${e['paid_to'] ?? ''}',
+              '₹${_parseAmount(e['amount']).toStringAsFixed(0)}',
+            ]).toList(),
           ),
           pw.Text('Day Total: ₹${dayTotal.toStringAsFixed(0)}', style: pw.TextStyle(font: fontBold, fontSize: 10)),
           pw.SizedBox(height: 10),

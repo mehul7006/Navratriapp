@@ -174,15 +174,6 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
               ],
             ),
           ),
-          if (remaining > 0)
-            GestureDetector(
-              onTap: () => _showAssignGiftDialog(gift),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.goldPrimary)),
-                child: const Text('Assign', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-              ),
-            ),
         ],
       ),
     );

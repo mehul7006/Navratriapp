@@ -13,6 +13,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   List<Map<String, dynamic>> _members = [];
   bool _isLoading = true;
   String _filter = 'all';
+  String _sortBy = 'name';
   final _searchController = TextEditingController();
 
   @override
@@ -37,6 +38,11 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         (m['house_number']?.toString().toLowerCase().contains(search) ?? false)
       ).toList();
     }
+    if (_sortBy == 'name') {
+      list.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
+    } else if (_sortBy == 'house') {
+      list.sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
+    }
     return list;
   }
 
@@ -48,6 +54,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         children: [
           _buildHeader(),
           _buildFilterBar(),
+          _buildSortRow(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -116,6 +123,35 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           ),
           child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSortRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          _buildSortChip('Sort by Name', 'name'),
+          const SizedBox(width: 8),
+          _buildSortChip('Sort by House', 'house'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortChip(String label, String value) {
+    final isSelected = _sortBy == value;
+    return GestureDetector(
+      onTap: () => setState(() => _sortBy = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.goldPrimary.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.3)),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.goldPrimary : AppTheme.textMuted)),
       ),
     );
   }

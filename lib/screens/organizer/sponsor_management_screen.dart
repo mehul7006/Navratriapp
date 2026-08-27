@@ -210,6 +210,28 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
                 child: Text('${sponsor['advertisement_text'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic)),
               ),
             ],
+            if (sponsor['admin_remarks']?.toString().isNotEmpty == true) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.note, size: 14, color: Colors.amber),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${sponsor['admin_remarks'] ?? ''}',
+                        style: const TextStyle(color: Colors.amber, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -274,6 +296,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
     final companyController = TextEditingController();
     final adController = TextEditingController();
     final amountController = TextEditingController();
+    final remarksController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -289,6 +312,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
               _field(companyController, 'Company Name'),
               _field(adController, 'Advertisement Text'),
               _field(amountController, 'Sponsorship Amount', isNumber: true),
+              _field(remarksController, 'Remarks (Gifts/Snacks/Banners)'),
             ],
           ),
         ),
@@ -304,6 +328,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
                   companyName: companyController.text,
                   adText: adController.text,
                   amount: double.tryParse(amountController.text),
+                  remarks: remarksController.text,
                 );
                 Navigator.pop(ctx);
                 _loadData();
@@ -320,6 +345,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
     final companyController = TextEditingController(text: sponsor['company_name'] ?? '');
     final adController = TextEditingController(text: sponsor['advertisement_text'] ?? '');
     final amountController = TextEditingController(text: sponsor['sponsorship_amount']?.toString() ?? '0');
+    final adminRemarksController = TextEditingController(text: sponsor['admin_remarks'] ?? '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -332,6 +358,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
               _field(companyController, 'Company Name'),
               _field(adController, 'Advertisement Text'),
               _field(amountController, 'Amount', isNumber: true),
+              _field(adminRemarksController, 'Admin Remarks'),
             ],
           ),
         ),
@@ -344,6 +371,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
                 companyName: companyController.text,
                 adText: adController.text,
                 amount: double.tryParse(amountController.text),
+                adminRemarks: adminRemarksController.text,
               );
               Navigator.pop(ctx);
               _loadData();

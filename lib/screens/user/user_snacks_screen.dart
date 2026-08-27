@@ -110,7 +110,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
                 ),
-                child: Text('My Orders (${_myOrders.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: !_showMenu ? AppTheme.purpleDark : AppTheme.textMuted)),
+                child: Text('My Bookings (${_myOrders.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: !_showMenu ? AppTheme.purpleDark : AppTheme.textMuted)),
               ),
             ),
           ),
@@ -196,7 +196,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('ORDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+                      child: const Text('BOOK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
                     ),
                   ),
                 ],

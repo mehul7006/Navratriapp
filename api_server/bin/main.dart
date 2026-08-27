@@ -78,6 +78,8 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS ticket_code VARCHAR");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS house_number VARCHAR");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS prize_level INT");
     // Reset all is_winner flags - 9-day cooldown now uses daily_draws table only
     await _db!.execute('UPDATE draw_tickets SET is_winner = FALSE WHERE is_winner = TRUE');
     // Gift assignments status column
@@ -162,12 +164,14 @@ final router = Router()
   ..put('/api/profile/<id>', _updateProfile)
   ..get('/api/winners', _getWinners)
   ..get('/api/winners/history', _getDrawHistory)
+  ..post('/api/daily-draws/spin-prize', _spinPrizeDraw)
   ..post('/api/daily-draws/spin', _spinDraw)
   ..get('/api/daily-draws/history', _getDailyDrawHistory)
   ..get('/api/daily-draws/count', _getDailyDrawCount)
   ..get('/api/daily-info', _getDailyInfo)
   ..put('/api/navratri-days/<day>/start', _startDay)
   ..put('/api/navratri-days/<day>/end', _endDay)
+  ..put('/api/navratri-days/<day>/reopen', _reopenDay)
   ..post('/api/broadcasts', _createBroadcast)
   ..get('/api/broadcasts', _getBroadcasts)
   ..delete('/api/broadcasts/<id>', _deleteBroadcast)
@@ -1814,6 +1818,78 @@ Future<Response> _cancelGiftAssignment(Request request, String id) async {
   }
 }
 
+// ========== 3-PRIZE LUCKY DRAW ==========
+
+Future<Response> _spinPrizeDraw(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final dayNumber = body['day_number'] as int;
+    final drawnBy = body['drawn_by'] as int;
+    final prizeLevel = body['prize_level'] as int;
+
+    if (prizeLevel < 1 || prizeLevel > 3)
+      return _errorResponse('prize_level must be 1, 2, or 3');
+
+    // Max 3 prize draws per day (count rows where prize_level IS NOT NULL)
+    final countResult = await conn.execute(
+      Sql.named(
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE AND prize_level IS NOT NULL"),
+      parameters: {'day': dayNumber},
+    );
+    final prizeSpinsToday = countResult.first.toColumnMap()['cnt'] ?? 0;
+    if (prizeSpinsToday >= 3)
+      return _errorResponse('Maximum 3 prize draws per day reached');
+
+    // Pick random assigned ticket for this day, excluding users who won any prize in last 9 days
+    final ticketResult = await conn.execute(
+      Sql.named('''
+        SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
+        FROM draw_tickets dt
+        JOIN users u ON dt.user_id = u.id
+        WHERE dt.day_number = @day AND dt.is_assigned = TRUE
+        AND dt.user_id NOT IN (
+          SELECT winner_id FROM daily_draws 
+          WHERE winner_id IS NOT NULL 
+          AND drawn_at > NOW() - INTERVAL '9 days'
+        )
+        ORDER BY RANDOM() LIMIT 1
+      '''),
+      parameters: {'day': dayNumber},
+    );
+
+    if (ticketResult.isEmpty)
+      return _errorResponse('No more tickets to draw for this day');
+
+    final ticket = _parseRow(ticketResult.first);
+    await conn.execute(
+      Sql.named('''
+        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by, drawn_at, prize_level)
+        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy, NOW(), @prizeLevel)
+      '''),
+      parameters: {
+        'day': dayNumber,
+        'ticketId': ticket['id'],
+        'ticketCode': ticket['ticket_code'],
+        'winnerId': ticket['user_id'],
+        'house': ticket['house_number'],
+        'drawNum': prizeSpinsToday + 1,
+        'drawnBy': drawnBy,
+        'prizeLevel': prizeLevel,
+      },
+    );
+
+    return _jsonResponse({
+      'ticket_code': ticket['ticket_code'],
+      'user_name': ticket['user_name'],
+      'house_number': ticket['house_number'],
+      'prize_level': prizeLevel,
+    });
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
 // ========== LUCKY DRAW / SPIN ==========
 
 Future<Response> _spinDraw(Request request) async {
@@ -2034,6 +2110,20 @@ Future<Response> _endDay(Request request, String day) async {
     }
     return _jsonResponse(
         {'ok': true, 'next_day': nextDay <= 9 ? nextDay : null});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _reopenDay(Request request, String day) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named(
+          "UPDATE navratri_days SET is_completed = FALSE, is_active = TRUE WHERE day_number = @day"),
+      parameters: {'day': int.parse(day)},
+    );
+    return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

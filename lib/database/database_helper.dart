@@ -531,7 +531,7 @@ class DatabaseHelper {
     return _get('/api/sponsors');
   }
 
-  static Future<void> addSponsor({required String houseNumber, required String name, required String mobile, String? companyName, String? adText, double? amount}) async {
+  static Future<void> addSponsor({required String houseNumber, required String name, required String mobile, String? companyName, String? adText, double? amount, String? remarks}) async {
     await _post('/api/sponsors', {
       'house_number': houseNumber,
       'name': name,
@@ -539,15 +539,17 @@ class DatabaseHelper {
       'company_name': companyName ?? '',
       'advertisement_text': adText ?? '',
       'sponsorship_amount': amount ?? 0,
+      'remarks': remarks ?? '',
     });
   }
 
-  static Future<void> updateSponsor(int userId, {String? companyName, String? adText, double? amount, String? paymentStatus}) async {
+  static Future<void> updateSponsor(int userId, {String? companyName, String? adText, double? amount, String? paymentStatus, String? adminRemarks}) async {
     final body = <String, dynamic>{};
     if (companyName != null) body['company_name'] = companyName;
     if (adText != null) body['advertisement_text'] = adText;
     if (amount != null) body['sponsorship_amount'] = amount;
     if (paymentStatus != null) body['payment_status'] = paymentStatus;
+    if (adminRemarks != null) body['admin_remarks'] = adminRemarks;
     if (body.isNotEmpty) await _put('/api/sponsors/$userId', body);
   }
 
@@ -662,6 +664,19 @@ class DatabaseHelper {
     }
   }
 
+  static Future<Map<String, dynamic>?> spinDrawPrize({required int dayNumber, required int drawnBy, required int prizeLevel}) async {
+    try {
+      final result = await _post('/api/daily-draws/spin-prize', {
+        'day_number': dayNumber,
+        'drawn_by': drawnBy,
+        'prize_level': prizeLevel,
+      });
+      return result;
+    } catch (e) {
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>> getDailyDrawCount(int dayNumber) async {
     final response = await http.get(Uri.parse('$_apiBase/api/daily-draws/count?day=$dayNumber')).timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) return {'count': 0, 'max': 6};
@@ -689,5 +704,9 @@ class DatabaseHelper {
 
   static Future<void> endDay(int dayNumber) async {
     await _put('/api/navratri-days/$dayNumber/end', {});
+  }
+
+  static Future<void> reopenDay(int dayNumber) async {
+    await _put('/api/navratri-days/$dayNumber/reopen', {});
   }
 }

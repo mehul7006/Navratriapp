@@ -230,6 +230,34 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                     ),
                   ),
                 ],
+                if (isCompleted)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: AppTheme.cardBg,
+                            title: Text('Reopen Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
+                            content: Text('This will reopen Day $_selectedDay and mark it as active again.',
+                            style: const TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reopen', style: TextStyle(color: Colors.orange))),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await DatabaseHelper.reopenDay(_selectedDay);
+                          _loadData();
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Day $_selectedDay reopened!'), backgroundColor: Colors.orange));
+                        }
+                      },
+                      icon: const Icon(Icons.undo, size: 18),
+                      label: const Text('Reopen Day'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
+                    ),
+                  ),
               ],
             ),
             

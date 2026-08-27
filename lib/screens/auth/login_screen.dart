@@ -93,6 +93,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (donor.isNotEmpty) parts.add('Gift: $donor donated $gift');
     }
 
+    // Prize winners from daily info
+    final prizeWinners = _dailyInfo!['prize_winners'] as List? ?? [];
+    for (final w in prizeWinners) {
+      final place = w['place']?.toString() ?? '';
+      final name = w['name']?.toString() ?? '';
+      final gift = w['gift_name']?.toString() ?? '';
+      if (name.isNotEmpty) parts.add('$place Prize: $name - $gift');
+    }
+
     // Snack orders
     final snackOrders = _dailyInfo!['snack_orders'] as List? ?? [];
     for (final s in snackOrders) {
@@ -210,6 +219,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                   _buildMarquee(),
                   const SizedBox(height: 24),
+                  _buildPrizeWinners(),
+                  const SizedBox(height: 24),
                   _buildLoginForm(),
                 ],
               ),
@@ -255,6 +266,55 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(width: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrizeWinners() {
+    if (_dailyInfo == null) return const SizedBox.shrink();
+    final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
+    if (giftAssignments.isEmpty) return const SizedBox.shrink();
+
+    final places = ['🥇 1st Prize', '🥈 2nd Prize', '🥉 3rd Prize'];
+    final winners = <Map<String, dynamic>>[];
+    for (int i = 0; i < giftAssignments.length && i < 3; i++) {
+      winners.add({
+        'place': places[i],
+        'name': giftAssignments[i]['donor_name']?.toString() ?? giftAssignments[i]['name']?.toString() ?? '',
+        'gift': giftAssignments[i]['gift_name']?.toString() ?? '',
+      });
+    }
+    if (winners.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [AppTheme.goldPrimary.withOpacity(0.1), AppTheme.purpleCard.withOpacity(0.5)]),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+      ),
+      child: Column(
+        children: [
+          const Text('Today\'s Prize Winners', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          const SizedBox(height: 8),
+          ...winners.map((w) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(w['place'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                ),
+                Expanded(
+                  child: Text(w['name'], style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                ),
+                Expanded(
+                  child: Text(w['gift'], style: const TextStyle(fontSize: 11, color: AppTheme.goldPrimary), overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          )),
         ],
       ),
     );
