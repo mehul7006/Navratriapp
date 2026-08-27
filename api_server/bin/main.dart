@@ -1081,14 +1081,28 @@ Future<Response> _generateTickets(Request request) async {
     final conn = await db;
     final dayNumber = body['day_number'] as int;
     final count = body['count'] as int;
+
+    // Get the next sequential number
+    final maxResult = await conn.execute(Sql.named(
+      "SELECT ticket_code FROM draw_tickets ORDER BY id DESC LIMIT 1"
+    ));
+    int nextNum = 2026100001;
+    if (maxResult.isNotEmpty) {
+      final lastCode = maxResult.first.toColumnMap()['ticket_code']?.toString() ?? '';
+      final parsed = int.tryParse(lastCode);
+      if (parsed != null && parsed >= 2026100001) {
+        nextNum = parsed + 1;
+      }
+    }
+
     for (int i = 0; i < count; i++) {
-      final ticketCode = 'NR2026-D$dayNumber-${DateTime.now().millisecondsSinceEpoch}-$i';
+      final ticketCode = (nextNum + i).toString();
       await conn.execute(
         Sql.named('INSERT INTO draw_tickets (ticket_code, day_number) VALUES (@code, @day)'),
         parameters: {'code': ticketCode, 'day': dayNumber},
       );
     }
-    return _jsonResponse({'ok': true});
+    return _jsonResponse({'ok': true, 'from': (nextNum).toString(), 'to': (nextNum + count - 1).toString()});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -1651,35 +1665,61 @@ Future<Response> _getDailyInfo(Request request) async {
       parameters: {'day': dayNumber},
     );
 
-    final aartiSlots = await conn.execute(
-      Sql.named("SELECT slot_label FROM aarti_slots WHERE day_number = @day AND is_active = TRUE"),
-      parameters: {'day': dayNumber},
-    );
-
-    final gifts = await conn.execute(
+    // Aarti bookings with user names (approved or pending)
+    final aartiBookings = await conn.execute(
       Sql.named('''
-        SELECT g.name, COALESCE(s.company_name, 'Community') as sponsor_name
-        FROM gifts g LEFT JOIN sponsors s ON g.sponsor_id = s.id
-        WHERE g.day_number = @day AND g.is_active = TRUE
+        SELECT ab.house_number, u.name, a.slot_time, a.slot_label, ab.status
+        FROM aarti_bookings ab
+        JOIN users u ON ab.user_id = u.id
+        JOIN aarti_slots a ON ab.slot_id = a.id
+        WHERE ab.day_number = @day
+        ORDER BY a.slot_time
       '''),
       parameters: {'day': dayNumber},
     );
 
-    final snackSponsors = await conn.execute(
+    // Gift assignments with donor names
+    final giftAssignments = await conn.execute(
       Sql.named('''
-        SELECT s.company_name, s.advertisement_text
+        SELECT g.name as gift_name, u.name as donor_name, u.house_number, ga.status
+        FROM gift_assignments ga
+        JOIN gifts g ON ga.gift_id = g.id
+        JOIN users u ON ga.user_id = u.id
+        WHERE ga.day_number = @day
+      '''),
+      parameters: {'day': dayNumber},
+    );
+
+    // Snack orders with buyer names
+    final snackOrders = await conn.execute(
+      Sql.named('''
+        SELECT s.name as snack_name, u.name as buyer_name, u.house_number, so.quantity, so.status
+        FROM snack_orders so
+        JOIN users u ON so.user_id = u.id
+        JOIN snacks s ON so.snack_id = s.id
+        WHERE so.day_number = @day
+      '''),
+      parameters: {'day': dayNumber},
+    );
+
+    // Active sponsors
+    final sponsors = await conn.execute(
+      Sql.named('''
+        SELECT s.company_name
         FROM sponsors s
-        WHERE s.is_active = TRUE AND s.company_name IS NOT NULL AND s.company_name != ''
-        ORDER BY RANDOM() LIMIT 5
+        JOIN users u ON s.user_id = u.id
+        WHERE s.is_active = TRUE AND u.is_active = TRUE AND s.company_name IS NOT NULL AND s.company_name != ''
+        ORDER BY s.sponsorship_amount DESC LIMIT 5
       '''),
     );
 
     return _jsonResponse({
       'day_number': dayNumber,
       'day_info': dayData.isNotEmpty ? _parseRow(dayData.first) : null,
-      'aarti_slots': aartiSlots.map((r) => r.toColumnMap()['slot_label']).toList(),
-      'gifts': _parseResults(gifts),
-      'sponsors': _parseResults(snackSponsors),
+      'aarti_bookings': _parseResults(aartiBookings),
+      'gift_assignments': _parseResults(giftAssignments),
+      'snack_orders': _parseResults(snackOrders),
+      'sponsors': _parseResults(sponsors),
     });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);

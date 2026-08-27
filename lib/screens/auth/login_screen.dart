@@ -72,26 +72,46 @@ class _LoginScreenState extends State<LoginScreen> {
     final dressCode = dayInfo?['dress_code'] ?? '';
     
     final parts = <String>[
-      'Day $dayNum: $goddess',
+      'Jai Mata Di! Day $dayNum: $goddess',
       if (dressCode.isNotEmpty) 'Dress: $dressCode',
     ];
 
-    final aartiSlots = _dailyInfo!['aarti_slots'] as List? ?? [];
-    if (aartiSlots.isNotEmpty) parts.add('Aarti: ${aartiSlots.join(", ")}');
-
-    final gifts = _dailyInfo!['gifts'] as List? ?? [];
-    for (final g in gifts) {
-      parts.add('Gift: ${g['name']} by ${g['sponsor_name']}');
+    // Aarti bookings
+    final aartiBookings = _dailyInfo!['aarti_bookings'] as List? ?? [];
+    for (final a in aartiBookings) {
+      final name = a['name']?.toString() ?? '';
+      final house = a['house_number']?.toString() ?? '';
+      final slot = a['slot_label']?.toString() ?? '';
+      if (name.isNotEmpty) parts.add('Aarti: $name ($house) - $slot');
     }
 
+    // Gift assignments
+    final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
+    for (final g in giftAssignments) {
+      final donor = g['donor_name']?.toString() ?? '';
+      final gift = g['gift_name']?.toString() ?? '';
+      if (donor.isNotEmpty) parts.add('Gift: $donor donated $gift');
+    }
+
+    // Snack orders
+    final snackOrders = _dailyInfo!['snack_orders'] as List? ?? [];
+    for (final s in snackOrders) {
+      final buyer = s['buyer_name']?.toString() ?? '';
+      final snack = s['snack_name']?.toString() ?? '';
+      final qty = s['quantity'] ?? 1;
+      if (buyer.isNotEmpty) parts.add('Snack: $buyer ordered $snack x$qty');
+    }
+
+    // Sponsors
     final sponsors = _dailyInfo!['sponsors'] as List? ?? [];
     for (final s in sponsors) {
       if (s['company_name']?.toString().isNotEmpty == true) {
-        parts.add('Sponsor: ${s['company_name']}');
+        parts.add('Sponsored by: ${s['company_name']}');
       }
     }
 
-    return parts.join('  •  ');
+    if (parts.length <= 1) parts.add('Welcome to Nishitpark Society Mahotsav!');
+    return parts.join('  ★  ');
   }
 
   String get _loginHint {

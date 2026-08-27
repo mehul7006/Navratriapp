@@ -13,7 +13,7 @@ class LuckyDrawScreen extends StatefulWidget {
   State<LuckyDrawScreen> createState() => _LuckyDrawScreenState();
 }
 
-class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderStateMixin {
+class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   int _selectedDay = 1;
   int _spinsToday = 0;
   int _maxSpins = 6;
@@ -22,8 +22,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
   Map<String, dynamic>? _lastResult;
   List<Map<String, dynamic>> _drawHistory = [];
   List<Map<String, dynamic>> _days = [];
-  AnimationController? _spinController;
-  Animation<double>? _spinAnimation;
+
+  // Slot machine state
+  List<int> _currentDigits = List.generate(10, (_) => 0);
+  List<int> _targetDigits = List.generate(10, (_) => 0);
+  List<bool> _digitLocked = List.generate(10, (_) => true);
+  Timer? _spinTimer;
   final Random _random = Random();
 
   @override
@@ -34,7 +38,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
 
   @override
   void dispose() {
-    _spinController?.dispose();
+    _spinTimer?.cancel();
     super.dispose();
   }
 
@@ -63,31 +67,58 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
     setState(() {
       _isSpinning = true;
       _lastResult = null;
+      _digitLocked = List.generate(10, (_) => false);
+      _currentDigits = List.generate(10, (_) => 0);
     });
 
-    final spins = 5 + _random.nextInt(4);
-    _spinController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    );
-    _spinAnimation = Tween<double>(
-      begin: 0,
-      end: spins * 2 * pi,
-    ).animate(CurvedAnimation(parent: _spinController!, curve: Curves.decelerate));
+    // Start all digits spinning
+    _spinTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      if (!mounted || _isSpinning == false) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        for (int i = 0; i < 10; i++) {
+          if (!_digitLocked[i]) {
+            _currentDigits[i] = _random.nextInt(10);
+          }
+        }
+      });
+    });
 
-    _spinController!.forward();
-
+    // Call API to get the result
     final auth = context.read<AuthProvider>();
     final result = await DatabaseHelper.spinDraw(
       dayNumber: _selectedDay,
       drawnBy: auth.currentUser?['id'] ?? 0,
     );
 
-    await _spinController!.forward();
+    if (result != null) {
+      // Parse the ticket code into 10 digits
+      final code = (result['ticket_code'] ?? '0000000000').toString();
+      final padded = code.padLeft(10, '0');
+      _targetDigits = padded.split('').map((c) => int.tryParse(c) ?? 0).toList();
+    } else {
+      _targetDigits = List.generate(10, (_) => 0);
+    }
 
-    _spinController?.dispose();
-    _spinController = null;
-    _spinAnimation = null;
+    // Lock digits one by one every 300ms
+    for (int i = 0; i < 10; i++) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) {
+        _spinTimer?.cancel();
+        return;
+      }
+      setState(() {
+        _digitLocked[i] = true;
+        _currentDigits[i] = _targetDigits[i];
+      });
+    }
+
+    _spinTimer?.cancel();
+
+    // Small pause after all digits locked
+    await Future.delayed(const Duration(milliseconds: 500));
 
     setState(() {
       _isSpinning = false;
@@ -111,7 +142,10 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppTheme.goldPrimary, width: 2)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppTheme.goldPrimary, width: 2),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -121,10 +155,16 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AppTheme.goldPrimary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 children: [
-                  Text(result['ticket_code'] ?? '', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                  Text(
+                    result['ticket_code'] ?? '',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary, letterSpacing: 3),
+                  ),
                   const SizedBox(height: 8),
                   Text(result['user_name'] ?? 'Unknown', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 4),
@@ -165,8 +205,10 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
                   _buildDaySelector(),
                   const SizedBox(height: 16),
                   _buildSpinCounter(),
-                  const SizedBox(height: 20),
-                  _buildSpinWheel(),
+                  const SizedBox(height: 24),
+                  _buildSlotMachine(),
+                  const SizedBox(height: 16),
+                  _buildSpinButton(),
                   const SizedBox(height: 20),
                   if (_lastResult != null) _buildLastResult(),
                   const SizedBox(height: 20),
@@ -252,102 +294,84 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildSpinWheel() {
-    final canSpin = _spinsToday < _maxSpins && !_isSpinning;
-
-    final wheel = Container(
-      width: 220,
-      height: 220,
+  Widget _buildSlotMachine() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Colors.black, Colors.grey.shade900, Colors.black],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.goldPrimary, width: 2),
         boxShadow: [
-          BoxShadow(
-            color: canSpin ? AppTheme.goldPrimary.withOpacity(0.5) : Colors.grey.withOpacity(0.3),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
+          BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.3), blurRadius: 20, spreadRadius: 2),
         ],
       ),
-      child: CustomPaint(
-        painter: _WheelPainter(isSpinning: _isSpinning),
-        child: Container(
-          margin: const EdgeInsets.all(10),
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppTheme.purpleDark,
-          ),
-          child: Center(
-            child: _isSpinning
-                ? const CircularProgressIndicator(color: AppTheme.goldPrimary, strokeWidth: 3)
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.casino, size: 48, color: canSpin ? AppTheme.goldPrimary : Colors.grey),
-                      const SizedBox(height: 8),
-                      Text(
-                        canSpin ? 'TAP TO\nSPIN' : (_spinsToday >= _maxSpins ? 'LIMIT\nREACHED' : ''),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: canSpin ? AppTheme.goldPrimary : Colors.grey),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-
-    return Column(
-      children: [
-        // Pointer triangle on top
-        Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            const SizedBox(height: 24),
-            Container(
-              margin: const EdgeInsets.only(top: 120),
-              child: RotationTransition(
-                turns: _spinAnimation ?? const AlwaysStoppedAnimation(0),
-                child: wheel,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(10, (index) {
+          final isLocked = _digitLocked[index];
+          return Container(
+            width: 32,
+            height: 44,
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            decoration: BoxDecoration(
+              color: isLocked ? AppTheme.purpleDeep : Colors.black,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isLocked ? AppTheme.goldPrimary : Colors.white24,
+                width: isLocked ? 2 : 1,
+              ),
+              boxShadow: isLocked
+                  ? [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.4), blurRadius: 6)]
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                '${_currentDigits[index]}',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isLocked ? AppTheme.goldPrimary : Colors.white54,
+                ),
               ),
             ),
-            Positioned(
-              top: 0,
-              child: CustomPaint(
-                size: const Size(28, 24),
-                painter: _TrianglePainter(color: AppTheme.goldPrimary),
-              ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildSpinButton() {
+    final canSpin = _spinsToday < _maxSpins && !_isSpinning;
+    return GestureDetector(
+      onTap: canSpin ? _doSpin : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: canSpin
+              ? const LinearGradient(colors: [AppTheme.goldPrimary, Color(0xFFB8860B)])
+              : LinearGradient(colors: [Colors.grey, Colors.black54]),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: canSpin
+              ? [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.5), blurRadius: 15, spreadRadius: 3)]
+              : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_isSpinning ? Icons.hourglass_top : Icons.play_arrow, color: canSpin ? Colors.black : Colors.white70, size: 28),
+            const SizedBox(width: 10),
+            Text(
+              _isSpinning ? 'SPINNING...' : (_spinsToday >= _maxSpins ? 'LIMIT REACHED' : 'SPIN NOW'),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: canSpin ? Colors.black : Colors.white70),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        GestureDetector(
-          onTap: canSpin ? _doSpin : null,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-            decoration: BoxDecoration(
-              gradient: canSpin
-                  ? const LinearGradient(colors: [AppTheme.goldPrimary, Color(0xFFB8860B)])
-                  : LinearGradient(colors: [Colors.grey, Colors.black54]),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: canSpin
-                  ? [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.4), blurRadius: 12, spreadRadius: 2)]
-                  : [],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(_isSpinning ? Icons.hourglass_top : Icons.play_arrow, color: canSpin ? Colors.black : Colors.white70, size: 28),
-                const SizedBox(width: 8),
-                Text(
-                  _isSpinning ? 'SPINNING...' : (_spinsToday >= _maxSpins ? 'LIMIT REACHED' : 'SPIN NOW'),
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: canSpin ? Colors.black : Colors.white70),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -364,7 +388,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
         children: [
           const Text('Last Winner', style: TextStyle(fontSize: 14, color: Colors.green)),
           const SizedBox(height: 8),
-          Text(_lastResult!['ticket_code'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+          Text(_lastResult!['ticket_code'] ?? '', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary, letterSpacing: 2)),
           const SizedBox(height: 4),
           Text(_lastResult!['user_name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
           Text('House: ${_lastResult!['house_number'] ?? ''}', style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
@@ -398,7 +422,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(draw['ticket_code'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                      Text(draw['ticket_code'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1)),
                       Text(draw['winner_name'] ?? '', style: const TextStyle(fontSize: 13, color: AppTheme.goldPrimary)),
                     ],
                   ),
@@ -410,88 +434,4 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> with TickerProviderSt
       ],
     );
   }
-}
-
-class _WheelPainter extends CustomPainter {
-  final bool isSpinning;
-  _WheelPainter({required this.isSpinning});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final colors = [
-      Colors.amber,
-      Colors.deepOrange,
-      Colors.pink,
-      Colors.purple,
-      Colors.indigo,
-      Colors.blue,
-      Colors.teal,
-      Colors.green,
-    ];
-    final sliceAngle = 2 * pi / colors.length;
-
-    for (int i = 0; i < colors.length; i++) {
-      final startAngle = i * sliceAngle - pi / 2;
-      final paint = Paint()
-        ..color = colors[i]
-        ..style = PaintingStyle.fill;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sliceAngle,
-        true,
-        paint,
-      );
-
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: '${i + 1}',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: radius * 0.22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      final textAngle = startAngle + sliceAngle / 2;
-      final textRadius = radius * 0.65;
-      final textOffset = Offset(
-        center.dx + textRadius * cos(textAngle) - textPainter.width / 2,
-        center.dy + textRadius * sin(textAngle) - textPainter.height / 2,
-      );
-      textPainter.paint(canvas, textOffset);
-    }
-
-    final borderPaint = Paint()
-      ..color = AppTheme.goldPrimary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-    canvas.drawCircle(center, radius, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _WheelPainter oldDelegate) => oldDelegate.isSpinning != isSpinning;
-}
-
-class _TrianglePainter extends CustomPainter {
-  final Color color;
-  _TrianglePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color..style = PaintingStyle.fill;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

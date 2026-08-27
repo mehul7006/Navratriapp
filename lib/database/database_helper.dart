@@ -651,11 +651,15 @@ class DatabaseHelper {
   // ========== LUCKY DRAW ==========
 
   static Future<Map<String, dynamic>?> spinDraw({required int dayNumber, required int drawnBy}) async {
-    final result = await _post('/api/daily-draws/spin', {
-      'day_number': dayNumber,
-      'drawn_by': drawnBy,
-    });
-    return result;
+    try {
+      final result = await _post('/api/daily-draws/spin', {
+        'day_number': dayNumber,
+        'drawn_by': drawnBy,
+      });
+      return result;
+    } catch (e) {
+      return null;
+    }
   }
 
   static Future<Map<String, dynamic>> getDailyDrawCount(int dayNumber) async {
