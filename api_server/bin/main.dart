@@ -78,6 +78,8 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS ticket_code VARCHAR");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS house_number VARCHAR");
+    // Reset all is_winner flags - 9-day cooldown now uses daily_draws table only
+    await _db!.execute('UPDATE draw_tickets SET is_winner = FALSE WHERE is_winner = TRUE');
     // Gift assignments status column
     await _db!.execute(
         "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
@@ -1829,22 +1831,13 @@ Future<Response> _spinDraw(Request request) async {
     if (spinsToday >= 6)
       return _errorResponse('Maximum 6 draws per day reached');
 
-    // Reset tickets for users whose 9-day cooldown has expired
-    await conn.execute('''
-      UPDATE draw_tickets SET is_winner = FALSE 
-      WHERE is_winner = TRUE AND user_id IN (
-        SELECT winner_id FROM daily_draws 
-        WHERE winner_id IS NOT NULL 
-        AND drawn_at <= NOW() - INTERVAL '9 days'
-      )
-    ''');
-
+    // Pick random assigned ticket for this day, excluding users who won in last 9 days
     final ticketResult = await conn.execute(
       Sql.named('''
         SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
         FROM draw_tickets dt
         JOIN users u ON dt.user_id = u.id
-        WHERE dt.day_number = @day AND dt.is_assigned = TRUE AND dt.is_winner = FALSE
+        WHERE dt.day_number = @day AND dt.is_assigned = TRUE
         AND dt.user_id NOT IN (
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
@@ -1861,8 +1854,8 @@ Future<Response> _spinDraw(Request request) async {
     final ticket = _parseRow(ticketResult.first);
     await conn.execute(
       Sql.named('''
-        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by)
-        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy)
+        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by, drawn_at)
+        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy, NOW())
       '''),
       parameters: {
         'day': dayNumber,
@@ -1873,11 +1866,6 @@ Future<Response> _spinDraw(Request request) async {
         'drawNum': spinsToday + 1,
         'drawnBy': body['drawn_by'],
       },
-    );
-
-    await conn.execute(
-      Sql.named('UPDATE draw_tickets SET is_winner = TRUE WHERE user_id = @userId'),
-      parameters: {'userId': ticket['user_id']},
     );
 
     return _jsonResponse({
