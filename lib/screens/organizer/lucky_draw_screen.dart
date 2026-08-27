@@ -23,10 +23,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   List<Map<String, dynamic>> _drawHistory = [];
   List<Map<String, dynamic>> _days = [];
 
-  // Slot machine state
-  List<int> _currentDigits = List.generate(10, (_) => 0);
-  List<int> _targetDigits = List.generate(10, (_) => 0);
-  List<bool> _digitLocked = List.generate(10, (_) => true);
+  // Slot machine state - single list updated in one setState
+  List<_SlotDigit> _slots = List.generate(10, (_) => _SlotDigit(value: 0, locked: true));
   Timer? _spinTimer;
   final Random _random = Random();
 
@@ -44,16 +42,22 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final countData = await DatabaseHelper.getDailyDrawCount(_selectedDay);
-    final history = await DatabaseHelper.getDailyDrawHistory(dayNumber: _selectedDay);
-    final days = await DatabaseHelper.getNavratriDays();
-    setState(() {
-      _spinsToday = countData['count'] ?? 0;
-      _maxSpins = countData['max'] ?? 6;
-      _drawHistory = history;
-      _days = days;
-      _isLoading = false;
-    });
+    try {
+      final countData = await DatabaseHelper.getDailyDrawCount(_selectedDay);
+      final history = await DatabaseHelper.getDailyDrawHistory(dayNumber: _selectedDay);
+      final days = await DatabaseHelper.getNavratriDays();
+      if (mounted) {
+        setState(() {
+          _spinsToday = countData['count'] ?? 0;
+          _maxSpins = countData['max'] ?? 6;
+          _drawHistory = history;
+          _days = days;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Map<String, dynamic>? _getDayData(int dayNum) {
@@ -67,63 +71,53 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     setState(() {
       _isSpinning = true;
       _lastResult = null;
-      _digitLocked = List.generate(10, (_) => false);
-      _currentDigits = List.generate(10, (_) => 0);
+      _slots = List.generate(10, (_) => _SlotDigit(value: 0, locked: false));
     });
 
-    // Start all digits spinning
-    _spinTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
-      if (!mounted || _isSpinning == false) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        for (int i = 0; i < 10; i++) {
-          if (!_digitLocked[i]) {
-            _currentDigits[i] = _random.nextInt(10);
-          }
-        }
-      });
+    // Animate digits - update every 150ms (not too fast to avoid hit test issues)
+    _spinTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
+      if (!mounted) { timer.cancel(); return; }
+      // Only update if still spinning
+      if (!_isSpinning) { timer.cancel(); return; }
+      final newSlots = _slots.map((s) => s.locked ? s : _SlotDigit(value: _random.nextInt(10), locked: false)).toList();
+      setState(() { _slots = newSlots; });
     });
 
-    // Call API to get the result
+    // Call API
     final auth = context.read<AuthProvider>();
     final result = await DatabaseHelper.spinDraw(
       dayNumber: _selectedDay,
       drawnBy: auth.currentUser?['id'] ?? 0,
     );
 
+    // Parse target digits
+    List<int> target = List.generate(10, (_) => 0);
     if (result != null) {
-      // Parse the ticket code into 10 digits
       final code = (result['ticket_code'] ?? '0000000000').toString();
       final padded = code.padLeft(10, '0');
-      _targetDigits = padded.split('').map((c) => int.tryParse(c) ?? 0).toList();
-    } else {
-      _targetDigits = List.generate(10, (_) => 0);
+      target = padded.split('').map((c) => int.tryParse(c) ?? 0).toList();
     }
 
-    // Lock digits one by one every 300ms
+    // Lock digits one by one
     for (int i = 0; i < 10; i++) {
       await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) {
-        _spinTimer?.cancel();
-        return;
-      }
-      setState(() {
-        _digitLocked[i] = true;
-        _currentDigits[i] = _targetDigits[i];
-      });
+      if (!mounted) break;
+      final newSlots = _slots.asMap().entries.map((entry) {
+        if (entry.key == i) return _SlotDigit(value: target[i], locked: true);
+        return entry.value;
+      }).toList();
+      setState(() { _slots = newSlots; });
     }
 
     _spinTimer?.cancel();
+    await Future.delayed(const Duration(milliseconds: 400));
 
-    // Small pause after all digits locked
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      _isSpinning = false;
-      _lastResult = result;
-    });
+    if (mounted) {
+      setState(() {
+        _isSpinning = false;
+        _lastResult = result;
+      });
+    }
 
     if (result != null) {
       _showWinnerDialog(result);
@@ -156,7 +150,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.goldPrimary.withOpacity(0.1),
+                color: AppTheme.goldPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -237,7 +231,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               width: 65,
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.goldPrimary : (isCompleted ? Colors.green.withOpacity(0.3) : AppTheme.cardBg),
+                color: isSelected ? AppTheme.goldPrimary : (isCompleted ? Colors.green.withValues(alpha: 0.3) : AppTheme.cardBg),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isActive ? Colors.amber : Colors.white24, width: isActive ? 2 : 1),
               ),
@@ -267,7 +261,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppTheme.purpleCard, AppTheme.purpleDeep]),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+        border: Border.all(color: AppTheme.goldPrimary.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -296,45 +290,39 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
 
   Widget _buildSlotMachine() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.black, Colors.grey.shade900, Colors.black],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.grey.shade900,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.goldPrimary, width: 2),
         boxShadow: [
-          BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.3), blurRadius: 20, spreadRadius: 2),
+          BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 2),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: List.generate(10, (index) {
-          final isLocked = _digitLocked[index];
+          final slot = _slots[index];
           return Container(
-            width: 32,
-            height: 44,
+            width: 30,
+            height: 42,
             margin: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
-              color: isLocked ? AppTheme.purpleDeep : Colors.black,
+              color: slot.locked ? AppTheme.purpleDeep : Colors.black,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: isLocked ? AppTheme.goldPrimary : Colors.white24,
-                width: isLocked ? 2 : 1,
+                color: slot.locked ? AppTheme.goldPrimary : Colors.white24,
+                width: slot.locked ? 2 : 1,
               ),
-              boxShadow: isLocked
-                  ? [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.4), blurRadius: 6)]
-                  : [],
             ),
             child: Center(
               child: Text(
-                '${_currentDigits[index]}',
+                '${slot.value}',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: isLocked ? AppTheme.goldPrimary : Colors.white54,
+                  color: slot.locked ? AppTheme.goldPrimary : Colors.white54,
                 ),
               ),
             ),
@@ -348,8 +336,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     final canSpin = _spinsToday < _maxSpins && !_isSpinning;
     return GestureDetector(
       onTap: canSpin ? _doSpin : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
         decoration: BoxDecoration(
           gradient: canSpin
@@ -357,7 +344,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               : LinearGradient(colors: [Colors.grey, Colors.black54]),
           borderRadius: BorderRadius.circular(30),
           boxShadow: canSpin
-              ? [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.5), blurRadius: 15, spreadRadius: 3)]
+              ? [BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.5), blurRadius: 15, spreadRadius: 3)]
               : [],
         ),
         child: Row(
@@ -380,9 +367,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.green.withOpacity(0.2), AppTheme.purpleCard]),
+        gradient: LinearGradient(colors: [Colors.green.withValues(alpha: 0.2), AppTheme.purpleCard]),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withOpacity(0.5)),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -434,4 +421,10 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       ],
     );
   }
+}
+
+class _SlotDigit {
+  final int value;
+  final bool locked;
+  const _SlotDigit({required this.value, required this.locked});
 }
