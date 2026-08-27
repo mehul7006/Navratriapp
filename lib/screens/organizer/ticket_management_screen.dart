@@ -547,33 +547,33 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
                     ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: members.length,
-                      itemBuilder: (context, index) {
-                        final m = members[index];
-                        final isSelected = selectedUserId == m['id'];
-                        final memberName = (m['name'] ?? '').toString();
-                        final memberMobile = (m['mobile_number'] ?? '').toString();
-                        return ListTile(
-                          dense: true,
-                          leading: CircleAvatar(
-                            backgroundColor: isSelected ? Colors.green : AppTheme.goldPrimary,
-                            radius: 14,
-                            child: Text(memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.purpleDark, fontWeight: FontWeight.bold)),
-                          ),
-                          title: Text(memberName, style: TextStyle(color: isSelected ? Colors.green : Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                          subtitle: memberMobile.isNotEmpty && memberMobile != '0' ? Text(memberMobile, style: const TextStyle(color: Colors.white54, fontSize: 11)) : null,
-                          trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green, size: 20) : null,
-                          onTap: () {
-                            setDialogState(() {
-                              selectedUserId = m['id'];
-                              showAddMember = false;
-                            });
-                          },
-                        );
-                      },
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: members.map((m) {
+                          final isSelected = selectedUserId == m['id'];
+                          final memberName = (m['name'] ?? '').toString();
+                          final memberMobile = (m['mobile_number'] ?? '').toString();
+                          return ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              backgroundColor: isSelected ? Colors.green : AppTheme.goldPrimary,
+                              radius: 14,
+                              child: Text(memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.purpleDark, fontWeight: FontWeight.bold)),
+                            ),
+                            title: Text(memberName, style: TextStyle(color: isSelected ? Colors.green : Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                            subtitle: memberMobile.isNotEmpty && memberMobile != '0' ? Text(memberMobile, style: const TextStyle(color: Colors.white54, fontSize: 11)) : null,
+                            trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green, size: 20) : null,
+                            onTap: () {
+                              setDialogState(() {
+                                selectedUserId = m['id'];
+                                showAddMember = false;
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
                 ],

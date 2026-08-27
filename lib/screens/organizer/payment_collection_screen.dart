@@ -701,18 +701,18 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                 Container(
                   constraints: const BoxConstraints(maxHeight: 120),
                   decoration: BoxDecoration(color: AppTheme.purpleDark, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _houseMembers.length,
-                    itemBuilder: (ctx, i) {
-                      final m = _houseMembers[i];
-                      return ListTile(
-                        dense: true,
-                        leading: CircleAvatar(backgroundColor: AppTheme.goldPrimary, radius: 12, child: Text((m['name'] ?? '')[0].toString().toUpperCase(), style: const TextStyle(fontSize: 10, color: AppTheme.purpleDark))),
-                        title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                        onTap: () => _selectMember(m),
-                      );
-                    },
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _houseMembers.map((m) {
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(backgroundColor: AppTheme.goldPrimary, radius: 12, child: Text((m['name'] ?? '')[0].toString().toUpperCase(), style: const TextStyle(fontSize: 10, color: AppTheme.purpleDark))),
+                          title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          onTap: () => _selectMember(m),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ],
