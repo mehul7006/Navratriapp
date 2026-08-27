@@ -12,6 +12,8 @@ import 'user_profile_screen.dart';
 import 'user_schedule_screen.dart';
 import 'user_winners_screen.dart';
 import 'user_payment_history_screen.dart';
+import 'user_song_request_screen.dart';
+import 'user_shoutout_wall_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -289,6 +291,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen()))),
         _buildActionCard(icon: Icons.receipt_long, title: 'Payments',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
+        _buildActionCard(icon: Icons.music_note, title: 'Songs',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSongRequestScreen()))),
+        _buildActionCard(icon: Icons.celebration, title: 'Shoutout',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserShoutoutWallScreen()))),
       ],
     );
   }

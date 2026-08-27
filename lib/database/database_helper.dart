@@ -709,4 +709,111 @@ class DatabaseHelper {
   static Future<void> reopenDay(int dayNumber) async {
     await _put('/api/navratri-days/$dayNumber/reopen', {});
   }
+
+  // ========== SONG REQUESTS ==========
+
+  static Future<Map<String, dynamic>?> createSongRequest({
+    required int userId,
+    required String songName,
+    String? youtubeLink,
+    required int dayNumber,
+    String requestType = 'live',
+  }) async {
+    return _post('/api/song-requests', {
+      'user_id': userId,
+      'song_name': songName,
+      'youtube_link': youtubeLink ?? '',
+      'day_number': dayNumber,
+      'request_type': requestType,
+    });
+  }
+
+  static Future<List<Map<String, dynamic>>> getSongRequests({int? day, String? status}) async {
+    final params = <String, String>{};
+    if (day != null) params['day'] = day.toString();
+    if (status != null) params['status'] = status;
+    return _get('/api/song-requests', queryParams: params.isNotEmpty ? params : null);
+  }
+
+  static Future<void> playSongRequest(int id) async {
+    await _put('/api/song-requests/$id/play', {});
+  }
+
+  static Future<void> skipSongRequest(int id) async {
+    await _put('/api/song-requests/$id/skip', {});
+  }
+
+  static Future<void> deleteSongRequest(int id) async {
+    await _delete('/api/song-requests/$id');
+  }
+
+  static Future<void> upvoteSongRequest(int id) async {
+    await _post('/api/song-requests/$id/upvote', {});
+  }
+
+  // ========== SONG SUGGESTIONS ==========
+
+  static Future<Map<String, dynamic>?> createSongSuggestion({
+    required int userId,
+    required String songName,
+    String? youtubeLink,
+    required int targetDay,
+  }) async {
+    return _post('/api/song-suggestions', {
+      'user_id': userId,
+      'song_name': songName,
+      'youtube_link': youtubeLink ?? '',
+      'target_day': targetDay,
+    });
+  }
+
+  static Future<List<Map<String, dynamic>>> getSongSuggestions({int? day}) async {
+    final params = day != null ? '?day=$day' : '';
+    return _get('/api/song-suggestions$params');
+  }
+
+  static Future<void> upvoteSongSuggestion(int id, int userId) async {
+    await _post('/api/song-suggestions/$id/upvote', {'user_id': userId});
+  }
+
+  static Future<void> removeUpvoteSuggestion(int id, int userId) async {
+    await _delete('/api/song-suggestions/$id/upvote');
+  }
+
+  // ========== SHOUTOUTS ==========
+
+  static Future<Map<String, dynamic>?> createShoutout({
+    required int fromUserId,
+    int? toUserId,
+    required String message,
+    String emoji = '🎉',
+    required int dayNumber,
+    String shoutoutType = 'general',
+  }) async {
+    return _post('/api/shoutouts', {
+      'from_user_id': fromUserId,
+      'to_user_id': toUserId ?? fromUserId,
+      'message': message,
+      'emoji': emoji,
+      'day_number': dayNumber,
+      'shoutout_type': shoutoutType,
+    });
+  }
+
+  static Future<List<Map<String, dynamic>>> getShoutouts({int? day}) async {
+    final params = day != null ? '?day=$day' : '';
+    return _get('/api/shoutouts$params');
+  }
+
+  static Future<void> reactShoutout(int id, int userId, String reaction) async {
+    await _post('/api/shoutouts/$id/react', {'user_id': userId, 'reaction': reaction});
+  }
+
+  static Future<void> removeShoutoutReaction(int id, int userId, String reaction) async {
+    await _delete('/api/shoutouts/$id/react');
+  }
+
+  static Future<void> deleteShoutout(int id) async {
+    await _delete('/api/shoutouts/$id');
+  }
 }

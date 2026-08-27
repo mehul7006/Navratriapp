@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:confetti/confetti.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
@@ -31,16 +32,19 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   List<_SlotDigit> _slots = List.generate(3, (_) => _SlotDigit(value: 0, locked: true));
   Timer? _spinTimer;
   final Random _random = Random();
+  late ConfettiController _confettiController;
 
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _loadData();
   }
 
   @override
   void dispose() {
     _spinTimer?.cancel();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -181,71 +185,95 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   }
 
   void _showAllPrizeWinnersDialog() {
+    _confettiController.play();
     final prizeNames = {3: '3rd Prize (Bronze)', 2: '2nd Prize (Silver)', 1: '1st Prize (Gold)'};
     final prizeColors = {3: Colors.orange, 2: Colors.grey.shade300, 1: AppTheme.goldPrimary};
     final prizeIcons = {3: '🥉', 2: '🥈', 1: '🥇'};
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppTheme.goldPrimary, width: 2),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🎉', style: TextStyle(fontSize: 48)),
-              const SizedBox(height: 8),
-              const Text(
-                'Prize Draw Results',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      builder: (ctx) => Stack(
+        children: [
+          AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: AppTheme.goldPrimary, width: 2),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🎉', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Prize Draw Results',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._prizeWinners.map((winner) {
+                    final level = winner['prize_level'] as int;
+                    final color = prizeColors[level] ?? Colors.white;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${prizeIcons[level]} ${prizeNames[level]}',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            winner['ticket_code'] ?? '',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color, letterSpacing: 2),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            winner['user_name'] ?? 'Unknown',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          Text(
+                            'House: ${winner['house_number'] ?? ''}',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
               ),
-              const SizedBox(height: 16),
-              ..._prizeWinners.map((winner) {
-                final level = winner['prize_level'] as int;
-                final color = prizeColors[level] ?? Colors.white;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '${prizeIcons[level]} ${prizeNames[level]}',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        winner['ticket_code'] ?? '',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color, letterSpacing: 2),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        winner['user_name'] ?? 'Unknown',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      Text(
-                        'House: ${winner['house_number'] ?? ''}',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('CLOSE', style: TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
+              ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CLOSE', style: TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [
+                  Colors.green, Colors.purple, Colors.orange, Colors.red, Colors.blue, Colors.yellow,
+                ],
+                numberOfParticles: 30,
+                gravity: 0.1,
+                emissionFrequency: 0.05,
+              ),
+            ),
           ),
         ],
       ),

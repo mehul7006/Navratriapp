@@ -90,6 +90,34 @@ Future<Connection> get db async {
       await _db!.execute(
           'ALTER TABLE users DROP CONSTRAINT IF EXISTS users_house_number_key CASCADE');
     } catch (_) {}
+    // ========== SONG REQUESTS ==========
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS song_requests (
+      id SERIAL PRIMARY KEY, user_id INT, song_name VARCHAR NOT NULL,
+      youtube_link VARCHAR, day_number INT NOT NULL,
+      request_type VARCHAR DEFAULT 'live', status VARCHAR DEFAULT 'pending',
+      request_count INT DEFAULT 1, played_at TIMESTAMP, created_at TIMESTAMP DEFAULT NOW()
+    )''');
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS song_suggestions (
+      id SERIAL PRIMARY KEY, user_id INT, song_name VARCHAR NOT NULL,
+      youtube_link VARCHAR, target_day INT NOT NULL, upvotes INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    )''');
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS song_upvotes (
+      id SERIAL PRIMARY KEY, song_suggestion_id INT, user_id INT,
+      created_at TIMESTAMP DEFAULT NOW(), UNIQUE(song_suggestion_id, user_id)
+    )''');
+    // ========== SHOUTOUTS ==========
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS shoutouts (
+      id SERIAL PRIMARY KEY, from_user_id INT, to_user_id INT,
+      message TEXT NOT NULL, emoji VARCHAR(10) DEFAULT '🎉',
+      day_number INT NOT NULL, shoutout_type VARCHAR DEFAULT 'general',
+      is_approved BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW()
+    )''');
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS shoutout_reactions (
+      id SERIAL PRIMARY KEY, shoutout_id INT, user_id INT,
+      reaction VARCHAR(5) NOT NULL, created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(shoutout_id, user_id, reaction)
+    )''');
   } catch (_) {}
   return _db!;
 }
@@ -175,6 +203,24 @@ final router = Router()
   ..post('/api/broadcasts', _createBroadcast)
   ..get('/api/broadcasts', _getBroadcasts)
   ..delete('/api/broadcasts/<id>', _deleteBroadcast)
+  // ========== SONG REQUESTS ==========
+  ..post('/api/song-requests', _createSongRequest)
+  ..get('/api/song-requests', _getSongRequests)
+  ..put('/api/song-requests/<id>/play', _playSongRequest)
+  ..put('/api/song-requests/<id>/skip', _skipSongRequest)
+  ..delete('/api/song-requests/<id>', _deleteSongRequest)
+  ..post('/api/song-requests/<id>/upvote', _upvoteSongRequest)
+  // ========== SONG SUGGESTIONS ==========
+  ..post('/api/song-suggestions', _createSongSuggestion)
+  ..get('/api/song-suggestions', _getSongSuggestions)
+  ..post('/api/song-suggestions/<id>/upvote', _upvoteSongSuggestion)
+  ..delete('/api/song-suggestions/<id>/upvote', _removeUpvoteSuggestion)
+  // ========== SHOUTOUTS ==========
+  ..post('/api/shoutouts', _createShoutout)
+  ..get('/api/shoutouts', _getShoutouts)
+  ..post('/api/shoutouts/<id>/react', _reactShoutout)
+  ..delete('/api/shoutouts/<id>/react', _removeShoutoutReaction)
+  ..delete('/api/shoutouts/<id>', _deleteShoutout)
   ..get('/api/reports/summary', _getReportSummary)
   ..get('/api/reports/payments-by-house', _getPaymentsByHouseReport)
   ..get('/api/reports/expenses-by-date', _getExpensesByDateReport)
@@ -2278,6 +2324,307 @@ Future<Response> _getDailyActivityReport(Request request) async {
     }
 
     return _jsonResponse({'days': activity});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== SONG REQUESTS ==========
+
+Future<Response> _createSongRequest(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final result = await conn.execute(Sql.named('''
+      INSERT INTO song_requests (user_id, song_name, youtube_link, day_number, request_type)
+      VALUES (@userId, @songName, @youtubeLink, @dayNumber, @requestType)
+      RETURNING id, song_name, youtube_link, day_number, request_type, status, created_at
+    '''), parameters: {
+      'userId': body['user_id'],
+      'songName': body['song_name'],
+      'youtubeLink': body['youtube_link'] ?? '',
+      'dayNumber': body['day_number'] ?? 1,
+      'requestType': body['request_type'] ?? 'live',
+    });
+    return _jsonResponse(_parseRow(result.first));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getSongRequests(Request request) async {
+  try {
+    final conn = await db;
+    final dayParam = request.url.queryParameters['day'];
+    final statusParam = request.url.queryParameters['status'];
+
+    String sql = '''
+      SELECT sr.*, u.name as user_name, u.house_number,
+        (SELECT COUNT(*) FROM song_upvotes su WHERE su.song_suggestion_id = sr.id) as vote_count
+      FROM song_requests sr
+      LEFT JOIN users u ON sr.user_id = u.id
+      WHERE 1=1
+    ''';
+    final params = <String, dynamic>{};
+
+    if (dayParam != null) {
+      sql += ' AND sr.day_number = @day';
+      params['day'] = int.parse(dayParam);
+    }
+    if (statusParam != null) {
+      sql += ' AND sr.status = @status';
+      params['status'] = statusParam;
+    }
+    sql += ' ORDER BY sr.request_count DESC, sr.created_at ASC';
+
+    final results = await conn.execute(Sql.named(sql), parameters: params);
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _playSongRequest(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      UPDATE song_requests SET status = 'playing', played_at = NOW() WHERE id = @id
+    '''), parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _skipSongRequest(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      UPDATE song_requests SET status = 'skipped' WHERE id = @id
+    '''), parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _deleteSongRequest(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(Sql.named('DELETE FROM song_requests WHERE id = @id'),
+        parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _upvoteSongRequest(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      UPDATE song_requests SET request_count = request_count + 1 WHERE id = @id
+    '''), parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== SONG SUGGESTIONS ==========
+
+Future<Response> _createSongSuggestion(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final result = await conn.execute(Sql.named('''
+      INSERT INTO song_suggestions (user_id, song_name, youtube_link, target_day)
+      VALUES (@userId, @songName, @youtubeLink, @targetDay)
+      RETURNING id, song_name, youtube_link, target_day, upvotes, created_at
+    '''), parameters: {
+      'userId': body['user_id'],
+      'songName': body['song_name'],
+      'youtubeLink': body['youtube_link'] ?? '',
+      'targetDay': body['target_day'] ?? 1,
+    });
+    return _jsonResponse(_parseRow(result.first));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getSongSuggestions(Request request) async {
+  try {
+    final conn = await db;
+    final dayParam = request.url.queryParameters['day'];
+
+    String sql = '''
+      SELECT ss.*, u.name as user_name, u.house_number,
+        (SELECT COUNT(*) FROM song_upvotes su WHERE su.song_suggestion_id = ss.id) as vote_count
+      FROM song_suggestions ss
+      LEFT JOIN users u ON ss.user_id = u.id
+      WHERE 1=1
+    ''';
+    final params = <String, dynamic>{};
+
+    if (dayParam != null) {
+      sql += ' AND ss.target_day = @day';
+      params['day'] = int.parse(dayParam);
+    }
+    sql += ' ORDER BY vote_count DESC, ss.created_at DESC';
+
+    final results = await conn.execute(Sql.named(sql), parameters: params);
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _upvoteSongSuggestion(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      INSERT INTO song_upvotes (song_suggestion_id, user_id)
+      VALUES (@suggestionId, @userId)
+      ON CONFLICT (song_suggestion_id, user_id) DO NOTHING
+    '''), parameters: {'suggestionId': int.parse(id), 'userId': body['user_id']});
+    await conn.execute(Sql.named('''
+      UPDATE song_suggestions SET upvotes = (
+        SELECT COUNT(*) FROM song_upvotes WHERE song_suggestion_id = @id
+      ) WHERE id = @id
+    '''), parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _removeUpvoteSuggestion(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      DELETE FROM song_upvotes WHERE song_suggestion_id = @suggestionId AND user_id = @userId
+    '''), parameters: {'suggestionId': int.parse(id), 'userId': body['user_id']});
+    await conn.execute(Sql.named('''
+      UPDATE song_suggestions SET upvotes = (
+        SELECT COUNT(*) FROM song_upvotes WHERE song_suggestion_id = @id
+      ) WHERE id = @id
+    '''), parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== SHOUTOUTS ==========
+
+Future<Response> _createShoutout(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final result = await conn.execute(Sql.named('''
+      INSERT INTO shoutouts (from_user_id, to_user_id, message, emoji, day_number, shoutout_type)
+      VALUES (@fromUserId, @toUserId, @message, @emoji, @dayNumber, @shoutoutType)
+      RETURNING id, message, emoji, day_number, shoutout_type, created_at
+    '''), parameters: {
+      'fromUserId': body['from_user_id'],
+      'toUserId': body['to_user_id'] ?? body['from_user_id'],
+      'message': body['message'],
+      'emoji': body['emoji'] ?? '🎉',
+      'dayNumber': body['day_number'] ?? 1,
+      'shoutoutType': body['shoutout_type'] ?? 'general',
+    });
+    final shoutout = _parseRow(result.first);
+    // Get user names
+    final fromUser = await conn.execute(Sql.named('SELECT name FROM users WHERE id = @id'),
+        parameters: {'id': body['from_user_id']});
+    shoutout['from_user_name'] = fromUser.isNotEmpty ? fromUser.first.toColumnMap()['name'] : '';
+    if (body['to_user_id'] != null && body['to_user_id'] != body['from_user_id']) {
+      final toUser = await conn.execute(Sql.named('SELECT name FROM users WHERE id = @id'),
+          parameters: {'id': body['to_user_id']});
+      shoutout['to_user_name'] = toUser.isNotEmpty ? toUser.first.toColumnMap()['name'] : '';
+    }
+    return _jsonResponse(shoutout);
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getShoutouts(Request request) async {
+  try {
+    final conn = await db;
+    final dayParam = request.url.queryParameters['day'];
+
+    String sql = '''
+      SELECT s.*, fu.name as from_user_name, fu.house_number as from_house,
+        tu.name as to_user_name, tu.house_number as to_house,
+        (SELECT COUNT(*) FROM shoutout_reactions sr WHERE sr.shoutout_id = s.id) as reaction_count
+      FROM shoutouts s
+      LEFT JOIN users fu ON s.from_user_id = fu.id
+      LEFT JOIN users tu ON s.to_user_id = tu.id
+      WHERE s.is_approved = TRUE
+    ''';
+    final params = <String, dynamic>{};
+
+    if (dayParam != null) {
+      sql += ' AND s.day_number = @day';
+      params['day'] = int.parse(dayParam);
+    }
+    sql += ' ORDER BY s.created_at DESC';
+
+    final results = await conn.execute(Sql.named(sql), parameters: params);
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _reactShoutout(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      INSERT INTO shoutout_reactions (shoutout_id, user_id, reaction)
+      VALUES (@shoutoutId, @userId, @reaction)
+      ON CONFLICT (shoutout_id, user_id, reaction) DO NOTHING
+    '''), parameters: {
+      'shoutoutId': int.parse(id),
+      'userId': body['user_id'],
+      'reaction': body['reaction'],
+    });
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _removeShoutoutReaction(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    await conn.execute(Sql.named('''
+      DELETE FROM shoutout_reactions WHERE shoutout_id = @shoutoutId AND user_id = @userId AND reaction = @reaction
+    '''), parameters: {
+      'shoutoutId': int.parse(id),
+      'userId': body['user_id'],
+      'reaction': body['reaction'],
+    });
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _deleteShoutout(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(Sql.named('DELETE FROM shoutout_reactions WHERE shoutout_id = @id'),
+        parameters: {'id': int.parse(id)});
+    await conn.execute(Sql.named('DELETE FROM shoutouts WHERE id = @id'),
+        parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

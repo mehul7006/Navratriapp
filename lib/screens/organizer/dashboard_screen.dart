@@ -17,6 +17,7 @@ import 'reports_screen.dart';
 import 'draw_history_screen.dart';
 import 'lucky_draw_screen.dart';
 import 'broadcast_management_screen.dart';
+import 'dj_console_screen.dart';
 
 class OrganizerDashboardScreen extends StatefulWidget {
   const OrganizerDashboardScreen({super.key});
@@ -232,6 +233,9 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
             }),
             _buildQuickAction('Broadcasts', Icons.campaign, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const BroadcastManagementScreen()));
+            }),
+            _buildQuickAction('DJ Console', Icons.headset, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const DjConsoleScreen()));
             }),
           ],
         ),
