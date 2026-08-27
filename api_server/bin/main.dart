@@ -40,29 +40,48 @@ Future<Connection> get db async {
   } catch (_) {}
   // Add soft delete columns if missing
   try {
-    await _db!.execute("ALTER TABLE fund_collections ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE");
-    await _db!.execute("ALTER TABLE fund_collections ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP");
-    await _db!.execute("ALTER TABLE fund_collections ADD COLUMN IF NOT EXISTS deleted_reason TEXT");
-    await _db!.execute("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE");
-    await _db!.execute("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP");
-    await _db!.execute("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_reason TEXT");
+    await _db!.execute(
+        "ALTER TABLE fund_collections ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE");
+    await _db!.execute(
+        "ALTER TABLE fund_collections ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP");
+    await _db!.execute(
+        "ALTER TABLE fund_collections ADD COLUMN IF NOT EXISTS deleted_reason TEXT");
+    await _db!.execute(
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE");
+    await _db!.execute(
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP");
+    await _db!.execute(
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_reason TEXT");
     // Fix paid_by column type - must be varchar, not integer
     await _db!.execute("ALTER TABLE expenses DROP COLUMN IF EXISTS paid_by");
-    await _db!.execute("ALTER TABLE expenses ADD COLUMN paid_by VARCHAR DEFAULT 'organizer'");
+    await _db!.execute(
+        "ALTER TABLE expenses ADD COLUMN paid_by VARCHAR DEFAULT 'organizer'");
     // Daily draws table for lucky draw spin
     await _db!.execute('''CREATE TABLE IF NOT EXISTS daily_draws (
       id SERIAL PRIMARY KEY, day_number INT NOT NULL, ticket_id INT,
       ticket_code VARCHAR, winner_id INT, house_number VARCHAR,
       draw_number INT DEFAULT 1, drawn_by INT, drawn_at TIMESTAMP DEFAULT NOW()
     )''');
-    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_date DATE DEFAULT CURRENT_DATE");
-    await _db!.execute("UPDATE daily_draws SET draw_date = DATE(drawn_at) WHERE draw_date IS NULL");
-    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS winner_id INT");
-    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS ticket_id INT");
-    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_number INT DEFAULT 1");
-    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS drawn_by INT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_date DATE DEFAULT CURRENT_DATE");
+    await _db!.execute(
+        "UPDATE daily_draws SET draw_date = DATE(drawn_at) WHERE draw_date IS NULL");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS winner_id INT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS ticket_id INT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_number INT DEFAULT 1");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS drawn_by INT");
     // Gift assignments status column
-    await _db!.execute("ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
+    await _db!.execute(
+        "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
+    // Allow multiple members per house - drop unique constraint with CASCADE
+    try {
+      await _db!.execute(
+          'ALTER TABLE users DROP CONSTRAINT IF EXISTS users_house_number_key CASCADE');
+    } catch (_) {}
   } catch (_) {}
   return _db!;
 }
@@ -161,7 +180,9 @@ Map<String, dynamic> _parseRow(ResultRow row) {
     } else if (map[key] is String) {
       final val = map[key] as String;
       if (val.isNotEmpty) {
-        if (val.contains('T') && (val.endsWith('Z') || RegExp(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}').hasMatch(val))) {
+        if (val.contains('T') &&
+            (val.endsWith('Z') ||
+                RegExp(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}').hasMatch(val))) {
           try {
             final dt = DateTime.parse(val);
             map[key] = _toIST(dt.isUtc ? dt : dt.toUtc());
@@ -219,7 +240,10 @@ Future<Response> _loginUser(Request request) async {
         FROM users 
         WHERE house_number = @house AND mobile_number = @mobile AND is_active = TRUE
       '''),
-      parameters: {'house': body['house_number'], 'mobile': body['mobile_number']},
+      parameters: {
+        'house': body['house_number'],
+        'mobile': body['mobile_number']
+      },
     );
     if (results.isNotEmpty) return _jsonResponse(_parseRow(results.first));
     return _jsonResponse(null);
@@ -274,6 +298,7 @@ Future<Response> _register(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
+
     final results = await conn.execute(
       Sql.named('''
         INSERT INTO users (house_number, name, mobile_number, user_type)
@@ -298,7 +323,8 @@ Future<Response> _getAllMembers(Request request) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named("SELECT * FROM users WHERE user_type != 'organizer' ORDER BY house_number"),
+      Sql.named(
+          "SELECT * FROM users WHERE user_type != 'organizer' ORDER BY house_number"),
     );
     return _jsonResponse(_parseResults(results));
   } catch (e) {
@@ -326,11 +352,22 @@ Future<Response> _updateMember(Request request, String id) async {
     final conn = await db;
     final updates = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('name')) { updates.add('name = @name'); params['name'] = body['name']; }
-    if (body.containsKey('house_number')) { updates.add('house_number = @house'); params['house'] = body['house_number']; }
-    if (body.containsKey('mobile_number')) { updates.add('mobile_number = @mobile'); params['mobile'] = body['mobile_number']; }
+    if (body.containsKey('name')) {
+      updates.add('name = @name');
+      params['name'] = body['name'];
+    }
+    if (body.containsKey('house_number')) {
+      updates.add('house_number = @house');
+      params['house'] = body['house_number'];
+    }
+    if (body.containsKey('mobile_number')) {
+      updates.add('mobile_number = @mobile');
+      params['mobile'] = body['mobile_number'];
+    }
     if (updates.isEmpty) return _jsonResponse({'ok': true});
-    await conn.execute(Sql.named('UPDATE users SET ${updates.join(', ')} WHERE id = @id'), parameters: params);
+    await conn.execute(
+        Sql.named('UPDATE users SET ${updates.join(', ')} WHERE id = @id'),
+        parameters: params);
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -354,7 +391,8 @@ Future<Response> _getMembersByHouse(Request request, String house) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named('SELECT * FROM users WHERE house_number = @house AND is_active = true ORDER BY name'),
+      Sql.named(
+          'SELECT * FROM users WHERE house_number = @house AND is_active = true ORDER BY name'),
       parameters: {'house': house},
     );
     return _jsonResponse(_parseResults(results));
@@ -414,8 +452,10 @@ Future<Response> _addPayment(Request request) async {
         RETURNING id
       '''),
       parameters: {
-        'userId': body['user_id'], 'house': body['house_number'],
-        'amount': body['amount'], 'method': body['payment_method'],
+        'userId': body['user_id'],
+        'house': body['house_number'],
+        'amount': body['amount'],
+        'method': body['payment_method'],
         'status': body['payment_status'] ?? 'paid',
         'tentative': body['tentative_date'],
         'paidDate': body['paid_date'],
@@ -436,12 +476,27 @@ Future<Response> _updatePayment(Request request, String id) async {
     final conn = await db;
     final sets = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('amount')) { sets.add('amount = @amount'); params['amount'] = body['amount']; }
-    if (body.containsKey('payment_method')) { sets.add('payment_method = @method'); params['method'] = body['payment_method']; }
-    if (body.containsKey('payer_name')) { sets.add('payer_name = @payer'); params['payer'] = body['payer_name']; }
-    if (body.containsKey('notes')) { sets.add('notes = @notes'); params['notes'] = body['notes']; }
+    if (body.containsKey('amount')) {
+      sets.add('amount = @amount');
+      params['amount'] = body['amount'];
+    }
+    if (body.containsKey('payment_method')) {
+      sets.add('payment_method = @method');
+      params['method'] = body['payment_method'];
+    }
+    if (body.containsKey('payer_name')) {
+      sets.add('payer_name = @payer');
+      params['payer'] = body['payer_name'];
+    }
+    if (body.containsKey('notes')) {
+      sets.add('notes = @notes');
+      params['notes'] = body['notes'];
+    }
     if (sets.isEmpty) return _jsonResponse({'ok': true});
-    await conn.execute(Sql.named('UPDATE fund_collections SET ${sets.join(", ")} WHERE id = @id'), parameters: params);
+    await conn.execute(
+        Sql.named(
+            'UPDATE fund_collections SET ${sets.join(", ")} WHERE id = @id'),
+        parameters: params);
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -464,7 +519,8 @@ Future<Response> _updatePaymentStatus(Request request, String id) async {
       params['method'] = body['payment_method'];
     }
     await conn.execute(
-      Sql.named('UPDATE fund_collections SET ${sets.join(", ")} WHERE id = @id'),
+      Sql.named(
+          'UPDATE fund_collections SET ${sets.join(", ")} WHERE id = @id'),
       parameters: params,
     );
     return _jsonResponse({'ok': true});
@@ -495,15 +551,38 @@ Future<Response> _updateExpense(Request request, String id) async {
     final conn = await db;
     final sets = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('category_id')) { sets.add('category_id = @catId'); params['catId'] = body['category_id']; }
-    if (body.containsKey('item_name')) { sets.add('item_name = @item'); params['item'] = body['item_name']; }
-    if (body.containsKey('amount')) { sets.add('amount = @amount'); params['amount'] = body['amount']; }
-    if (body.containsKey('paid_to')) { sets.add('paid_to = @paidTo'); params['paidTo'] = body['paid_to']; }
-    if (body.containsKey('expense_date')) { sets.add('expense_date = @date'); params['date'] = body['expense_date']; }
-    if (body.containsKey('notes')) { sets.add('notes = @notes'); params['notes'] = body['notes']; }
-    if (body.containsKey('paid_by')) { sets.add('paid_by = @paidBy'); params['paidBy'] = body['paid_by']; }
+    if (body.containsKey('category_id')) {
+      sets.add('category_id = @catId');
+      params['catId'] = body['category_id'];
+    }
+    if (body.containsKey('item_name')) {
+      sets.add('item_name = @item');
+      params['item'] = body['item_name'];
+    }
+    if (body.containsKey('amount')) {
+      sets.add('amount = @amount');
+      params['amount'] = body['amount'];
+    }
+    if (body.containsKey('paid_to')) {
+      sets.add('paid_to = @paidTo');
+      params['paidTo'] = body['paid_to'];
+    }
+    if (body.containsKey('expense_date')) {
+      sets.add('expense_date = @date');
+      params['date'] = body['expense_date'];
+    }
+    if (body.containsKey('notes')) {
+      sets.add('notes = @notes');
+      params['notes'] = body['notes'];
+    }
+    if (body.containsKey('paid_by')) {
+      sets.add('paid_by = @paidBy');
+      params['paidBy'] = body['paid_by'];
+    }
     if (sets.isEmpty) return _jsonResponse({'ok': true});
-    await conn.execute(Sql.named('UPDATE expenses SET ${sets.join(", ")} WHERE id = @id'), parameters: params);
+    await conn.execute(
+        Sql.named('UPDATE expenses SET ${sets.join(", ")} WHERE id = @id'),
+        parameters: params);
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -519,8 +598,13 @@ Future<Response> _deletePayment(Request request, String id) async {
     }
     final conn = await db;
     await conn.execute(
-      Sql.named('UPDATE fund_collections SET is_deleted = TRUE, deleted_at = @now, deleted_reason = @reason WHERE id = @id'),
-      parameters: {'id': int.parse(id), 'reason': reason, 'now': DateTime.now().toUtc()},
+      Sql.named(
+          'UPDATE fund_collections SET is_deleted = TRUE, deleted_at = @now, deleted_reason = @reason WHERE id = @id'),
+      parameters: {
+        'id': int.parse(id),
+        'reason': reason,
+        'now': DateTime.now().toUtc()
+      },
     );
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -532,7 +616,8 @@ Future<Response> _getDeletedPayments(Request request) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named('SELECT * FROM fund_collections WHERE is_deleted = TRUE ORDER BY deleted_at DESC'),
+      Sql.named(
+          'SELECT * FROM fund_collections WHERE is_deleted = TRUE ORDER BY deleted_at DESC'),
     );
     return _jsonResponse(_parseResults(results));
   } catch (e) {
@@ -549,8 +634,13 @@ Future<Response> _deleteExpense(Request request, String id) async {
     }
     final conn = await db;
     await conn.execute(
-      Sql.named('UPDATE expenses SET is_deleted = TRUE, deleted_at = @now, deleted_reason = @reason WHERE id = @id'),
-      parameters: {'id': int.parse(id), 'reason': reason, 'now': DateTime.now().toUtc()},
+      Sql.named(
+          'UPDATE expenses SET is_deleted = TRUE, deleted_at = @now, deleted_reason = @reason WHERE id = @id'),
+      parameters: {
+        'id': int.parse(id),
+        'reason': reason,
+        'now': DateTime.now().toUtc()
+      },
     );
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -603,7 +693,8 @@ Future<Response> _getAartiSlots(Request request, String day) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named('SELECT * FROM aarti_slots WHERE day_number = @day ORDER BY slot_time'),
+      Sql.named(
+          'SELECT * FROM aarti_slots WHERE day_number = @day ORDER BY slot_time'),
       parameters: {'day': int.parse(day)},
     );
     return _jsonResponse(_parseResults(results));
@@ -634,8 +725,10 @@ Future<Response> _addAartiSlot(Request request) async {
         VALUES (@day, @time, @label, @max) RETURNING id
       '''),
       parameters: {
-        'day': body['day_number'], 'time': body['slot_time'],
-        'label': body['slot_label'], 'max': body['max_participants'],
+        'day': body['day_number'],
+        'time': body['slot_time'],
+        'label': body['slot_label'],
+        'max': body['max_participants'],
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -650,12 +743,27 @@ Future<Response> _updateAartiSlot(Request request, String id) async {
     final conn = await db;
     final updates = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('slot_time')) { updates.add('slot_time = @time'); params['time'] = body['slot_time']; }
-    if (body.containsKey('slot_label')) { updates.add('slot_label = @label'); params['label'] = body['slot_label']; }
-    if (body.containsKey('max_participants')) { updates.add('max_participants = @max'); params['max'] = body['max_participants']; }
-    if (body.containsKey('is_active')) { updates.add('is_active = @active'); params['active'] = body['is_active']; }
+    if (body.containsKey('slot_time')) {
+      updates.add('slot_time = @time');
+      params['time'] = body['slot_time'];
+    }
+    if (body.containsKey('slot_label')) {
+      updates.add('slot_label = @label');
+      params['label'] = body['slot_label'];
+    }
+    if (body.containsKey('max_participants')) {
+      updates.add('max_participants = @max');
+      params['max'] = body['max_participants'];
+    }
+    if (body.containsKey('is_active')) {
+      updates.add('is_active = @active');
+      params['active'] = body['is_active'];
+    }
     if (updates.isNotEmpty) {
-      await conn.execute(Sql.named('UPDATE aarti_slots SET ${updates.join(', ')} WHERE id = @id'), parameters: params);
+      await conn.execute(
+          Sql.named(
+              'UPDATE aarti_slots SET ${updates.join(', ')} WHERE id = @id'),
+          parameters: params);
     }
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -678,8 +786,14 @@ Future<Response> _getAartiBookings(Request request) async {
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
-    if (day != null) { conditions.add('ab.day_number = @day'); params['day'] = int.parse(day); }
-    if (status != null) { conditions.add('ab.status = @status'); params['status'] = status; }
+    if (day != null) {
+      conditions.add('ab.day_number = @day');
+      params['day'] = int.parse(day);
+    }
+    if (status != null) {
+      conditions.add('ab.status = @status');
+      params['status'] = status;
+    }
     if (conditions.isNotEmpty) sql += ' WHERE ${conditions.join(' AND ')}';
     sql += ' ORDER BY ab.created_at DESC';
     final results = await conn.execute(Sql.named(sql), parameters: params);
@@ -718,8 +832,10 @@ Future<Response> _bookAartiSlot(Request request) async {
         VALUES (@userId, @house, @day, @slot) RETURNING id
       '''),
       parameters: {
-        'userId': body['user_id'], 'house': body['house_number'],
-        'day': body['day_number'], 'slot': body['slot_id'],
+        'userId': body['user_id'],
+        'house': body['house_number'],
+        'day': body['day_number'],
+        'slot': body['slot_id'],
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -737,7 +853,12 @@ Future<Response> _updateBookingStatus(Request request, String id) async {
         UPDATE aarti_bookings SET status = @status, approved_by = @by, approved_at = @now
         WHERE id = @id
       '''),
-      parameters: {'status': body['status'], 'by': body['approved_by'], 'id': int.parse(id), 'now': DateTime.now().toUtc()},
+      parameters: {
+        'status': body['status'],
+        'by': body['approved_by'],
+        'id': int.parse(id),
+        'now': DateTime.now().toUtc()
+      },
     );
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -750,7 +871,8 @@ Future<Response> _updateBookingStatus(Request request, String id) async {
 Future<Response> _getSnacks(Request request) async {
   try {
     final conn = await db;
-    final results = await conn.execute(Sql.named('SELECT * FROM snacks WHERE is_active = TRUE ORDER BY name'));
+    final results = await conn.execute(
+        Sql.named('SELECT * FROM snacks WHERE is_active = TRUE ORDER BY name'));
     return _jsonResponse(_parseResults(results));
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -760,7 +882,8 @@ Future<Response> _getSnacks(Request request) async {
 Future<Response> _getAllSnacks(Request request) async {
   try {
     final conn = await db;
-    final results = await conn.execute(Sql.named('SELECT * FROM snacks ORDER BY name'));
+    final results =
+        await conn.execute(Sql.named('SELECT * FROM snacks ORDER BY name'));
     return _jsonResponse(_parseResults(results));
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -777,8 +900,10 @@ Future<Response> _addSnack(Request request) async {
         VALUES (@name, @desc, @price, @qty, @veg) RETURNING id
       '''),
       parameters: {
-        'name': body['name'], 'desc': body['description'],
-        'price': body['price'], 'qty': body['quantity_available'],
+        'name': body['name'],
+        'desc': body['description'],
+        'price': body['price'],
+        'qty': body['quantity_available'],
         'veg': body['is_vegetarian'] ?? true,
       },
     );
@@ -794,12 +919,26 @@ Future<Response> _updateSnack(Request request, String id) async {
     final conn = await db;
     final updates = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('name')) { updates.add('name = @name'); params['name'] = body['name']; }
-    if (body.containsKey('price')) { updates.add('price = @price'); params['price'] = body['price']; }
-    if (body.containsKey('quantity_available')) { updates.add('quantity_available = @qty'); params['qty'] = body['quantity_available']; }
-    if (body.containsKey('is_active')) { updates.add('is_active = @active'); params['active'] = body['is_active']; }
+    if (body.containsKey('name')) {
+      updates.add('name = @name');
+      params['name'] = body['name'];
+    }
+    if (body.containsKey('price')) {
+      updates.add('price = @price');
+      params['price'] = body['price'];
+    }
+    if (body.containsKey('quantity_available')) {
+      updates.add('quantity_available = @qty');
+      params['qty'] = body['quantity_available'];
+    }
+    if (body.containsKey('is_active')) {
+      updates.add('is_active = @active');
+      params['active'] = body['is_active'];
+    }
     if (updates.isNotEmpty) {
-      await conn.execute(Sql.named('UPDATE snacks SET ${updates.join(', ')} WHERE id = @id'), parameters: params);
+      await conn.execute(
+          Sql.named('UPDATE snacks SET ${updates.join(', ')} WHERE id = @id'),
+          parameters: params);
     }
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -822,8 +961,14 @@ Future<Response> _getSnackOrders(Request request) async {
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
-    if (day != null) { conditions.add('so.day_number = @day'); params['day'] = int.parse(day); }
-    if (status != null) { conditions.add('so.status = @status'); params['status'] = status; }
+    if (day != null) {
+      conditions.add('so.day_number = @day');
+      params['day'] = int.parse(day);
+    }
+    if (status != null) {
+      conditions.add('so.status = @status');
+      params['status'] = status;
+    }
     if (conditions.isNotEmpty) sql += ' WHERE ${conditions.join(' AND ')}';
     sql += ' ORDER BY so.created_at DESC';
     final results = await conn.execute(Sql.named(sql), parameters: params);
@@ -862,9 +1007,12 @@ Future<Response> _orderSnack(Request request) async {
         VALUES (@userId, @house, @snackId, @day, @qty, @notes) RETURNING id
       '''),
       parameters: {
-        'userId': body['user_id'], 'house': body['house_number'],
-        'snackId': body['snack_id'], 'day': body['day_number'],
-        'qty': body['quantity'], 'notes': body['notes'],
+        'userId': body['user_id'],
+        'house': body['house_number'],
+        'snackId': body['snack_id'],
+        'day': body['day_number'],
+        'qty': body['quantity'],
+        'notes': body['notes'],
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -894,11 +1042,18 @@ Future<Response> _getGifts(Request request) async {
     final day = request.url.queryParameters['day'];
     final type = request.url.queryParameters['type'];
     final conn = await db;
-    var sql = 'SELECT g.*, s.company_name as sponsor_name FROM gifts g LEFT JOIN sponsors s ON g.sponsor_id = s.id';
+    var sql =
+        'SELECT g.*, s.company_name as sponsor_name FROM gifts g LEFT JOIN sponsors s ON g.sponsor_id = s.id';
     final conditions = <String>[];
     final params = <String, dynamic>{};
-    if (day != null) { conditions.add('g.day_number = @day'); params['day'] = int.parse(day); }
-    if (type != null) { conditions.add('g.gift_type = @type'); params['type'] = type; }
+    if (day != null) {
+      conditions.add('g.day_number = @day');
+      params['day'] = int.parse(day);
+    }
+    if (type != null) {
+      conditions.add('g.gift_type = @type');
+      params['type'] = type;
+    }
     if (conditions.isNotEmpty) sql += ' WHERE ${conditions.join(' AND ')}';
     sql += ' ORDER BY g.day_number, g.name';
     final results = await conn.execute(Sql.named(sql), parameters: params);
@@ -918,9 +1073,12 @@ Future<Response> _addGift(Request request) async {
         VALUES (@name, @desc, @sponsor, @type, @day, @qty) RETURNING id
       '''),
       parameters: {
-        'name': body['name'], 'desc': body['description'],
-        'sponsor': body['sponsor_id'], 'type': body['gift_type'],
-        'day': body['day_number'], 'qty': body['quantity'],
+        'name': body['name'],
+        'desc': body['description'],
+        'sponsor': body['sponsor_id'],
+        'type': body['gift_type'],
+        'day': body['day_number'],
+        'qty': body['quantity'],
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -935,11 +1093,22 @@ Future<Response> _updateGift(Request request, String id) async {
     final conn = await db;
     final updates = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('name')) { updates.add('name = @name'); params['name'] = body['name']; }
-    if (body.containsKey('quantity')) { updates.add('quantity = @qty'); params['qty'] = body['quantity']; }
-    if (body.containsKey('is_active')) { updates.add('is_active = @active'); params['active'] = body['is_active']; }
+    if (body.containsKey('name')) {
+      updates.add('name = @name');
+      params['name'] = body['name'];
+    }
+    if (body.containsKey('quantity')) {
+      updates.add('quantity = @qty');
+      params['qty'] = body['quantity'];
+    }
+    if (body.containsKey('is_active')) {
+      updates.add('is_active = @active');
+      params['active'] = body['is_active'];
+    }
     if (updates.isNotEmpty) {
-      await conn.execute(Sql.named('UPDATE gifts SET ${updates.join(', ')} WHERE id = @id'), parameters: params);
+      await conn.execute(
+          Sql.named('UPDATE gifts SET ${updates.join(', ')} WHERE id = @id'),
+          parameters: params);
     }
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -982,9 +1151,12 @@ Future<Response> _assignGift(Request request) async {
         VALUES (@gift, @user, @house, @day, @by, @notes) RETURNING id
       '''),
       parameters: {
-        'gift': body['gift_id'], 'user': body['user_id'],
-        'house': body['house_number'], 'day': body['day_number'],
-        'by': body['assigned_by'], 'notes': body['notes'],
+        'gift': body['gift_id'],
+        'user': body['user_id'],
+        'house': body['house_number'],
+        'day': body['day_number'],
+        'by': body['assigned_by'],
+        'notes': body['notes'],
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -1017,7 +1189,8 @@ Future<Response> _getMyGifts(Request request, String house) async {
 Future<Response> _getAnnouncements(Request request) async {
   try {
     final conn = await db;
-    final results = await conn.execute(Sql.named('SELECT * FROM announcements WHERE is_active = TRUE ORDER BY created_at DESC'));
+    final results = await conn.execute(Sql.named(
+        'SELECT * FROM announcements WHERE is_active = TRUE ORDER BY created_at DESC'));
     return _jsonResponse(_parseResults(results));
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1034,7 +1207,8 @@ Future<Response> _createAnnouncement(Request request) async {
         VALUES (@title, @msg, @type, @pri) RETURNING id
       '''),
       parameters: {
-        'title': body['title'], 'msg': body['message'],
+        'title': body['title'],
+        'msg': body['message'],
         'type': body['announcement_type'] ?? 'general',
         'pri': body['priority'] ?? 1,
       },
@@ -1089,11 +1263,11 @@ Future<Response> _generateTickets(Request request) async {
 
     // Get the next sequential number
     final maxResult = await conn.execute(Sql.named(
-      "SELECT ticket_code FROM draw_tickets ORDER BY id DESC LIMIT 1"
-    ));
+        "SELECT ticket_code FROM draw_tickets ORDER BY id DESC LIMIT 1"));
     int nextNum = 2026100001;
     if (maxResult.isNotEmpty) {
-      final lastCode = maxResult.first.toColumnMap()['ticket_code']?.toString() ?? '';
+      final lastCode =
+          maxResult.first.toColumnMap()['ticket_code']?.toString() ?? '';
       final parsed = int.tryParse(lastCode);
       if (parsed != null && parsed >= 2026100001) {
         nextNum = parsed + 1;
@@ -1103,11 +1277,16 @@ Future<Response> _generateTickets(Request request) async {
     for (int i = 0; i < count; i++) {
       final ticketCode = (nextNum + i).toString();
       await conn.execute(
-        Sql.named('INSERT INTO draw_tickets (ticket_code, day_number) VALUES (@code, @day)'),
+        Sql.named(
+            'INSERT INTO draw_tickets (ticket_code, day_number) VALUES (@code, @day)'),
         parameters: {'code': ticketCode, 'day': dayNumber},
       );
     }
-    return _jsonResponse({'ok': true, 'from': (nextNum).toString(), 'to': (nextNum + count - 1).toString()});
+    return _jsonResponse({
+      'ok': true,
+      'from': (nextNum).toString(),
+      'to': (nextNum + count - 1).toString()
+    });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -1152,7 +1331,10 @@ Future<Response> _getAllTickets(Request request) async {
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
-    if (day != null) { conditions.add('dt.day_number = @day'); params['day'] = int.parse(day); }
+    if (day != null) {
+      conditions.add('dt.day_number = @day');
+      params['day'] = int.parse(day);
+    }
     if (assigned == 'true') conditions.add('dt.is_assigned = TRUE');
     if (assigned == 'false') conditions.add('dt.is_assigned = FALSE');
     if (conditions.isNotEmpty) sql += ' WHERE ${conditions.join(' AND ')}';
@@ -1210,12 +1392,27 @@ Future<Response> _updateNavratriDay(Request request, String day) async {
     final conn = await db;
     final updates = <String>[];
     final params = <String, dynamic>{'day': int.parse(day)};
-    if (body.containsKey('goddess_name')) { updates.add('goddess_name = @goddess'); params['goddess'] = body['goddess_name']; }
-    if (body.containsKey('dress_code')) { updates.add('dress_code = @dress'); params['dress'] = body['dress_code']; }
-    if (body.containsKey('is_active')) { updates.add('is_active = @active'); params['active'] = body['is_active']; }
-    if (body.containsKey('is_completed')) { updates.add('is_completed = @completed'); params['completed'] = body['is_completed']; }
+    if (body.containsKey('goddess_name')) {
+      updates.add('goddess_name = @goddess');
+      params['goddess'] = body['goddess_name'];
+    }
+    if (body.containsKey('dress_code')) {
+      updates.add('dress_code = @dress');
+      params['dress'] = body['dress_code'];
+    }
+    if (body.containsKey('is_active')) {
+      updates.add('is_active = @active');
+      params['active'] = body['is_active'];
+    }
+    if (body.containsKey('is_completed')) {
+      updates.add('is_completed = @completed');
+      params['completed'] = body['is_completed'];
+    }
     if (updates.isEmpty) return _errorResponse('No fields to update');
-    await conn.execute(Sql.named('UPDATE navratri_days SET ${updates.join(', ')} WHERE day_number = @day'), parameters: params);
+    await conn.execute(
+        Sql.named(
+            'UPDATE navratri_days SET ${updates.join(', ')} WHERE day_number = @day'),
+        parameters: params);
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1228,7 +1425,8 @@ Future<Response> _getDailySchedule(Request request, String day) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named('SELECT * FROM daily_schedules WHERE day_number = @day ORDER BY event_time'),
+      Sql.named(
+          'SELECT * FROM daily_schedules WHERE day_number = @day ORDER BY event_time'),
       parameters: {'day': int.parse(day)},
     );
     return _jsonResponse(_parseResults(results));
@@ -1334,15 +1532,32 @@ Future<Response> _updateSponsor(Request request, String id) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
-    if (body.containsKey('company_name') || body.containsKey('sponsorship_amount') || body.containsKey('payment_status')) {
+    if (body.containsKey('company_name') ||
+        body.containsKey('sponsorship_amount') ||
+        body.containsKey('payment_status')) {
       final updates = <String>[];
       final params = <String, dynamic>{'userId': int.parse(id)};
-      if (body.containsKey('company_name')) { updates.add('company_name = @company'); params['company'] = body['company_name']; }
-      if (body.containsKey('advertisement_text')) { updates.add('advertisement_text = @ad'); params['ad'] = body['advertisement_text']; }
-      if (body.containsKey('sponsorship_amount')) { updates.add('sponsorship_amount = @amount'); params['amount'] = body['sponsorship_amount']; }
-      if (body.containsKey('payment_status')) { updates.add('payment_status = @status'); params['status'] = body['payment_status']; }
+      if (body.containsKey('company_name')) {
+        updates.add('company_name = @company');
+        params['company'] = body['company_name'];
+      }
+      if (body.containsKey('advertisement_text')) {
+        updates.add('advertisement_text = @ad');
+        params['ad'] = body['advertisement_text'];
+      }
+      if (body.containsKey('sponsorship_amount')) {
+        updates.add('sponsorship_amount = @amount');
+        params['amount'] = body['sponsorship_amount'];
+      }
+      if (body.containsKey('payment_status')) {
+        updates.add('payment_status = @status');
+        params['status'] = body['payment_status'];
+      }
       if (updates.isNotEmpty) {
-        await conn.execute(Sql.named('UPDATE sponsors SET ${updates.join(', ')} WHERE user_id = @userId'), parameters: params);
+        await conn.execute(
+            Sql.named(
+                'UPDATE sponsors SET ${updates.join(', ')} WHERE user_id = @userId'),
+            parameters: params);
       }
     }
     return _jsonResponse({'ok': true});
@@ -1359,13 +1574,25 @@ Future<Response> _updateProfile(Request request, String id) async {
     final conn = await db;
     final updates = <String>[];
     final params = <String, dynamic>{'id': int.parse(id)};
-    if (body.containsKey('name')) { updates.add('name = @name'); params['name'] = body['name']; }
-    if (body.containsKey('mobile_number')) { updates.add('mobile_number = @mobile'); params['mobile'] = body['mobile_number']; }
-    if (body.containsKey('password')) { updates.add('password = @password'); params['password'] = body['password']; }
+    if (body.containsKey('name')) {
+      updates.add('name = @name');
+      params['name'] = body['name'];
+    }
+    if (body.containsKey('mobile_number')) {
+      updates.add('mobile_number = @mobile');
+      params['mobile'] = body['mobile_number'];
+    }
+    if (body.containsKey('password')) {
+      updates.add('password = @password');
+      params['password'] = body['password'];
+    }
     if (updates.isEmpty) return _errorResponse('No fields to update');
-    await conn.execute(Sql.named('UPDATE users SET ${updates.join(', ')} WHERE id = @id'), parameters: params);
+    await conn.execute(
+        Sql.named('UPDATE users SET ${updates.join(', ')} WHERE id = @id'),
+        parameters: params);
     final result = await conn.execute(
-      Sql.named('SELECT id, house_number, name, mobile_number, user_type FROM users WHERE id = @id'),
+      Sql.named(
+          'SELECT id, house_number, name, mobile_number, user_type FROM users WHERE id = @id'),
       parameters: {'id': int.parse(id)},
     );
     if (result.isNotEmpty) return _jsonResponse(_parseRow(result.first));
@@ -1391,7 +1618,10 @@ Future<Response> _getWinners(Request request) async {
       WHERE dt.is_winner = TRUE
     ''';
     final params = <String, dynamic>{};
-    if (day != null) { sql += ' AND dt.day_number = @day'; params['day'] = int.parse(day); }
+    if (day != null) {
+      sql += ' AND dt.day_number = @day';
+      params['day'] = int.parse(day);
+    }
     sql += ' ORDER BY dt.day_number DESC';
     final results = await conn.execute(Sql.named(sql), parameters: params);
     return _jsonResponse(_parseResults(results));
@@ -1426,8 +1656,12 @@ Future<Response> _updateSponsorImage(Request request, String id) async {
     final body = await _getBody(request);
     final conn = await db;
     await conn.execute(
-      Sql.named('UPDATE sponsors SET advertisement_image = @image WHERE user_id = @userId'),
-      parameters: {'userId': int.parse(id), 'image': body['advertisement_image'] ?? ''},
+      Sql.named(
+          'UPDATE sponsors SET advertisement_image = @image WHERE user_id = @userId'),
+      parameters: {
+        'userId': int.parse(id),
+        'image': body['advertisement_image'] ?? ''
+      },
     );
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -1478,13 +1712,22 @@ Future<Response> _createBroadcast(Request request) async {
     final prio = body['priority'] ?? 'normal';
     int priorityNum;
     switch (prio.toString()) {
-      case 'urgent': priorityNum = 3; break;
-      case 'high': priorityNum = 2; break;
-      case 'normal': priorityNum = 1; break;
-      default: priorityNum = 0; break;
+      case 'urgent':
+        priorityNum = 3;
+        break;
+      case 'high':
+        priorityNum = 2;
+        break;
+      case 'normal':
+        priorityNum = 1;
+        break;
+      default:
+        priorityNum = 0;
+        break;
     }
     await conn.execute(
-      Sql.named('INSERT INTO announcements (title, message, announcement_type, priority, is_active) VALUES (@title, @message, @type, @priority, TRUE)'),
+      Sql.named(
+          'INSERT INTO announcements (title, message, announcement_type, priority, is_active) VALUES (@title, @message, @type, @priority, TRUE)'),
       parameters: {
         'title': body['title'] ?? 'Broadcast',
         'message': body['message'] ?? '',
@@ -1502,7 +1745,8 @@ Future<Response> _getBroadcasts(Request request) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named('SELECT * FROM announcements WHERE announcement_type = \'broadcast\' ORDER BY created_at DESC'),
+      Sql.named(
+          'SELECT * FROM announcements WHERE announcement_type = \'broadcast\' ORDER BY created_at DESC'),
     );
     return _jsonResponse(_parseResults(results));
   } catch (e) {
@@ -1513,7 +1757,8 @@ Future<Response> _getBroadcasts(Request request) async {
 Future<Response> _deleteBroadcast(Request request, String id) async {
   try {
     final conn = await db;
-    await conn.execute(Sql.named('DELETE FROM announcements WHERE id = @id'), parameters: {'id': int.parse(id)});
+    await conn.execute(Sql.named('DELETE FROM announcements WHERE id = @id'),
+        parameters: {'id': int.parse(id)});
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1526,7 +1771,8 @@ Future<Response> _cancelAartiBooking(Request request, String id) async {
   try {
     final conn = await db;
     await conn.execute(
-      Sql.named("UPDATE aarti_bookings SET status = 'cancelled' WHERE id = @id"),
+      Sql.named(
+          "UPDATE aarti_bookings SET status = 'cancelled' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
     return _jsonResponse({'ok': true});
@@ -1552,7 +1798,8 @@ Future<Response> _cancelGiftAssignment(Request request, String id) async {
   try {
     final conn = await db;
     await conn.execute(
-      Sql.named("UPDATE gift_assignments SET status = 'cancelled' WHERE id = @id"),
+      Sql.named(
+          "UPDATE gift_assignments SET status = 'cancelled' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
     return _jsonResponse({'ok': true});
@@ -1570,11 +1817,13 @@ Future<Response> _spinDraw(Request request) async {
     final dayNumber = body['day_number'] as int;
 
     final countResult = await conn.execute(
-      Sql.named("SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
+      Sql.named(
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
       parameters: {'day': dayNumber},
     );
     final spinsToday = countResult.first.toColumnMap()['cnt'] ?? 0;
-    if (spinsToday >= 6) return _errorResponse('Maximum 6 draws per day reached');
+    if (spinsToday >= 6)
+      return _errorResponse('Maximum 6 draws per day reached');
 
     final ticketResult = await conn.execute(
       Sql.named('''
@@ -1587,7 +1836,8 @@ Future<Response> _spinDraw(Request request) async {
       parameters: {'day': dayNumber},
     );
 
-    if (ticketResult.isEmpty) return _errorResponse('No more tickets to draw for this day');
+    if (ticketResult.isEmpty)
+      return _errorResponse('No more tickets to draw for this day');
 
     final ticket = _parseRow(ticketResult.first);
     await conn.execute(
@@ -1596,9 +1846,13 @@ Future<Response> _spinDraw(Request request) async {
         VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy)
       '''),
       parameters: {
-        'day': dayNumber, 'ticketId': ticket['id'], 'ticketCode': ticket['ticket_code'],
-        'winnerId': ticket['user_id'], 'house': ticket['house_number'],
-        'drawNum': spinsToday + 1, 'drawnBy': body['drawn_by'],
+        'day': dayNumber,
+        'ticketId': ticket['id'],
+        'ticketCode': ticket['ticket_code'],
+        'winnerId': ticket['user_id'],
+        'house': ticket['house_number'],
+        'drawNum': spinsToday + 1,
+        'drawnBy': body['drawn_by'],
       },
     );
 
@@ -1628,7 +1882,10 @@ Future<Response> _getDailyDrawHistory(Request request) async {
       LEFT JOIN users u ON dd.winner_id = u.id
     ''';
     final params = <String, dynamic>{};
-    if (day != null) { sql += ' WHERE dd.day_number = @day'; params['day'] = int.parse(day); }
+    if (day != null) {
+      sql += ' WHERE dd.day_number = @day';
+      params['day'] = int.parse(day);
+    }
     sql += ' ORDER BY dd.drawn_at DESC';
     final results = await conn.execute(Sql.named(sql), parameters: params);
     return _jsonResponse(_parseResults(results));
@@ -1642,10 +1899,12 @@ Future<Response> _getDailyDrawCount(Request request) async {
     final day = request.url.queryParameters['day'] ?? '1';
     final conn = await db;
     final results = await conn.execute(
-      Sql.named("SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
+      Sql.named(
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
       parameters: {'day': int.parse(day)},
     );
-    return _jsonResponse({'count': results.first.toColumnMap()['cnt'] ?? 0, 'max': 6});
+    return _jsonResponse(
+        {'count': results.first.toColumnMap()['cnt'] ?? 0, 'max': 6});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -1661,8 +1920,10 @@ Future<Response> _getDailyInfo(Request request) async {
     if (dayParam != null) {
       dayNumber = int.parse(dayParam);
     } else {
-      final activeDay = await conn.execute(Sql.named("SELECT day_number FROM navratri_days WHERE is_active = TRUE LIMIT 1"));
-      if (activeDay.isNotEmpty) dayNumber = activeDay.first.toColumnMap()['day_number'] ?? 1;
+      final activeDay = await conn.execute(Sql.named(
+          "SELECT day_number FROM navratri_days WHERE is_active = TRUE LIMIT 1"));
+      if (activeDay.isNotEmpty)
+        dayNumber = activeDay.first.toColumnMap()['day_number'] ?? 1;
     }
 
     final dayData = await conn.execute(
@@ -1738,7 +1999,8 @@ Future<Response> _startDay(Request request, String day) async {
     final conn = await db;
     await conn.execute(Sql.named("UPDATE navratri_days SET is_active = FALSE"));
     await conn.execute(
-      Sql.named("UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
+      Sql.named(
+          "UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
       parameters: {'day': int.parse(day)},
     );
     return _jsonResponse({'ok': true});
@@ -1751,17 +2013,20 @@ Future<Response> _endDay(Request request, String day) async {
   try {
     final conn = await db;
     await conn.execute(
-      Sql.named("UPDATE navratri_days SET is_active = FALSE, is_completed = TRUE WHERE day_number = @day"),
+      Sql.named(
+          "UPDATE navratri_days SET is_active = FALSE, is_completed = TRUE WHERE day_number = @day"),
       parameters: {'day': int.parse(day)},
     );
     final nextDay = int.parse(day) + 1;
     if (nextDay <= 9) {
       await conn.execute(
-        Sql.named("UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
+        Sql.named(
+            "UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
         parameters: {'day': nextDay},
       );
     }
-    return _jsonResponse({'ok': true, 'next_day': nextDay <= 9 ? nextDay : null});
+    return _jsonResponse(
+        {'ok': true, 'next_day': nextDay <= 9 ? nextDay : null});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -1772,12 +2037,18 @@ Future<Response> _endDay(Request request, String day) async {
 Future<Response> _getReportSummary(Request request) async {
   try {
     final conn = await db;
-    final income = await conn.execute(Sql.named("SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
-    final expense = await conn.execute(Sql.named("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE paid_by = 'organizer' AND is_deleted IS NOT TRUE"));
-    final members = await conn.execute(Sql.named("SELECT COUNT(*) as total FROM users WHERE user_type != 'organizer' AND is_active = TRUE"));
-    final sponsors = await conn.execute(Sql.named("SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE is_active = TRUE"));
-    final ticketWinners = await conn.execute(Sql.named("SELECT COUNT(*) as total FROM draw_tickets WHERE is_winner = TRUE"));
-    final ticketAssigned = await conn.execute(Sql.named("SELECT COUNT(*) as total FROM draw_tickets WHERE is_assigned = TRUE"));
+    final income = await conn.execute(Sql.named(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
+    final expense = await conn.execute(Sql.named(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE paid_by = 'organizer' AND is_deleted IS NOT TRUE"));
+    final members = await conn.execute(Sql.named(
+        "SELECT COUNT(*) as total FROM users WHERE user_type != 'organizer' AND is_active = TRUE"));
+    final sponsors = await conn.execute(Sql.named(
+        "SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE is_active = TRUE"));
+    final ticketWinners = await conn.execute(Sql.named(
+        "SELECT COUNT(*) as total FROM draw_tickets WHERE is_winner = TRUE"));
+    final ticketAssigned = await conn.execute(Sql.named(
+        "SELECT COUNT(*) as total FROM draw_tickets WHERE is_assigned = TRUE"));
 
     final catExpenses = await conn.execute(Sql.named('''
       SELECT c.name as category_name, COALESCE(SUM(e.amount), 0) as total
@@ -1814,8 +2085,10 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
       GROUP BY house_number, payer_name, payment_method, payment_status
       ORDER BY house_number ASC
     '''));
-    final total = await conn.execute(Sql.named("SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
-    final sponsorTotal = await conn.execute(Sql.named("SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE is_active = TRUE"));
+    final total = await conn.execute(Sql.named(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
+    final sponsorTotal = await conn.execute(Sql.named(
+        "SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE is_active = TRUE"));
     return _jsonResponse({
       'payments': _parseResults(results),
       'fund_total': _parseRow(total.first)['total'],
@@ -1842,7 +2115,8 @@ Future<Response> _getExpensesByDateReport(Request request) async {
       FROM expenses e WHERE e.is_deleted IS NOT TRUE
       GROUP BY e.expense_date ORDER BY e.expense_date DESC
     '''));
-    final total = await conn.execute(Sql.named("SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE is_deleted IS NOT TRUE"));
+    final total = await conn.execute(Sql.named(
+        "SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE is_deleted IS NOT TRUE"));
     return _jsonResponse({
       'expenses': _parseResults(results),
       'by_date': _parseResults(byDate),
@@ -1974,5 +2248,6 @@ void main(List<String> args) async {
   }).addHandler(router.call);
 
   final server = await io.serve(handler, ip, port);
-  print('Navratri API Server running on http://${server.address.host}:${server.port}');
+  print(
+      'Navratri API Server running on http://${server.address.host}:${server.port}');
 }
