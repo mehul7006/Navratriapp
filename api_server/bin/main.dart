@@ -74,6 +74,10 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_number INT DEFAULT 1");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS drawn_by INT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS ticket_code VARCHAR");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS house_number VARCHAR");
     // Gift assignments status column
     await _db!.execute(
         "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
@@ -1825,12 +1829,27 @@ Future<Response> _spinDraw(Request request) async {
     if (spinsToday >= 6)
       return _errorResponse('Maximum 6 draws per day reached');
 
+    // Reset tickets for users whose 9-day cooldown has expired
+    await conn.execute('''
+      UPDATE draw_tickets SET is_winner = FALSE 
+      WHERE is_winner = TRUE AND user_id IN (
+        SELECT winner_id FROM daily_draws 
+        WHERE winner_id IS NOT NULL 
+        AND drawn_at <= NOW() - INTERVAL '9 days'
+      )
+    ''');
+
     final ticketResult = await conn.execute(
       Sql.named('''
         SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
         FROM draw_tickets dt
         JOIN users u ON dt.user_id = u.id
         WHERE dt.day_number = @day AND dt.is_assigned = TRUE AND dt.is_winner = FALSE
+        AND dt.user_id NOT IN (
+          SELECT winner_id FROM daily_draws 
+          WHERE winner_id IS NOT NULL 
+          AND drawn_at > NOW() - INTERVAL '9 days'
+        )
         ORDER BY RANDOM() LIMIT 1
       '''),
       parameters: {'day': dayNumber},
@@ -1857,8 +1876,8 @@ Future<Response> _spinDraw(Request request) async {
     );
 
     await conn.execute(
-      Sql.named('UPDATE draw_tickets SET is_winner = TRUE WHERE id = @id'),
-      parameters: {'id': ticket['id']},
+      Sql.named('UPDATE draw_tickets SET is_winner = TRUE WHERE user_id = @userId'),
+      parameters: {'userId': ticket['user_id']},
     );
 
     return _jsonResponse({
