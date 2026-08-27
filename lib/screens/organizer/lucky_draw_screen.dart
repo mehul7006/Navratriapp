@@ -23,6 +23,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   List<Map<String, dynamic>> _drawHistory = [];
   List<Map<String, dynamic>> _days = [];
 
+  Map<String, dynamic>? _result;
+
   // Slot machine state - single list updated in one setState
   List<_SlotDigit> _slots = List.generate(10, (_) => _SlotDigit(value: 0, locked: true));
   Timer? _spinTimer;
@@ -71,14 +73,13 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     setState(() {
       _isSpinning = true;
       _lastResult = null;
+      _result = null;
       _slots = List.generate(10, (_) => _SlotDigit(value: 0, locked: false));
     });
 
-    // Animate digits - update every 150ms (not too fast to avoid hit test issues)
+    // Start random animation
     _spinTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
-      if (!mounted) { timer.cancel(); return; }
-      // Only update if still spinning
-      if (!_isSpinning) { timer.cancel(); return; }
+      if (!mounted || !_isSpinning) { timer.cancel(); return; }
       final newSlots = _slots.map((s) => s.locked ? s : _SlotDigit(value: _random.nextInt(10), locked: false)).toList();
       setState(() { _slots = newSlots; });
     });
@@ -96,11 +97,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       final code = (result['ticket_code'] ?? '0000000000').toString();
       final padded = code.padLeft(10, '0');
       target = padded.split('').map((c) => int.tryParse(c) ?? 0).toList();
+      _result = result;
     }
 
-    // Lock digits one by one
+    // Lock digits one by one with 3 second delay
     for (int i = 0; i < 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(const Duration(seconds: 3));
       if (!mounted) break;
       final newSlots = _slots.asMap().entries.map((entry) {
         if (entry.key == i) return _SlotDigit(value: target[i], locked: true);
@@ -115,12 +117,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     if (mounted) {
       setState(() {
         _isSpinning = false;
-        _lastResult = result;
+        _lastResult = _result;
       });
     }
 
-    if (result != null) {
-      _showWinnerDialog(result);
+    if (_result != null) {
+      _showWinnerDialog(_result!);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -289,46 +291,68 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   }
 
   Widget _buildSlotMachine() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.goldPrimary, width: 2),
-        boxShadow: [
-          BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 2),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(10, (index) {
-          final slot = _slots[index];
-          return Container(
-            width: 30,
-            height: 42,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: slot.locked ? AppTheme.purpleDeep : Colors.black,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: slot.locked ? AppTheme.goldPrimary : Colors.white24,
-                width: slot.locked ? 2 : 1,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '${slot.value}',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: slot.locked ? AppTheme.goldPrimary : Colors.white54,
+    final lockedCount = _slots.where((s) => s.locked).length;
+    final progress = _isSpinning ? (lockedCount / 10.0) : (_lastResult != null ? 1.0 : 0.0);
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade900,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.goldPrimary, width: 2),
+            boxShadow: [
+              BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 2),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(10, (index) {
+              final slot = _slots[index];
+              return Container(
+                width: 30,
+                height: 42,
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: slot.locked ? AppTheme.purpleDeep : Colors.black,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: slot.locked ? AppTheme.goldPrimary : Colors.white24,
+                    width: slot.locked ? 2 : 1,
+                  ),
                 ),
-              ),
-            ),
-          );
-        }),
-      ),
+                child: Center(
+                  child: Text(
+                    '${slot.value}',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: slot.locked ? AppTheme.goldPrimary : Colors.white54,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        if (_isSpinning) ...[
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.white12,
+            valueColor: const AlwaysStoppedAnimation(AppTheme.goldPrimary),
+            minHeight: 4,
+            borderRadius: BorderRadius.circular(2),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$lockedCount / 10 digits locked',
+            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+          ),
+        ],
+      ],
     );
   }
 
