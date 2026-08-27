@@ -260,7 +260,44 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                   ),
               ],
             ),
-            
+
+            // Go Back to Previous Day button (only when a day is active and not the first day)
+            if (isActive && !isCompleted && _selectedDay > 1) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final prevDay = _selectedDay - 1;
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: AppTheme.cardBg,
+                        title: Text('Go Back to Day $prevDay?', style: const TextStyle(color: Colors.white)),
+                        content: Text('This will end Day $_selectedDay and reactivate Day $prevDay.',
+                        style: const TextStyle(color: Colors.white70)),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Go Back', style: TextStyle(color: Colors.orange))),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await DatabaseHelper.endDay(_selectedDay);
+                      await DatabaseHelper.startDay(prevDay);
+                      _loadData();
+                      setState(() => _selectedDay = prevDay);
+                      _loadData();
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Went back to Day $prevDay'), backgroundColor: Colors.orange));
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: Text('Go Back to Day ${_selectedDay - 1}'),
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.orange, side: const BorderSide(color: Colors.orange)),
+                ),
+              ),
+            ],
+
             if (!isActive && !isCompleted) ...[
               const SizedBox(height: 8),
               Row(

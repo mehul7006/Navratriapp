@@ -472,10 +472,14 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
     String ticketCode = '';
     String houseNumber = '';
     List<Map<String, dynamic>> members = [];
+    List<Map<String, dynamic>> ticketSuggestions = [];
     int? selectedUserId;
     bool showMembers = false;
     bool showAddMember = false;
     bool isSearching = false;
+    bool isSearchingTickets = false;
+    bool showTicketSuggestions = false;
+    final ticketController = TextEditingController();
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
     final houseController = TextEditingController();
@@ -490,11 +494,72 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Ticket code search field
                 TextFormField(
+                  controller: ticketController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Ticket Code', labelStyle: TextStyle(color: Colors.white70)),
-                  onChanged: (v) => ticketCode = v,
+                  decoration: InputDecoration(
+                    labelText: 'Ticket Code',
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    hintText: 'Type ticket number to search...',
+                    suffixIcon: isSearchingTickets
+                        ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary)))
+                        : (ticketCode.isNotEmpty ? Icon(Icons.check, color: Colors.green, size: 18) : const Icon(Icons.search, color: Colors.white38, size: 18)),
+                  ),
+                  onChanged: (v) async {
+                    ticketCode = v;
+                    if (v.length >= 2) {
+                      setDialogState(() => isSearchingTickets = true);
+                      try {
+                        final results = await DatabaseHelper.getAllTickets();
+                        final filtered = results.where((t) {
+                          final code = (t['ticket_code'] ?? '').toString();
+                          final isAssigned = t['is_assigned'] == true;
+                          return !isAssigned && code.contains(v);
+                        }).toList();
+                        setDialogState(() {
+                          ticketSuggestions = filtered;
+                          showTicketSuggestions = filtered.isNotEmpty;
+                          isSearchingTickets = false;
+                        });
+                      } catch (e) {
+                        setDialogState(() { ticketSuggestions = []; showTicketSuggestions = false; isSearchingTickets = false; });
+                      }
+                    } else {
+                      setDialogState(() { ticketSuggestions = []; showTicketSuggestions = false; isSearchingTickets = false; });
+                    }
+                  },
                 ),
+                // Ticket suggestions dropdown
+                if (showTicketSuggestions && ticketSuggestions.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleDark,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: ticketSuggestions.length,
+                      itemBuilder: (ctx, index) {
+                        final t = ticketSuggestions[index];
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.confirmation_number, color: AppTheme.goldPrimary, size: 16),
+                          title: Text(t['ticket_code'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace')),
+                          subtitle: Text('Day ${t['day_number']}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                          onTap: () {
+                            ticketCode = t['ticket_code'] ?? '';
+                            ticketController.text = ticketCode;
+                            setDialogState(() { showTicketSuggestions = false; ticketCode = ticketCode; });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: houseController,
