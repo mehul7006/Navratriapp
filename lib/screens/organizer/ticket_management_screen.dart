@@ -518,17 +518,17 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                         final result = await DatabaseHelper.getMembersByHouse(houseNumber);
                         setDialogState(() {
                           members = result;
-                          showMembers = result.isNotEmpty;
-                          showAddMember = result.isEmpty;
+                          showMembers = true;
                           selectedUserId = null;
                           isSearching = false;
+                          showAddMember = false;
                         });
                       } catch (e) {
                         setDialogState(() {
                           members = [];
-                          showMembers = false;
-                          showAddMember = true;
+                          showMembers = true;
                           isSearching = false;
+                          showAddMember = false;
                         });
                       }
                     } else {
@@ -538,10 +538,10 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                 ),
                 if (showMembers && members.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('${members.length} member(s) found', style: const TextStyle(color: Colors.green, fontSize: 11)),
+                  Text('${members.length} member(s) in $houseNumber', style: const TextStyle(color: Colors.green, fontSize: 11)),
                   const SizedBox(height: 6),
                   Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
+                    constraints: const BoxConstraints(maxHeight: 180),
                     decoration: BoxDecoration(
                       color: AppTheme.purpleDark,
                       borderRadius: BorderRadius.circular(8),
@@ -577,91 +577,126 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                     ),
                   ),
                 ],
-                if (showAddMember && houseNumber.isNotEmpty && members.isEmpty && !isSearching) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                if (showMembers && houseNumber.isNotEmpty && !isSearching) ...[
+                  const SizedBox(height: 8),
+                  if (!showAddMember)
+                    GestureDetector(
+                      onTap: () => setDialogState(() => showAddMember = true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.goldPrimary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_add, color: AppTheme.goldPrimary, size: 16),
+                            SizedBox(width: 6),
+                            Text('Add New Member to this House', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('No members in $houseNumber. Add one?', style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: nameController,
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                          textCapitalization: TextCapitalization.words,
-                          decoration: InputDecoration(
-                            hintText: 'Member name *',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                  if (showAddMember) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Add member to $houseNumber', style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                              GestureDetector(
+                                onTap: () {
+                                  nameController.clear();
+                                  mobileController.clear();
+                                  setDialogState(() => showAddMember = false);
+                                },
+                                child: const Icon(Icons.close, color: Colors.white54, size: 16),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: mobileController,
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            hintText: 'Mobile number (optional)',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: nameController,
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(
+                              hintText: 'Member name *',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(vertical: 8)),
-                            icon: const Icon(Icons.person_add, size: 14, color: Colors.white),
-                            label: const Text('Add & Select', style: TextStyle(color: Colors.white, fontSize: 12)),
-                            onPressed: () async {
-                              if (nameController.text.trim().isNotEmpty) {
-                                try {
-                                  final userId = await DatabaseHelper.registerUser(
-                                    houseNumber: houseNumber,
-                                    name: nameController.text.trim(),
-                                    mobileNumber: mobileController.text.trim().isNotEmpty ? mobileController.text.trim() : '0000000000',
-                                    userType: 'user',
-                                  );
-                                  final result = await DatabaseHelper.getMembersByHouse(houseNumber);
-                                  setDialogState(() {
-                                    members = result;
-                                    showMembers = result.isNotEmpty;
-                                    showAddMember = false;
-                                    selectedUserId = userId;
-                                    nameController.clear();
-                                    mobileController.clear();
-                                  });
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('${nameController.text} added to $houseNumber'), backgroundColor: Colors.green),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: mobileController,
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Mobile number (optional)',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Colors.white24)),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(vertical: 8)),
+                              icon: const Icon(Icons.person_add, size: 14, color: Colors.white),
+                              label: const Text('Add & Select for Ticket', style: TextStyle(color: Colors.white, fontSize: 12)),
+                              onPressed: () async {
+                                if (nameController.text.trim().isNotEmpty) {
+                                  try {
+                                    final userId = await DatabaseHelper.registerUser(
+                                      houseNumber: houseNumber,
+                                      name: nameController.text.trim(),
+                                      mobileNumber: mobileController.text.trim().isNotEmpty ? mobileController.text.trim() : '0000000000',
+                                      userType: 'user',
                                     );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error adding member: $e'), backgroundColor: Colors.red),
-                                    );
+                                    final result = await DatabaseHelper.getMembersByHouse(houseNumber);
+                                    setDialogState(() {
+                                      members = result;
+                                      showMembers = true;
+                                      selectedUserId = userId;
+                                      showAddMember = false;
+                                      nameController.clear();
+                                      mobileController.clear();
+                                    });
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Member added to $houseNumber'), backgroundColor: Colors.green),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                                      );
+                                    }
                                   }
                                 }
-                              }
-                            },
+                              },
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ],
             ),
