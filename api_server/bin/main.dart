@@ -53,9 +53,14 @@ Future<Connection> get db async {
     await _db!.execute('''CREATE TABLE IF NOT EXISTS daily_draws (
       id SERIAL PRIMARY KEY, day_number INT NOT NULL, ticket_id INT,
       ticket_code VARCHAR, winner_id INT, house_number VARCHAR,
-      draw_number INT DEFAULT 1, drawn_by INT, drawn_at TIMESTAMP DEFAULT NOW(),
-      draw_date DATE DEFAULT CURRENT_DATE
+      draw_number INT DEFAULT 1, drawn_by INT, drawn_at TIMESTAMP DEFAULT NOW()
     )''');
+    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_date DATE DEFAULT CURRENT_DATE");
+    await _db!.execute("UPDATE daily_draws SET draw_date = DATE(drawn_at) WHERE draw_date IS NULL");
+    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS winner_id INT");
+    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS ticket_id INT");
+    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS draw_number INT DEFAULT 1");
+    await _db!.execute("ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS drawn_by INT");
     // Gift assignments status column
     await _db!.execute("ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
   } catch (_) {}
