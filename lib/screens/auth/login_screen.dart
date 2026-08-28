@@ -185,7 +185,6 @@ class _LoginScreenState extends State<LoginScreen> {
         if (userId != null) {
           final localeProvider = context.read<LocaleProvider>();
           await localeProvider.loadUserLocale(userId);
-          await AppLocalizations.loadLocale(localeProvider.locale);
         }
         switch (userType) {
           case 'organizer': Navigator.pushReplacementNamed(context, '/organizer/dashboard'); break;

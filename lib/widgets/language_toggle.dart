@@ -26,9 +26,8 @@ class LanguageToggle extends StatelessWidget {
           ),
         ],
       ),
-      onSelected: (code) async {
-        await localeProvider.setLocale(Locale(code), userId: userId);
-        await AppLocalizations.loadLocale(Locale(code));
+      onSelected: (code) {
+        localeProvider.setLocale(Locale(code), userId: userId);
       },
       itemBuilder: (_) => [
         _buildItem('en', 'English', localeProvider),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_localizations.dart';
 
 class LocaleProvider extends ChangeNotifier {
   Locale _locale = const Locale('en');
@@ -16,6 +17,7 @@ class LocaleProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString('${_prefPrefix}default') ?? 'en';
     _locale = Locale(code);
+    AppLocalizations.loadLocale(_locale);
     notifyListeners();
   }
 
@@ -23,12 +25,11 @@ class LocaleProvider extends ChangeNotifier {
     if (_locale == locale) return;
     _locale = locale;
     _userId = userId;
+    AppLocalizations.loadLocale(locale);
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    // Save per-user if userId provided, otherwise save as default
     final key = userId != null ? '${_prefPrefix}$userId' : '${_prefPrefix}default';
     await prefs.setString(key, locale.languageCode);
-    // Also update default so new logins get the last chosen language
     await prefs.setString('${_prefPrefix}default', locale.languageCode);
   }
 
@@ -40,6 +41,7 @@ class LocaleProvider extends ChangeNotifier {
     if (_locale != newLocale) {
       _locale = newLocale;
       _userId = userId;
+      AppLocalizations.loadLocale(_locale);
       notifyListeners();
     }
   }

@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import '../providers/locale_provider.dart';
 
 class AppLocalizations {
   static Map<String, String> _strings = {};
   static Map<String, String> _fallback = {};
+  static Map<String, Map<String, String>> _cache = {};
 
   static Future<void> init() async {
-    _fallback = await _loadJson('en');
+    // Load all languages at startup for instant switching
+    _cache['en'] = await _loadJson('en');
+    _cache['hi'] = await _loadJson('hi');
+    _cache['gu'] = await _loadJson('gu');
+    _fallback = _cache['en']!;
     _strings = _fallback;
   }
 
@@ -23,8 +26,8 @@ class AppLocalizations {
     }
   }
 
-  static Future<void> loadLocale(Locale locale) async {
-    _strings = await _loadJson(locale.languageCode);
+  static void loadLocale(Locale locale) {
+    _strings = _cache[locale.languageCode] ?? _fallback;
   }
 
   static String translate(String key, {Map<String, String>? params}) {
