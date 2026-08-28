@@ -15,13 +15,45 @@ class UserAartiScreen extends StatefulWidget {
 class _UserAartiScreenState extends State<UserAartiScreen> {
   List<Map<String, dynamic>> _slots = [];
   List<Map<String, dynamic>> _myBookings = [];
+  List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
   int _selectedDay = 1;
 
   @override
   void initState() {
     super.initState();
+    _initDay();
+  }
+
+  Future<void> _initDay() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
     _loadData();
+  }
+
+  bool _isDayBookable(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return false;
+    if (day['is_completed'] == true) return false;
+    if (day['is_active'] == true) return true;
+    final activeDay = _days.firstWhere(
+      (d) => d['is_active'] == true,
+      orElse: () => {},
+    );
+    if (activeDay.isEmpty) return false;
+    return dayNumber > (activeDay['day_number'] as int);
+  }
+
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    return day.isNotEmpty && day['is_completed'] == true;
   }
 
   Future<void> _loadData() async {
@@ -75,17 +107,30 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
         itemBuilder: (context, index) {
           final day = index + 1;
           final isSelected = _selectedDay == day;
+          final bookable = _isDayBookable(day);
+          final completed = _isDayCompleted(day);
           return GestureDetector(
-            onTap: () { setState(() => _selectedDay = day); _loadData(); },
+            onTap: bookable ? () { setState(() => _selectedDay = day); _loadData(); } : null,
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+                color: isSelected ? AppTheme.goldPrimary : (completed ? Colors.red.withOpacity(0.15) : Colors.transparent),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                border: Border.all(
+                  color: completed ? Colors.red.withOpacity(0.6) : (isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.5)),
+                ),
               ),
-              child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: completed ? Colors.red.withOpacity(0.7) : (isSelected ? AppTheme.purpleDark : AppTheme.textMuted))),
+                  if (completed) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
+                  ],
+                ],
+              ),
             ),
           );
         },
@@ -147,6 +192,8 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     final currentP = slot['current_participants'] ?? 0;
     final isFull = currentP >= maxP;
     final isBooked = _myBookings.any((b) => b['slot_id'] == slot['id'] && b['status'] != 'rejected');
+    final dayBookable = _isDayBookable(_selectedDay);
+    final completed = _isDayCompleted(_selectedDay);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -157,16 +204,16 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
           Container(
             width: 60, height: 60,
             decoration: BoxDecoration(
-              gradient: (isFull || isBooked) ? null : AppTheme.goldGradient,
-              color: (isFull || isBooked) ? AppTheme.textMuted.withOpacity(0.2) : null,
+              gradient: (!dayBookable || isFull || isBooked) ? null : AppTheme.goldGradient,
+              color: (!dayBookable || isFull || isBooked) ? AppTheme.textMuted.withOpacity(0.2) : null,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(slot['slot_time'] ?? '', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: (isFull || isBooked) ? AppTheme.textMuted : AppTheme.purpleDark)),
+                Text(slot['slot_time'] ?? '', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: (!dayBookable || isFull || isBooked) ? AppTheme.textMuted : AppTheme.purpleDark)),
                 const SizedBox(height: 2),
-                Text('$currentP/$maxP', style: TextStyle(fontSize: 11, color: (isFull || isBooked) ? AppTheme.textMuted : AppTheme.purpleDark)),
+                Text('$currentP/$maxP', style: TextStyle(fontSize: 11, color: (!dayBookable || isFull || isBooked) ? AppTheme.textMuted : AppTheme.purpleDark)),
               ],
             ),
           ),
@@ -177,11 +224,18 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
               children: [
                 Text(slot['slot_label'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
                 const SizedBox(height: 4),
-                Text(isFull ? AppLocalizations.t('full') : '${maxP - currentP} spots left', style: TextStyle(fontSize: 12, color: isFull ? AppTheme.redAccent : AppTheme.cyanAccent)),
+                if (completed)
+                  Text('Day completed - bookings closed', style: TextStyle(fontSize: 12, color: Colors.red.withOpacity(0.7)))
+                else if (isFull)
+                  Text(AppLocalizations.t('full'), style: TextStyle(fontSize: 12, color: AppTheme.redAccent))
+                else
+                  Text('${maxP - currentP} spots left', style: const TextStyle(fontSize: 12, color: AppTheme.cyanAccent)),
               ],
             ),
           ),
-          if (!isFull && !isBooked)
+          if (!dayBookable)
+            Icon(Icons.lock, color: Colors.red.withOpacity(0.6), size: 24)
+          else if (!isFull && !isBooked)
             GestureDetector(
               onTap: () async {
                 final authProvider = context.read<AuthProvider>();

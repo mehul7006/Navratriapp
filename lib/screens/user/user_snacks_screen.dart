@@ -15,6 +15,7 @@ class UserSnacksScreen extends StatefulWidget {
 class _UserSnacksScreenState extends State<UserSnacksScreen> {
   List<Map<String, dynamic>> _snacks = [];
   List<Map<String, dynamic>> _myOrders = [];
+  List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
   bool _showMenu = true;
   int _selectedDay = 1;
@@ -22,7 +23,38 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
   @override
   void initState() {
     super.initState();
+    _initDay();
+  }
+
+  Future<void> _initDay() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
     _loadData();
+  }
+
+  bool _isDayBookable(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return false;
+    if (day['is_completed'] == true) return false;
+    if (day['is_active'] == true) return true;
+    final activeDay = _days.firstWhere(
+      (d) => d['is_active'] == true,
+      orElse: () => {},
+    );
+    if (activeDay.isEmpty) return false;
+    return dayNumber > (activeDay['day_number'] as int);
+  }
+
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    return day.isNotEmpty && day['is_completed'] == true;
   }
 
   Future<void> _loadData() async {
@@ -62,17 +94,32 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
         itemCount: 9,
         itemBuilder: (context, index) {
           final day = index + 1;
+          final bookable = _isDayBookable(day);
+          final completed = _isDayCompleted(day);
+          final isSelected = _selectedDay == day;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: GestureDetector(
-              onTap: () => setState(() => _selectedDay = day),
+              onTap: bookable ? () => setState(() => _selectedDay = day) : null,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: _selectedDay == day ? AppTheme.goldPrimary : AppTheme.purpleCard,
+                  color: isSelected ? AppTheme.goldPrimary : (completed ? Colors.red.withOpacity(0.15) : AppTheme.purpleCard),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: completed ? Colors.red.withOpacity(0.6) : (isSelected ? AppTheme.goldPrimary : Colors.transparent),
+                  ),
                 ),
-                child: Center(child: Text('Day $day', style: TextStyle(color: _selectedDay == day ? AppTheme.purpleDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Day $day', style: TextStyle(color: completed ? Colors.red.withOpacity(0.7) : (isSelected ? AppTheme.purpleDark : Colors.white), fontWeight: FontWeight.bold, fontSize: 12)),
+                    if (completed) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
+                    ],
+                  ],
+                ),
               ),
             ),
           );
@@ -132,6 +179,8 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
   Widget _buildSnackCard(Map<String, dynamic> snack) {
     final available = (snack['quantity_available'] ?? 0) - (snack['quantity_sold'] ?? 0);
     int quantity = 1;
+    final dayBookable = _isDayBookable(_selectedDay);
+    final completed = _isDayCompleted(_selectedDay);
 
     return StatefulBuilder(
       builder: (context, setCardState) => Container(
@@ -161,7 +210,9 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                 ],
               ),
             ),
-            if (available > 0)
+            if (!dayBookable)
+              Icon(Icons.lock, color: Colors.red.withOpacity(0.6), size: 24)
+            else if (available > 0)
               Column(
                 children: [
                   Row(

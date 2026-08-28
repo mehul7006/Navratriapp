@@ -15,6 +15,7 @@ class UserGiftsScreen extends StatefulWidget {
 class _UserGiftsScreenState extends State<UserGiftsScreen> {
   List<Map<String, dynamic>> _myGifts = [];
   List<Map<String, dynamic>> _availableGifts = [];
+  List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
   bool _showAssigned = true;
   int _selectedDay = 1;
@@ -22,7 +23,38 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
   @override
   void initState() {
     super.initState();
+    _initDay();
+  }
+
+  Future<void> _initDay() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
     _loadGifts();
+  }
+
+  bool _isDayBookable(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return false;
+    if (day['is_completed'] == true) return false;
+    if (day['is_active'] == true) return true;
+    final activeDay = _days.firstWhere(
+      (d) => d['is_active'] == true,
+      orElse: () => {},
+    );
+    if (activeDay.isEmpty) return false;
+    return dayNumber > (activeDay['day_number'] as int);
+  }
+
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    return day.isNotEmpty && day['is_completed'] == true;
   }
 
   Future<void> _loadGifts() async {
@@ -69,17 +101,32 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
         itemCount: 9,
         itemBuilder: (context, index) {
           final day = index + 1;
+          final bookable = _isDayBookable(day);
+          final completed = _isDayCompleted(day);
+          final isSelected = _selectedDay == day;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: GestureDetector(
-              onTap: () { setState(() => _selectedDay = day); _loadGifts(); },
+              onTap: bookable ? () { setState(() => _selectedDay = day); _loadGifts(); } : null,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: _selectedDay == day ? AppTheme.goldPrimary : AppTheme.purpleCard,
+                  color: isSelected ? AppTheme.goldPrimary : (completed ? Colors.red.withOpacity(0.15) : AppTheme.purpleCard),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: completed ? Colors.red.withOpacity(0.6) : (isSelected ? AppTheme.goldPrimary : Colors.transparent),
+                  ),
                 ),
-                child: Center(child: Text('Day $day', style: TextStyle(color: _selectedDay == day ? AppTheme.purpleDark : Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Day $day', style: TextStyle(color: completed ? Colors.red.withOpacity(0.7) : (isSelected ? AppTheme.purpleDark : Colors.white), fontWeight: FontWeight.bold, fontSize: 12)),
+                    if (completed) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
+                    ],
+                  ],
+                ),
               ),
             ),
           );
@@ -173,9 +220,9 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
   }
 
   Widget _buildAvailableGifts() {
-    if (_availableGifts.isEmpty) {
-      return Center(child: Text(AppLocalizations.t('no_gifts_available_day'), style: const TextStyle(color: AppTheme.textMuted)));
-    }
+    if (_availableGifts.isEmpty) return Center(child: Text(AppLocalizations.t('no_gifts_available_day'), style: const TextStyle(color: AppTheme.textMuted)));
+    final dayBookable = _isDayBookable(_selectedDay);
+    final completed = _isDayCompleted(_selectedDay);
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _availableGifts.length,
@@ -200,11 +247,16 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
                   children: [
                     Text(gift['name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
                     const SizedBox(height: 2),
-                    Text('Day ${gift['day_number']} • ${gift['sponsor_name'] ?? 'Community'}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    if (completed)
+                      Text('Day completed - bookings closed', style: TextStyle(fontSize: 12, color: Colors.red.withOpacity(0.7)))
+                    else
+                      Text('Day ${gift['day_number']} • ${gift['sponsor_name'] ?? 'Community'}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                   ],
                 ),
               ),
-              if (isAssigned)
+              if (!dayBookable)
+                Icon(Icons.lock, color: Colors.red.withOpacity(0.6), size: 24)
+              else if (isAssigned)
                 const Icon(Icons.check_circle, color: Colors.green, size: 28)
               else
                 GestureDetector(

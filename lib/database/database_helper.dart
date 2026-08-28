@@ -496,6 +496,28 @@ class DatabaseHelper {
     return _get('/api/navratri-days');
   }
 
+  static Future<int?> getCurrentActiveDay() async {
+    final days = await getNavratriDays();
+    for (final d in days) {
+      if (d['is_active'] == true) return d['day_number'] as int;
+    }
+    return null;
+  }
+
+  static Future<bool> isDayBookable(int dayNumber) async {
+    final days = await getNavratriDays();
+    final day = days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return false;
+    if (day['is_completed'] == true) return false;
+    if (day['is_active'] == true) return true;
+    final activeDay = await getCurrentActiveDay();
+    if (activeDay == null) return false;
+    return dayNumber > activeDay;
+  }
+
   static Future<void> updateNavratriDay(int day, {String? goddessName, String? dressCode, bool? isActive, bool? isCompleted}) async {
     final body = <String, dynamic>{};
     if (goddessName != null) body['goddess_name'] = goddessName;

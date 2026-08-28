@@ -284,6 +284,23 @@ Future<Map<String, dynamic>> _getBody(Request request) async {
   return body.isEmpty ? {} : jsonDecode(body) as Map<String, dynamic>;
 }
 
+Future<bool> _isDayBookable(Connection conn, int dayNumber) async {
+  final result = await conn.execute(
+    Sql.named('SELECT is_active, is_completed FROM navratri_days WHERE day_number = @day'),
+    parameters: {'day': dayNumber},
+  );
+  if (result.isEmpty) return false;
+  final row = result.first.toColumnMap();
+  if (row['is_completed'] == true) return false;
+  if (row['is_active'] == true) return true;
+  final activeResult = await conn.execute(
+    Sql.named('SELECT day_number FROM navratri_days WHERE is_active = TRUE'),
+  );
+  if (activeResult.isEmpty) return false;
+  final activeDay = activeResult.first.toColumnMap()['day_number'] as int;
+  return dayNumber > activeDay;
+}
+
 // ========== AUTH ==========
 
 Future<Response> _loginUser(Request request) async {
@@ -882,6 +899,10 @@ Future<Response> _bookAartiSlot(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
+    final dayNumber = body['day_number'] as int;
+    if (!await _isDayBookable(conn, dayNumber)) {
+      return _errorResponse('Bookings are closed for Day $dayNumber', status: 403);
+    }
     final results = await conn.execute(
       Sql.named('''
         INSERT INTO aarti_bookings (user_id, house_number, day_number, slot_id)
@@ -1057,6 +1078,10 @@ Future<Response> _orderSnack(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
+    final dayNumber = body['day_number'] as int;
+    if (!await _isDayBookable(conn, dayNumber)) {
+      return _errorResponse('Bookings are closed for Day $dayNumber', status: 403);
+    }
     final results = await conn.execute(
       Sql.named('''
         INSERT INTO snack_orders (user_id, house_number, snack_id, day_number, quantity, notes)
@@ -1201,6 +1226,10 @@ Future<Response> _assignGift(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
+    final dayNumber = body['day_number'] as int;
+    if (!await _isDayBookable(conn, dayNumber)) {
+      return _errorResponse('Bookings are closed for Day $dayNumber', status: 403);
+    }
     final results = await conn.execute(
       Sql.named('''
         INSERT INTO gift_assignments (gift_id, user_id, house_number, day_number, assigned_by, notes)
@@ -1873,6 +1902,10 @@ Future<Response> _spinPrizeDraw(Request request) async {
     final dayNumber = body['day_number'] as int;
     final drawnBy = body['drawn_by'] as int;
     final prizeLevel = body['prize_level'] as int;
+
+    if (!await _isDayBookable(conn, dayNumber)) {
+      return _errorResponse('Lucky Draw is closed for Day $dayNumber', status: 403);
+    }
 
     if (prizeLevel < 1 || prizeLevel > 3)
       return _errorResponse('prize_level must be 1, 2, or 3');

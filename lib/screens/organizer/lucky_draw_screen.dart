@@ -74,6 +74,24 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     return matches.isNotEmpty ? matches.first : null;
   }
 
+  bool _isDayBookable(int dayNumber) {
+    final day = _getDayData(dayNumber);
+    if (day == null) return false;
+    if (day['is_completed'] == true) return false;
+    if (day['is_active'] == true) return true;
+    final activeDay = _days.firstWhere(
+      (d) => d['is_active'] == true,
+      orElse: () => {},
+    );
+    if (activeDay.isEmpty) return false;
+    return dayNumber > (activeDay['day_number'] as int);
+  }
+
+  bool _isDayCompleted(int dayNumber) {
+    final day = _getDayData(dayNumber);
+    return day != null && day['is_completed'] == true;
+  }
+
   Future<void> _doSpin() async {
     if (_spinsToday >= _maxSpins || _isSpinning) return;
 
@@ -328,11 +346,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           final isActive = dayData?['is_active'] == true;
           final isCompleted = dayData?['is_completed'] == true;
           final isSelected = _selectedDay == day;
+          final bookable = _isDayBookable(day);
           return GestureDetector(
-            onTap: () {
+            onTap: bookable ? () {
               setState(() => _selectedDay = day);
               _loadData();
-            },
+            } : null,
             child: Container(
               width: 65,
               margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -340,11 +359,11 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                 color: isSelected
                     ? AppTheme.goldPrimary
                     : (isCompleted
-                        ? Colors.green.withValues(alpha: 0.3)
+                        ? Colors.red.withValues(alpha: 0.2)
                         : AppTheme.cardBg),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isActive ? Colors.amber : Colors.white24,
+                  color: isCompleted ? Colors.red.withValues(alpha: 0.6) : (isActive ? Colors.amber : Colors.white24),
                   width: isActive ? 2 : 1,
                 ),
               ),
@@ -354,7 +373,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                   Text(
                     'D$day',
                     style: TextStyle(
-                      color: isSelected ? Colors.black : Colors.white,
+                      color: isCompleted ? Colors.red.withValues(alpha: 0.7) : (isSelected ? Colors.black : Colors.white),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -371,7 +390,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                         style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
                       ),
                     ),
-                  if (isCompleted) const Icon(Icons.check_circle, size: 12, color: Colors.green),
+                  if (isCompleted) const Icon(Icons.lock, size: 12, color: Colors.red),
                 ],
               ),
             ),
@@ -515,7 +534,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   }
 
   Widget _buildSpinButton() {
-    final canSpin = _spinsToday < _maxSpins && !_isSpinning;
+    final dayBookable = _isDayBookable(_selectedDay);
+    final canSpin = _spinsToday < _maxSpins && !_isSpinning && dayBookable;
     return GestureDetector(
       onTap: canSpin ? _doSpin : null,
       child: Container(
@@ -540,7 +560,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _isSpinning ? Icons.hourglass_top : Icons.play_arrow,
+              _isSpinning ? Icons.hourglass_top : (!dayBookable ? Icons.lock : Icons.play_arrow),
               color: canSpin ? Colors.black : Colors.white70,
               size: 28,
             ),
@@ -548,7 +568,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             Text(
               _isSpinning
                   ? 'DRAWING...'
-                  : (_spinsToday >= _maxSpins ? 'LIMIT REACHED' : 'DRAW PRIZES'),
+                  : (!dayBookable
+                      ? 'DAY CLOSED'
+                      : (_spinsToday >= _maxSpins ? 'LIMIT REACHED' : 'DRAW PRIZES')),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
