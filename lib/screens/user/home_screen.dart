@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import 'user_coupon_screen.dart';
@@ -78,7 +79,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Navratri 2026', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.t('navratri_2026_short'), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         elevation: 0,
@@ -114,7 +115,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               _buildStatsRow(),
               const SizedBox(height: 16),
               if (_announcements.isNotEmpty) ...[
-                _buildSectionTitle('Announcements'),
+                _buildSectionTitle(AppLocalizations.t('announcements')),
                 const SizedBox(height: 8),
                 _buildAnnouncementsCard(),
                 const SizedBox(height: 16),
@@ -230,7 +231,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('My Activity'),
+        _buildSectionTitle(AppLocalizations.t('my_activity')),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -275,25 +276,25 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       crossAxisSpacing: 10,
       childAspectRatio: 0.85,
       children: [
-        _buildActionCard(icon: Icons.self_improvement, title: 'Book Aarti', badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
+        _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
-        _buildActionCard(icon: Icons.restaurant, title: 'Food', badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null,
+        _buildActionCard(icon: Icons.restaurant, title: AppLocalizations.t('food'), badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSnacksScreen()))),
-        _buildActionCard(icon: Icons.card_giftcard, title: 'Gifts', badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
+        _buildActionCard(icon: Icons.card_giftcard, title: AppLocalizations.t('gifts'), badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserGiftsScreen()))),
-        _buildActionCard(icon: Icons.confirmation_number, title: 'My Tickets',
+        _buildActionCard(icon: Icons.confirmation_number, title: AppLocalizations.t('my_tickets'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserCouponScreen(houseNumber: user?['house_number'] ?? '', userName: user?['name'] ?? '')))),
-        _buildActionCard(icon: Icons.person, title: 'Profile',
+        _buildActionCard(icon: Icons.person, title: AppLocalizations.t('profile'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()))),
-        _buildActionCard(icon: Icons.event, title: 'Schedule',
+        _buildActionCard(icon: Icons.event, title: AppLocalizations.t('schedule'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserScheduleScreen()))),
-        _buildActionCard(icon: Icons.emoji_events, title: 'Winners',
+        _buildActionCard(icon: Icons.emoji_events, title: AppLocalizations.t('winners'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen()))),
-        _buildActionCard(icon: Icons.receipt_long, title: 'Payments',
+        _buildActionCard(icon: Icons.receipt_long, title: AppLocalizations.t('payments'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
-        _buildActionCard(icon: Icons.music_note, title: 'Songs',
+        _buildActionCard(icon: Icons.music_note, title: AppLocalizations.t('songs'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSongRequestScreen()))),
-        _buildActionCard(icon: Icons.celebration, title: 'Shoutout',
+        _buildActionCard(icon: Icons.celebration, title: AppLocalizations.t('shoutout'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserShoutoutWallScreen()))),
       ],
     );
@@ -335,13 +336,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        _buildMiniStat('Aarti', '${_stats['bookings']}', Icons.self_improvement, Colors.orange),
+        _buildMiniStat(AppLocalizations.t('aarti'), '${_stats['bookings']}', Icons.self_improvement, Colors.orange),
         const SizedBox(width: 8),
-        _buildMiniStat('Orders', '${_stats['orders']}', Icons.restaurant, Colors.blue),
+        _buildMiniStat(AppLocalizations.t('orders'), '${_stats['orders']}', Icons.restaurant, Colors.blue),
         const SizedBox(width: 8),
-        _buildMiniStat('Gifts', '${_stats['gifts']}', Icons.card_giftcard, Colors.purple),
+        _buildMiniStat(AppLocalizations.t('gifts'), '${_stats['gifts']}', Icons.card_giftcard, Colors.purple),
         const SizedBox(width: 8),
-        _buildMiniStat('Tickets', '${_myBookings.length}', Icons.confirmation_number, Colors.amber),
+        _buildMiniStat(AppLocalizations.t('tickets'), '${_myBookings.length}', Icons.confirmation_number, Colors.amber),
       ],
     );
   }

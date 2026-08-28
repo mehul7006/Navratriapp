@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class DjConsoleScreen extends StatefulWidget {
   const DjConsoleScreen({super.key});
@@ -75,7 +76,7 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('🎧 DJ Console', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('dj_console'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -109,12 +110,12 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white24),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.music_off, size: 36, color: Colors.white38),
-            SizedBox(height: 8),
-            Text('No song playing', style: TextStyle(color: Colors.white38, fontSize: 16)),
-            Text('Tap PLAY on a request to start', style: TextStyle(color: Colors.white24, fontSize: 12)),
+            const Icon(Icons.music_off, size: 36, color: Colors.white38),
+            const SizedBox(height: 8),
+            Text(AppLocalizations.t('no_song_playing'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
+            Text(AppLocalizations.t('tap_play_start'), style: const TextStyle(color: Colors.white24, fontSize: 12)),
           ],
         ),
       );
@@ -131,12 +132,12 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.volume_up, color: Colors.green, size: 18),
-              SizedBox(width: 8),
-              Text('NOW PLAYING', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Icon(Icons.volume_up, color: Colors.green, size: 18),
+              const SizedBox(width: 8),
+              Text(AppLocalizations.t('now_playing'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
             ],
           ),
           const SizedBox(height: 10),
@@ -151,12 +152,12 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(color: Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.play_circle, color: Colors.red, size: 18),
-                    SizedBox(width: 6),
-                    Text('Open on YouTube', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const Icon(Icons.play_circle, color: Colors.red, size: 18),
+                    const SizedBox(width: 6),
+                    Text(AppLocalizations.t('open_youtube'), style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -205,8 +206,8 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
       decoration: BoxDecoration(color: AppTheme.purpleCard, borderRadius: BorderRadius.circular(10)),
       child: Row(
         children: [
-          Expanded(child: _buildTab('queue', 'Request Queue')),
-          Expanded(child: _buildTab('suggest', 'Tomorrow\'s Suggestions')),
+          Expanded(child: _buildTab('queue', AppLocalizations.t('request_queue'))),
+          Expanded(child: _buildTab('suggest', AppLocalizations.t('tomorrows_suggestions'))),
         ],
       ),
     );
@@ -236,14 +237,14 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
     final skipped = _requests.where((r) => r['status'] == 'skipped').toList();
 
     if (_requests.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.queue_music, size: 48, color: Colors.white24),
-            SizedBox(height: 12),
-            Text('No requests yet', style: TextStyle(color: Colors.white38, fontSize: 16)),
-            Text('Waiting for residents to request songs...', style: TextStyle(color: Colors.white24, fontSize: 12)),
+            const Icon(Icons.queue_music, size: 48, color: Colors.white24),
+            const SizedBox(height: 12),
+            Text(AppLocalizations.t('no_requests_yet'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
+            Text(AppLocalizations.t('waiting_requests'), style: const TextStyle(color: Colors.white24, fontSize: 12)),
           ],
         ),
       );
@@ -331,13 +332,13 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
 
   Widget _buildSuggestionsTab() {
     if (_suggestions.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lightbulb_outline, size: 48, color: Colors.white24),
-            SizedBox(height: 12),
-            Text('No suggestions for tomorrow', style: TextStyle(color: Colors.white38, fontSize: 16)),
+            const Icon(Icons.lightbulb_outline, size: 48, color: Colors.white24),
+            const SizedBox(height: 12),
+            Text(AppLocalizations.t('no_suggestions_tomorrow'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
           ],
         ),
       );

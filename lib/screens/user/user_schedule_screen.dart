@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 
@@ -41,7 +42,7 @@ class _UserScheduleScreenState extends State<UserScheduleScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Festival Schedule', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('festival_schedule'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -145,13 +146,13 @@ class _UserScheduleScreenState extends State<UserScheduleScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.event_busy, size: 48, color: Colors.white24),
           SizedBox(height: 16),
-          Text('No events scheduled for this day', style: TextStyle(color: Colors.white54)),
+          Text(AppLocalizations.t('no_events_scheduled'), style: TextStyle(color: Colors.white54)),
         ],
       ),
     );

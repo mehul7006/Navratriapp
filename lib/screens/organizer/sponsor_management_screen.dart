@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class SponsorManagementScreen extends StatefulWidget {
   const SponsorManagementScreen({super.key});
@@ -39,7 +40,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Sponsors', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('sponsors'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -55,21 +56,21 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
         backgroundColor: AppTheme.goldPrimary,
         onPressed: _showAddSponsorDialog,
         icon: const Icon(Icons.add, color: Colors.black),
-        label: const Text('Add Sponsor', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        label: Text(AppLocalizations.t('add_sponsor'), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.business, size: 64, color: Colors.white24),
-          SizedBox(height: 16),
-          Text('No sponsors yet', style: TextStyle(color: Colors.white54, fontSize: 16)),
-          SizedBox(height: 8),
-          Text('Add sponsors to manage their profiles', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          const Icon(Icons.business, size: 64, color: Colors.white24),
+          const SizedBox(height: 16),
+          Text(AppLocalizations.t('no_sponsors'), style: const TextStyle(color: Colors.white54, fontSize: 16)),
+          const SizedBox(height: 8),
+          const Text('Add sponsors to manage their profiles', style: TextStyle(color: Colors.white38, fontSize: 12)),
         ],
       ),
     );
@@ -93,7 +94,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _statItem('Total', '${_sponsors.length}', Colors.white),
-              _statItem('Amount', '₹${totalAmount.toStringAsFixed(0)}', AppTheme.goldPrimary),
+              _statItem(AppLocalizations.t('amount'), '₹${totalAmount.toStringAsFixed(0)}', AppTheme.goldPrimary),
               _statItem('Paid', '$paid', Colors.green),
               _statItem('Pending', '$pending', Colors.orange),
             ],
@@ -176,25 +177,25 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
                   icon: const Icon(Icons.more_vert, color: Colors.white70),
                   onSelected: (v) => _handleAction(v, sponsor),
                   itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(value: 'edit', child: Text(AppLocalizations.t('edit'))),
                     PopupMenuItem(
                       value: 'toggle',
-                      child: Text(paymentStatus == 'paid' ? 'Mark Pending' : 'Mark Paid'),
+                      child: Text(paymentStatus == 'paid' ? AppLocalizations.t('mark_pending') : AppLocalizations.t('mark_paid_sponsor')),
                     ),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                    PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red))),
                   ],
                 ),
               ],
             ),
             const Divider(color: Colors.white24),
-            _detailRow(Icons.business, 'Company', sponsor['company_name'] ?? 'N/A'),
-            _detailRow(Icons.phone, 'Mobile', sponsor['mobile_number'] ?? 'N/A'),
-            _detailRow(Icons.attach_money, 'Amount', '₹${sponsor['sponsorship_amount'] ?? 0}'),
+            _detailRow(Icons.business, AppLocalizations.t('company'), sponsor['company_name'] ?? 'N/A'),
+            _detailRow(Icons.phone, AppLocalizations.t('mobile'), sponsor['mobile_number'] ?? 'N/A'),
+            _detailRow(Icons.attach_money, AppLocalizations.t('amount'), '₹${sponsor['sponsorship_amount'] ?? 0}'),
             Row(
               children: [
                 Icon(Icons.circle, size: 10, color: statusColor),
                 const SizedBox(width: 8),
-                Text('Status: ', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                const Text('Status: ', style: TextStyle(color: Colors.white54, fontSize: 12)),
                 Text(paymentStatus.toString().toUpperCase(),
                     style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
               ],
@@ -263,11 +264,11 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Delete Sponsor?'),
+          title: Text(AppLocalizations.t('delete_sponsor')),
           content: Text('Delete ${sponsor['name']}? This cannot be undone.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red))),
           ],
         ),
       );
@@ -301,23 +302,23 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.cardBg,
-        title: const Text('Add Sponsor', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('add_sponsor'), style: const TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _field(houseController, 'House Number'),
-              _field(nameController, 'Contact Name'),
-              _field(mobileController, 'Mobile Number'),
-              _field(companyController, 'Company Name'),
-              _field(adController, 'Advertisement Text'),
-              _field(amountController, 'Sponsorship Amount', isNumber: true),
-              _field(remarksController, 'Remarks (Gifts/Snacks/Banners)'),
+              _field(houseController, AppLocalizations.t('house_number')),
+              _field(nameController, AppLocalizations.t('contact_name')),
+              _field(mobileController, AppLocalizations.t('mobile_number')),
+              _field(companyController, AppLocalizations.t('company_name')),
+              _field(adController, AppLocalizations.t('ad_text')),
+              _field(amountController, AppLocalizations.t('sponsorship_amount'), isNumber: true),
+              _field(remarksController, AppLocalizations.t('remarks')),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
           TextButton(
             onPressed: () async {
               if (houseController.text.isNotEmpty && nameController.text.isNotEmpty) {
@@ -334,7 +335,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
                 _loadData();
               }
             },
-            child: const Text('Add', style: TextStyle(color: AppTheme.goldPrimary)),
+            child: Text(AppLocalizations.t('add'), style: const TextStyle(color: AppTheme.goldPrimary)),
           ),
         ],
       ),
@@ -355,15 +356,15 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _field(companyController, 'Company Name'),
-              _field(adController, 'Advertisement Text'),
-              _field(amountController, 'Amount', isNumber: true),
-              _field(adminRemarksController, 'Admin Remarks'),
+              _field(companyController, AppLocalizations.t('company_name')),
+              _field(adController, AppLocalizations.t('ad_text')),
+              _field(amountController, AppLocalizations.t('amount'), isNumber: true),
+              _field(adminRemarksController, AppLocalizations.t('admin_remarks')),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
           TextButton(
             onPressed: () async {
               await DatabaseHelper.updateSponsor(
@@ -376,7 +377,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
               Navigator.pop(ctx);
               _loadData();
             },
-            child: const Text('Save', style: TextStyle(color: AppTheme.goldPrimary)),
+            child: Text(AppLocalizations.t('save'), style: const TextStyle(color: AppTheme.goldPrimary)),
           ),
         ],
       ),

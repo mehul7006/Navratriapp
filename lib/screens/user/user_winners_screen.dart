@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 
@@ -41,7 +42,7 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Draw Winners', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('draw_winners'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -74,7 +75,7 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FilterChip(
-              label: const Text('All Days'),
+              label: Text(AppLocalizations.t('all_days')),
               selected: _selectedDay == 0,
               selectedColor: AppTheme.goldPrimary,
               onSelected: (s) { setState(() => _selectedDay = 0); _loadData(); },
@@ -106,9 +107,9 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
         children: [
           Icon(Icons.emoji_events, size: 64, color: Colors.white24),
           const SizedBox(height: 16),
-          const Text('No winners announced yet', style: TextStyle(color: Colors.white54, fontSize: 16)),
+          Text(AppLocalizations.t('no_winners_announced'), style: const TextStyle(color: Colors.white54, fontSize: 16)),
           const SizedBox(height: 8),
-          const Text('Winners will appear here after each draw', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          Text(AppLocalizations.t('winners_will_appear'), style: const TextStyle(color: Colors.white38, fontSize: 12)),
         ],
       ),
     );

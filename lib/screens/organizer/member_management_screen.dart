@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class MemberManagementScreen extends StatefulWidget {
   const MemberManagementScreen({super.key});
@@ -59,7 +60,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredMembers.isEmpty
-                    ? const Center(child: Text('No members found', style: TextStyle(color: AppTheme.textMuted)))
+                    ? Center(child: Text(AppLocalizations.t('no_members_found'), style: const TextStyle(color: AppTheme.textMuted)))
                     : _buildMembersList(),
           ),
         ],
@@ -81,7 +82,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         style: const TextStyle(color: Colors.white),
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
-          hintText: 'Search by name or house number...',
+          hintText: AppLocalizations.t('search_name_house'),
           hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5)),
           prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary),
           filled: true,
@@ -99,9 +100,9 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          _buildFilterChip('All', 'all'),
+          _buildFilterChip(AppLocalizations.t('all'), 'all'),
           const SizedBox(width: 6),
-          _buildFilterChip('Users', 'user'),
+          _buildFilterChip(AppLocalizations.t('users'), 'user'),
           const SizedBox(width: 6),
           _buildFilterChip('Sponsors', 'sponsor'),
         ],
@@ -132,9 +133,9 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          _buildSortChip('Sort by Name', 'name'),
+          _buildSortChip(AppLocalizations.t('sort_by_name'), 'name'),
           const SizedBox(width: 8),
-          _buildSortChip('Sort by House', 'house'),
+          _buildSortChip(AppLocalizations.t('sort_by_house'), 'house'),
         ],
       ),
     );
@@ -212,7 +213,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                         color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(isActive ? 'ACTIVE' : 'INACTIVE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isActive ? Colors.green : Colors.red)),
+                      child: Text(isActive ? AppLocalizations.t('active') : AppLocalizations.t('inactive'), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isActive ? Colors.green : Colors.red)),
                     ),
                   ],
                 ),
@@ -224,9 +225,9 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             color: AppTheme.purpleCard,
             onSelected: (value) => _handleMemberAction(value, member),
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'edit', child: Text('Edit Details', style: TextStyle(color: Colors.white))),
-              PopupMenuItem(value: 'toggle', child: Text(isActive ? 'Deactivate' : 'Activate', style: const TextStyle(color: Colors.white))),
-              const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppTheme.redAccent))),
+              PopupMenuItem(value: 'edit', child: Text(AppLocalizations.t('edit_details'), style: const TextStyle(color: Colors.white))),
+              PopupMenuItem(value: 'toggle', child: Text(isActive ? AppLocalizations.t('deactivate') : AppLocalizations.t('activate'), style: const TextStyle(color: Colors.white))),
+              PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: AppTheme.redAccent))),
             ],
           ),
         ],
@@ -245,16 +246,16 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppTheme.purpleCard,
-          title: const Text('Delete Member?', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('delete_member'), style: const TextStyle(color: Colors.white)),
           content: Text(
             'Permanently delete ${member['name']} (${member['house_number']})?\n\nThis cannot be undone.',
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -302,7 +303,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                 controller: houseController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: 'House Number', prefixIcon: const Icon(Icons.home, color: AppTheme.goldPrimary),
+                  labelText: AppLocalizations.t('house_number'), prefixIcon: const Icon(Icons.home, color: AppTheme.goldPrimary),
                   labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,
                   fillColor: AppTheme.purpleDark.withOpacity(0.5),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
@@ -316,7 +317,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                 keyboardType: TextInputType.phone,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: 'Mobile Number', prefixIcon: const Icon(Icons.phone, color: AppTheme.goldPrimary),
+                  labelText: AppLocalizations.t('mobile_number'), prefixIcon: const Icon(Icons.phone, color: AppTheme.goldPrimary),
                   labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,
                   fillColor: AppTheme.purpleDark.withOpacity(0.5),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
@@ -328,7 +329,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: Colors.white70))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark),
             onPressed: () async {
@@ -394,7 +395,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
       );
       widget.onAdded();
       if (mounted) Navigator.pop(context);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Member added!'), backgroundColor: Colors.green));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('member_added')), backgroundColor: Colors.green));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent));
     } finally {
@@ -412,24 +413,24 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Add Member', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+            Text(AppLocalizations.t('add_member'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: RadioListTile<String>(title: const Text('Resident', style: TextStyle(color: Colors.white, fontSize: 12)), value: 'user', groupValue: _userType, onChanged: (v) => setState(() => _userType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
-                Expanded(child: RadioListTile<String>(title: const Text('Sponsor', style: TextStyle(color: Colors.white, fontSize: 12)), value: 'sponsor', groupValue: _userType, onChanged: (v) => setState(() => _userType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
+                Expanded(child: RadioListTile<String>(title: Text(AppLocalizations.t('resident'), style: const TextStyle(color: Colors.white, fontSize: 12)), value: 'user', groupValue: _userType, onChanged: (v) => setState(() => _userType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
+                Expanded(child: RadioListTile<String>(title: Text(AppLocalizations.t('sponsor'), style: const TextStyle(color: Colors.white, fontSize: 12)), value: 'sponsor', groupValue: _userType, onChanged: (v) => setState(() => _userType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
               ],
             ),
-            _buildField(controller: _houseController, label: 'House Number', icon: Icons.home),
+            _buildField(controller: _houseController, label: AppLocalizations.t('house_number'), icon: Icons.home),
             const SizedBox(height: 12),
-            _buildField(controller: _nameController, label: 'Full Name', icon: Icons.person),
+            _buildField(controller: _nameController, label: AppLocalizations.t('full_name'), icon: Icons.person),
             const SizedBox(height: 12),
-            _buildField(controller: _mobileController, label: 'Mobile Number', icon: Icons.phone, keyboardType: TextInputType.phone),
+            _buildField(controller: _mobileController, label: AppLocalizations.t('mobile_number'), icon: Icons.phone, keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: _isLoading ? const CircularProgressIndicator(color: AppTheme.purpleDark) : const Text('ADD MEMBER', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: _isLoading ? const CircularProgressIndicator(color: AppTheme.purpleDark) : Text(AppLocalizations.t('add_member_btn'), style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 20),
           ],
@@ -449,7 +450,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
       ),
-      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+      validator: (v) => v == null || v.isEmpty ? AppLocalizations.t('required') : null,
     );
   }
 }

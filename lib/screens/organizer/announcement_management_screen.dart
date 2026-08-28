@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AnnouncementManagementScreen extends StatefulWidget {
   const AnnouncementManagementScreen({super.key});
@@ -30,14 +31,14 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Announcements'),
+        title: Text(AppLocalizations.t('announcements')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _announcements.isEmpty
-              ? const Center(child: Text('No announcements', style: TextStyle(color: AppTheme.textMuted)))
+              ? Center(child: Text(AppLocalizations.t('no_announcements'), style: const TextStyle(color: AppTheme.textMuted)))
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: _announcements.length,
@@ -110,7 +111,7 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('New Announcement', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+              Text(AppLocalizations.t('new_announcement'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
               const SizedBox(height: 16),
               Row(
                 children: ['general', 'reminder', 'info'].map((t) {
@@ -133,9 +134,9 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
                 }).toList(),
               ),
               const SizedBox(height: 16),
-              _buildField(controller: titleController, label: 'Title', icon: Icons.title),
+              _buildField(controller: titleController, label: AppLocalizations.t('title'), icon: Icons.title),
               const SizedBox(height: 12),
-              _buildField(controller: messageController, label: 'Message', icon: Icons.message, maxLines: 3),
+              _buildField(controller: messageController, label: AppLocalizations.t('message'), icon: Icons.message, maxLines: 3),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
@@ -149,7 +150,7 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
                   _loadAnnouncements();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('POST ANNOUNCEMENT', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.t('post_announcement'), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
             ],

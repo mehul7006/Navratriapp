@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -52,11 +53,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Reports & Analytics', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('reports_analytics_title'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(icon: const Icon(Icons.picture_as_pdf, color: Colors.white), onPressed: _exportPDF, tooltip: 'Export PDF'),
+          IconButton(icon: const Icon(Icons.picture_as_pdf, color: Colors.white), onPressed: _exportPDF, tooltip: AppLocalizations.t('export_pdf')),
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
@@ -105,7 +106,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final sponsorTotal = _parseAmount(_paymentReport?['sponsor_total']);
     final grandTotal = fundTotal + sponsorTotal;
 
-    if (payments.isEmpty) return _emptyCard('No payment data');
+    if (payments.isEmpty) return _emptyCard(AppLocalizations.t('no_payment_data'));
 
     final sortedPayments = List<Map<String, dynamic>>.from(payments)
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
@@ -152,7 +153,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final expenses = _expenseReport?['expenses'] as List? ?? [];
     final totalExpense = _parseAmount(_expenseReport?['total']);
 
-    if (expenses.isEmpty) return _emptyCard('No expense data');
+    if (expenses.isEmpty) return _emptyCard(AppLocalizations.t('no_expense_data'));
 
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final e in expenses) {
@@ -230,7 +231,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // ========== DAILY ACTIVITY ==========
   Widget _buildDailyActivity() {
     final days = _activityReport?['days'] as List? ?? [];
-    if (days.isEmpty) return _emptyCard('No activity data');
+    if (days.isEmpty) return _emptyCard(AppLocalizations.t('no_activity_data'));
 
     return Column(
       children: days.map((day) {
@@ -336,9 +337,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ],
 
               if (aarti.isEmpty && foods.isEmpty && gifts.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('No activity on this day', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  child: Text(AppLocalizations.t('no_activity_day'), style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                 ),
             ],
           ),
@@ -355,7 +356,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        isApproved ? 'Approved' : 'Pending',
+        isApproved ? AppLocalizations.t('approved') : 'Pending',
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.bold,

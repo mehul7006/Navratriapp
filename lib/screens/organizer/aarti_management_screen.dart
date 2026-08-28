@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class AartiManagementScreen extends StatefulWidget {
   const AartiManagementScreen({super.key});
@@ -120,7 +121,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   }
 
   Widget _buildSlotsList() {
-    if (_slots.isEmpty) return const Center(child: Text('No slots for this day', style: TextStyle(color: AppTheme.textMuted)));
+    if (_slots.isEmpty) return Center(child: Text(AppLocalizations.t('no_slots_day'), style: TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _slots.length,
@@ -162,7 +163,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               children: [
                 Text(slot['slot_label'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
                 const SizedBox(height: 4),
-                Text(isFull ? 'FULL' : '${maxP - currentP} spots left', style: TextStyle(fontSize: 12, color: isFull ? AppTheme.redAccent : AppTheme.cyanAccent)),
+                Text(isFull ? AppLocalizations.t('full') : '${maxP - currentP} spots left', style: TextStyle(fontSize: 12, color: isFull ? AppTheme.redAccent : AppTheme.cyanAccent)),
               ],
             ),
           ),
@@ -176,7 +177,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'delete', child: Text('Remove', style: TextStyle(color: AppTheme.redAccent))),
+              PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('remove'), style: TextStyle(color: AppTheme.redAccent))),
             ],
           ),
         ],
@@ -185,7 +186,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   }
 
   Widget _buildBookingsList() {
-    if (_bookings.isEmpty) return const Center(child: Text('No bookings for this day', style: TextStyle(color: AppTheme.textMuted)));
+    if (_bookings.isEmpty) return Center(child: Text(AppLocalizations.t('no_bookings_day'), style: TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _bookings.length,
@@ -267,13 +268,13 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Add Aarti Slot', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+            Text(AppLocalizations.t('add_aarti_slot'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
             const SizedBox(height: 16),
-            _buildField(controller: timeController, label: 'Time (e.g. 19:00)', icon: Icons.access_time),
+            _buildField(controller: timeController, label: AppLocalizations.t('time_hint'), icon: Icons.access_time),
             const SizedBox(height: 12),
-            _buildField(controller: labelController, label: 'Slot Label', icon: Icons.label),
+            _buildField(controller: labelController, label: AppLocalizations.t('slot_label'), icon: Icons.label),
             const SizedBox(height: 12),
-            _buildField(controller: maxController, label: 'Max Participants', icon: Icons.people, keyboardType: TextInputType.number),
+            _buildField(controller: maxController, label: AppLocalizations.t('max_participants'), icon: Icons.people, keyboardType: TextInputType.number),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
@@ -286,7 +287,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 _loadData();
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: const Text('ADD SLOT', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(AppLocalizations.t('add_slot'), style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 20),
           ],

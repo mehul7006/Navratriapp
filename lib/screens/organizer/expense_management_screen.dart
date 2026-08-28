@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class ExpenseManagementScreen extends StatefulWidget {
   const ExpenseManagementScreen({super.key});
@@ -95,7 +96,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: Text(isDeletedTab ? 'Deleted Expenses' : 'Expenses'),
+        title: Text(isDeletedTab ? 'Deleted Expenses' : AppLocalizations.t('expenses')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         actions: [
@@ -130,7 +131,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
                 : filtered.isEmpty
-                    ? Center(child: Text(isDeletedTab ? 'No deleted expenses' : 'No expenses recorded', style: const TextStyle(color: AppTheme.textMuted)))
+                    ? Center(child: Text(isDeletedTab ? 'No deleted expenses' : AppLocalizations.t('no_expenses_recorded'), style: const TextStyle(color: AppTheme.textMuted)))
                     : _buildExpensesList(filtered),
           ),
         ],
@@ -153,7 +154,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
                 ),
-                child: Text('Active', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _selectedTab == 'active' ? AppTheme.purpleDark : AppTheme.textMuted)),
+                child: Text(AppLocalizations.t('active_tab'), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _selectedTab == 'active' ? AppTheme.purpleDark : AppTheme.textMuted)),
               ),
             ),
           ),
@@ -193,7 +194,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         style: const TextStyle(color: Colors.white),
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
-          hintText: 'Search expenses...',
+          hintText: AppLocalizations.t('search_expenses'),
           hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5)),
           prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary),
           filled: true, fillColor: AppTheme.purpleDark.withOpacity(0.5),
@@ -215,7 +216,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _catChip('All', 'all'),
+                _catChip(AppLocalizations.t('all'), 'all'),
                 ..._categories.map((c) => _catChip(c['name'] ?? '', c['id'].toString())),
               ],
             ),
@@ -223,9 +224,9 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           const SizedBox(height: 6),
           Row(
             children: [
-              _paidByChip('All', 'all'), const SizedBox(width: 6),
-              _paidByChip('Organizer', 'organizer'), const SizedBox(width: 6),
-              _paidByChip('Sponsor', 'sponsor'),
+              _paidByChip(AppLocalizations.t('all'), 'all'), const SizedBox(width: 6),
+              _paidByChip(AppLocalizations.t('organizer_label'), 'organizer'), const SizedBox(width: 6),
+              _paidByChip(AppLocalizations.t('sponsor_label'), 'sponsor'),
             ],
           ),
         ],
@@ -282,11 +283,11 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem('Organizer', '₹${totalOrg.toStringAsFixed(0)}', Colors.red),
+          _statItem(AppLocalizations.t('organizer_label'), '₹${totalOrg.toStringAsFixed(0)}', Colors.red),
           Container(height: 30, width: 1, color: AppTheme.goldPrimary.withOpacity(0.3)),
-          _statItem('Sponsor', '₹${totalSponsor.toStringAsFixed(0)}', Colors.purple),
+          _statItem(AppLocalizations.t('sponsor_label'), '₹${totalSponsor.toStringAsFixed(0)}', Colors.purple),
           Container(height: 30, width: 1, color: AppTheme.goldPrimary.withOpacity(0.3)),
-          _statItem('Total', '₹${(totalOrg + totalSponsor).toStringAsFixed(0)}', Colors.orange),
+          _statItem(AppLocalizations.t('total'), '₹${(totalOrg + totalSponsor).toStringAsFixed(0)}', Colors.orange),
         ],
       ),
     );
@@ -389,9 +390,9 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             const SizedBox(height: 6),
             Row(
               children: [
-                _actionBtn('Edit', AppTheme.goldPrimary, Icons.edit, () => _showEditExpenseDialog(e)),
+                _actionBtn(AppLocalizations.t('edit'), AppTheme.goldPrimary, Icons.edit, () => _showEditExpenseDialog(e)),
                 const SizedBox(width: 6),
-                _actionBtn('Delete', Colors.red, Icons.delete_outline, () => _showDeleteExpenseDialog(e)),
+                _actionBtn(AppLocalizations.t('delete'), Colors.red, Icons.delete_outline, () => _showDeleteExpenseDialog(e)),
               ],
             ),
           ],
@@ -430,7 +431,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.purpleCard,
-          title: const Text('Edit Expense', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('edit_expense'), style: const TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -439,18 +440,18 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                   value: catId,
                   dropdownColor: AppTheme.purpleDeep,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(labelText: 'Category', labelStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  decoration: InputDecoration(labelText: AppLocalizations.t('category'), labelStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                   items: _categories.map((c) => DropdownMenuItem(value: c['id'] as int, child: Text('${c['name'] ?? ''}', style: const TextStyle(fontSize: 13)))).toList(),
                   onChanged: (v) => setDialogState(() => catId = v),
                 ),
                 const SizedBox(height: 8),
-                _dlgField(itemCtrl, 'Item Name', Icons.inventory),
+                _dlgField(itemCtrl, AppLocalizations.t('item_name'), Icons.inventory),
                 const SizedBox(height: 8),
-                _dlgField(amountCtrl, 'Amount', Icons.attach_money, TextInputType.number),
+                _dlgField(amountCtrl, AppLocalizations.t('amount'), Icons.attach_money, TextInputType.number),
                 const SizedBox(height: 8),
-                _dlgField(paidToCtrl, 'Paid To (Vendor/Person) *', Icons.store),
+                _dlgField(paidToCtrl, AppLocalizations.t('paid_to'), Icons.store),
                 const SizedBox(height: 8),
-                _dlgField(notesCtrl, 'Notes (optional)', Icons.notes),
+                _dlgField(notesCtrl, AppLocalizations.t('notes_optional'), Icons.notes),
                 const SizedBox(height: 8),
                 ListTile(
                   dense: true,
@@ -469,7 +470,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                     Expanded(child: RadioListTile<String>(
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      title: const Text('Organizer', style: TextStyle(color: Colors.white, fontSize: 11)),
+                      title: Text(AppLocalizations.t('organizer_label'), style: const TextStyle(color: Colors.white, fontSize: 11)),
                       value: 'organizer', groupValue: paidBy,
                       onChanged: (v) => setDialogState(() => paidBy = v!),
                       activeColor: AppTheme.goldPrimary,
@@ -477,7 +478,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                     Expanded(child: RadioListTile<String>(
                       contentPadding: EdgeInsets.zero,
                       dense: true,
-                      title: const Text('Sponsor', style: TextStyle(color: Colors.white, fontSize: 11)),
+                      title: Text(AppLocalizations.t('sponsor_label'), style: const TextStyle(color: Colors.white, fontSize: 11)),
                       value: 'sponsor', groupValue: paidBy,
                       onChanged: (v) => setDialogState(() => paidBy = v!),
                       activeColor: Colors.purple,
@@ -488,7 +489,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: () async {
                 if (paidToCtrl.text.trim().isEmpty) {
@@ -508,7 +509,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                 Navigator.pop(ctx);
                 _loadData();
               },
-              child: const Text('Save', style: TextStyle(color: AppTheme.goldPrimary)),
+              child: Text(AppLocalizations.t('save'), style: const TextStyle(color: AppTheme.goldPrimary)),
             ),
           ],
         ),
@@ -537,7 +538,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.cardBg,
-          title: const Text('Delete Expense', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('delete_expense'), style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,14 +548,14 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                 style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 12),
-              const Text('Reason (required)', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.t('reason_required'), style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               TextField(
                 controller: reasonController,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
                 maxLines: 2,
                 decoration: InputDecoration(
-                  hintText: 'Enter reason for deletion...',
+                  hintText: AppLocalizations.t('enter_reason_deletion'),
                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
                   filled: true,
                   fillColor: AppTheme.purpleDark,
@@ -566,7 +567,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: Colors.white70))),
             TextButton(
               onPressed: reasonController.text.trim().isEmpty
                   ? null
@@ -576,11 +577,11 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                       _loadData();
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Expense deleted'), backgroundColor: Colors.red),
+                          SnackBar(content: Text(AppLocalizations.t('expense_deleted')), backgroundColor: Colors.red),
                         );
                       }
                     },
-              child: Text('Delete', style: TextStyle(color: reasonController.text.trim().isEmpty ? Colors.white38 : Colors.red)),
+              child: Text(AppLocalizations.t('delete'), style: TextStyle(color: reasonController.text.trim().isEmpty ? Colors.white38 : Colors.red)),
             ),
           ],
         ),
@@ -593,12 +594,12 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.purpleCard,
-        title: const Text('Sort By', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('sort_by'), style: const TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _sortOpt('Date (Newest)', 'date_desc'), _sortOpt('Date (Oldest)', 'date_asc'),
-            _sortOpt('Name A→Z', 'name_asc'), _sortOpt('Name Z→A', 'name_desc'),
+            _sortOpt(AppLocalizations.t('date_newest'), 'date_desc'), _sortOpt(AppLocalizations.t('date_oldest'), 'date_asc'),
+            _sortOpt(AppLocalizations.t('name_az'), 'name_asc'), _sortOpt(AppLocalizations.t('name_za'), 'name_desc'),
             _sortOpt('Amount High→Low', 'amount_desc'), _sortOpt('Amount Low→High', 'amount_asc'),
           ],
         ),
@@ -671,7 +672,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
       );
       widget.onExpenseAdded();
       if (mounted) Navigator.pop(context);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense added'), backgroundColor: Colors.green));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('expense_added')), backgroundColor: Colors.green));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent));
     } finally { setState(() => _isLoading = false); }
@@ -688,7 +689,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Add Expense', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+              Text(AppLocalizations.t('add_expense'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
                 value: _selectedCategoryId,
@@ -704,13 +705,13 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                 validator: (v) => v == null ? 'Select category' : null,
               ),
               const SizedBox(height: 12),
-              _buildField(_itemController, 'Item Name *', Icons.inventory),
+              _buildField(_itemController, AppLocalizations.t('item_name'), Icons.inventory),
               const SizedBox(height: 12),
-              _buildField(_amountController, 'Amount (₹) *', Icons.attach_money, TextInputType.number),
+              _buildField(_amountController, AppLocalizations.t('amount_rs'), Icons.attach_money, TextInputType.number),
               const SizedBox(height: 12),
-              _buildField(_paidToController, 'Paid To (Vendor/Person) *', Icons.store),
+              _buildField(_paidToController, AppLocalizations.t('paid_to'), Icons.store),
               const SizedBox(height: 12),
-              _buildField(_notesController, 'Notes (optional)', Icons.notes),
+              _buildField(_notesController, AppLocalizations.t('notes_optional'), Icons.notes),
               const SizedBox(height: 12),
               ListTile(
                 title: const Text('Expense Date', style: TextStyle(color: Colors.white, fontSize: 13)),
@@ -737,7 +738,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: _paidBy == 'organizer' ? AppTheme.goldPrimary : Colors.white24),
                       ),
-                      child: Text('Organizer', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _paidBy == 'organizer' ? AppTheme.purpleDark : Colors.white54)),
+                      child: Text(AppLocalizations.t('organizer_label'), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _paidBy == 'organizer' ? AppTheme.purpleDark : Colors.white54)),
                     ),
                   )),
                   const SizedBox(width: 10),
@@ -750,7 +751,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: _paidBy == 'sponsor' ? Colors.purple : Colors.white24),
                       ),
-                      child: Text('Sponsor', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _paidBy == 'sponsor' ? Colors.white : Colors.white54)),
+                      child: Text(AppLocalizations.t('sponsor_label'), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _paidBy == 'sponsor' ? Colors.white : Colors.white54)),
                     ),
                   )),
                 ],
@@ -759,7 +760,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitExpense,
                 style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                child: _isLoading ? const CircularProgressIndicator(color: AppTheme.purpleDark) : const Text('ADD EXPENSE', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: _isLoading ? const CircularProgressIndicator(color: AppTheme.purpleDark) : Text(AppLocalizations.t('add_expense_btn'), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
             ],
@@ -779,7 +780,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
       ),
-      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+      validator: (v) => v == null || v.isEmpty ? AppLocalizations.t('required') : null,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserAartiScreen extends StatefulWidget {
   const UserAartiScreen({super.key});
@@ -35,7 +36,7 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(title: const Text('Book Aarti Slot'), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary),
+      appBar: AppBar(title: Text(AppLocalizations.t('book_aarti_slot')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary),
       body: Column(
         children: [
           _buildDaySelector(),
@@ -48,14 +49,14 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (_myBookings.isNotEmpty) ...[
-                          const Text('My Bookings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                          Text(AppLocalizations.t('my_bookings'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
                           const SizedBox(height: 8),
                           ..._myBookings.map((b) => _buildMyBookingCard(b)),
                           const SizedBox(height: 16),
                         ],
-                        const Text('Available Slots', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                        Text(AppLocalizations.t('available_slots'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
                         const SizedBox(height: 8),
-                        if (_slots.isEmpty) const Center(child: Text('No slots available', style: TextStyle(color: AppTheme.textMuted))),
+                        if (_slots.isEmpty) Center(child: Text(AppLocalizations.t('no_slots_available'), style: const TextStyle(color: AppTheme.textMuted))),
                         ..._slots.map((s) => _buildSlotCard(s)),
                       ],
                     ),
@@ -121,18 +122,18 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     backgroundColor: AppTheme.cardBg,
-                    title: const Text('Cancel Booking?', style: TextStyle(color: Colors.white)),
-                    content: const Text('Are you sure you want to cancel this aarti booking?', style: TextStyle(color: Colors.white70)),
+                    title: Text(AppLocalizations.t('cancel_booking_title'), style: const TextStyle(color: Colors.white)),
+                    content: Text(AppLocalizations.t('cancel_booking_content'), style: const TextStyle(color: Colors.white70)),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
-                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('no'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('yes_cancel'), style: const TextStyle(color: Colors.red))),
                     ],
                   ),
                 );
                 if (confirm == true) {
                   await DatabaseHelper.cancelAartiBooking(booking['id']);
                   _loadData();
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange));
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('booking_cancelled')), backgroundColor: Colors.orange));
                 }
               },
             ),
@@ -176,7 +177,7 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
               children: [
                 Text(slot['slot_label'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
                 const SizedBox(height: 4),
-                Text(isFull ? 'FULL' : '${maxP - currentP} spots left', style: TextStyle(fontSize: 12, color: isFull ? AppTheme.redAccent : AppTheme.cyanAccent)),
+                Text(isFull ? AppLocalizations.t('full') : '${maxP - currentP} spots left', style: TextStyle(fontSize: 12, color: isFull ? AppTheme.redAccent : AppTheme.cyanAccent)),
               ],
             ),
           ),
@@ -191,18 +192,18 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                   slotId: slot['id'],
                 );
                 _loadData();
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking request sent!'), backgroundColor: Colors.green));
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('booking_request_sent')), backgroundColor: Colors.green));
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
-                child: const Text('BOOK', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+                child: Text(AppLocalizations.t('book'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
               ),
             )
           else if (isBooked)
             const Icon(Icons.check_circle, color: Colors.green, size: 28)
           else
-            const Text('FULL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.redAccent)),
+            Text(AppLocalizations.t('full'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.redAccent)),
         ],
       ),
     );

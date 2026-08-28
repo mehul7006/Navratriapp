@@ -6,6 +6,7 @@ import 'package:confetti/confetti.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class LuckyDrawScreen extends StatefulWidget {
   const LuckyDrawScreen({super.key});
@@ -186,7 +187,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
 
   void _showAllPrizeWinnersDialog() {
     _confettiController.play();
-    final prizeNames = {3: '3rd Prize (Bronze)', 2: '2nd Prize (Silver)', 1: '1st Prize (Gold)'};
+    final prizeNames = {3: AppLocalizations.t('prize_3rd_bronze'), 2: AppLocalizations.t('prize_2nd_silver'), 1: AppLocalizations.t('prize_1st_gold')};
     final prizeColors = {3: Colors.orange, 2: Colors.grey.shade300, 1: AppTheme.goldPrimary};
     final prizeIcons = {3: '🥉', 2: '🥈', 1: '🥇'};
 
@@ -206,9 +207,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                 children: [
                   const Text('🎉', style: TextStyle(fontSize: 48)),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Prize Draw Results',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  Text(
+                    AppLocalizations.t('prize_draw_results'),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   const SizedBox(height: 16),
                   ..._prizeWinners.map((winner) {
@@ -252,7 +253,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('CLOSE', style: TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.t('close'), style: const TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -285,7 +286,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Lucky Draw', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('lucky_draw'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -573,7 +574,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       ),
       child: Column(
         children: [
-          const Text('Last Winner', style: TextStyle(fontSize: 14, color: Colors.green)),
+          Text(AppLocalizations.t('last_winner'), style: const TextStyle(fontSize: 14, color: Colors.green)),
           const SizedBox(height: 8),
           Text(
             _lastResult!['ticket_code'] ?? '',
@@ -602,13 +603,13 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Draw History',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary),
+        Text(
+          AppLocalizations.t('draw_history'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary),
         ),
         const SizedBox(height: 8),
         if (_drawHistory.isEmpty)
-          const Center(child: Text('No draws yet today', style: TextStyle(color: AppTheme.textMuted)))
+          Center(child: Text(AppLocalizations.t('no_draws_today'), style: const TextStyle(color: AppTheme.textMuted)))
         else
           ..._drawHistory.map(
             (draw) => Container(

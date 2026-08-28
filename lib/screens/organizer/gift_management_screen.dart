@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class GiftManagementScreen extends StatefulWidget {
   const GiftManagementScreen({super.key});
@@ -120,7 +121,7 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
   }
 
   Widget _buildGiftsList() {
-    if (_gifts.isEmpty) return const Center(child: Text('No gifts for this day', style: TextStyle(color: AppTheme.textMuted)));
+    if (_gifts.isEmpty) return Center(child: Text(AppLocalizations.t('no_gifts_day'), style: TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _gifts.length,
@@ -180,7 +181,7 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
   }
 
   Widget _buildAssignmentsList() {
-    if (_assignments.isEmpty) return const Center(child: Text('No gifts assigned yet', style: TextStyle(color: AppTheme.textMuted)));
+    if (_assignments.isEmpty) return Center(child: Text(AppLocalizations.t('no_gifts_assigned'), style: TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _assignments.length,
@@ -259,7 +260,7 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                         style: const TextStyle(color: Colors.white),
                         onChanged: (v) => setModalState(() => searchQuery = v),
                         decoration: InputDecoration(
-                          hintText: 'Search member...', prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary),
+                          hintText: AppLocalizations.t('search_member'), prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary),
                           filled: true, fillColor: AppTheme.purpleDark.withOpacity(0.5),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
                         ),
@@ -321,19 +322,19 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Add Gift', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+              Text(AppLocalizations.t('add_gift'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
               const SizedBox(height: 16),
-              _buildField(controller: nameController, label: 'Gift Name', icon: Icons.card_giftcard),
+              _buildField(controller: nameController, label: AppLocalizations.t('gift_name'), icon: Icons.card_giftcard),
               const SizedBox(height: 12),
-              _buildField(controller: descController, label: 'Description', icon: Icons.description),
+              _buildField(controller: descController, label: AppLocalizations.t('description'), icon: Icons.description),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: RadioListTile<String>(title: const Text('Daily', style: TextStyle(color: Colors.white, fontSize: 12)), value: 'daily', groupValue: giftType, onChanged: (v) => setModalState(() => giftType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
+                  Expanded(child: RadioListTile<String>(title: Text(AppLocalizations.t('daily'), style: TextStyle(color: Colors.white, fontSize: 12)), value: 'daily', groupValue: giftType, onChanged: (v) => setModalState(() => giftType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
                   Expanded(child: RadioListTile<String>(title: const Text('Sponsor', style: TextStyle(color: Colors.white, fontSize: 12)), value: 'sponsor', groupValue: giftType, onChanged: (v) => setModalState(() => giftType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
                 ],
               ),
-              _buildField(controller: qtyController, label: 'Quantity', icon: Icons.inventory, keyboardType: TextInputType.number),
+              _buildField(controller: qtyController, label: AppLocalizations.t('quantity'), icon: Icons.inventory, keyboardType: TextInputType.number),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
@@ -348,7 +349,7 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                   _loadData();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('ADD GIFT', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.t('add_gift_btn'), style: TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
             ],

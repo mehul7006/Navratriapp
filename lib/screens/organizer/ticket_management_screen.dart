@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class TicketManagementScreen extends StatefulWidget {
   const TicketManagementScreen({super.key});
@@ -89,7 +90,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'), style: TextStyle(color: Colors.white70))),
             TextButton(
               onPressed: reasonController.text.trim().isEmpty
                   ? null
@@ -100,7 +101,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                       _loadData();
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Tickets deleted'), backgroundColor: Colors.red),
+                          SnackBar(content: Text(AppLocalizations.t('tickets_deleted')), backgroundColor: Colors.red),
                         );
                       }
                     },
@@ -134,7 +135,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: Text(_isMultiSelectMode ? '${_selectedTicketIds.length} Selected' : 'Draw Tickets', style: const TextStyle(color: Colors.white)),
+        title: Text(_isMultiSelectMode ? '${_selectedTicketIds.length} Selected' : AppLocalizations.t('draw_tickets'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -142,7 +143,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             IconButton(
               icon: Icon(_selectedTicketIds.isEmpty ? Icons.select_all : Icons.deselect, color: Colors.white),
               onPressed: _selectAll,
-              tooltip: _selectedTicketIds.isEmpty ? 'Select All' : 'Deselect All',
+              tooltip: _selectedTicketIds.isEmpty ? AppLocalizations.t('select_all') : AppLocalizations.t('deselect_all'),
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -156,7 +157,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             IconButton(
               icon: const Icon(Icons.checklist, color: Colors.white),
               onPressed: _toggleMultiSelect,
-              tooltip: 'Multi-Select',
+              tooltip: AppLocalizations.t('multi_select'),
             ),
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
@@ -187,7 +188,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             backgroundColor: AppTheme.goldPrimary,
             onPressed: _showGenerateDialog,
             icon: const Icon(Icons.add, color: Colors.black),
-            label: const Text('Generate', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            label: Text(AppLocalizations.t('generate'), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           FloatingActionButton.extended(
@@ -195,7 +196,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             backgroundColor: Colors.blue,
             onPressed: _showAssignDialog,
             icon: const Icon(Icons.person_add, color: Colors.white),
-            label: const Text('Assign', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            label: Text(AppLocalizations.t('assign_ticket'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -213,7 +214,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FilterChip(
-              label: const Text('All'),
+              label: Text(AppLocalizations.t('all')),
               selected: _selectedDay == 0,
               selectedColor: AppTheme.goldPrimary,
               onSelected: (s) { setState(() => _selectedDay = 0); _loadData(); },
@@ -245,13 +246,13 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          _chip('All', 'all'),
+          _chip(AppLocalizations.t('all'), 'all'),
           const SizedBox(width: 8),
-          _chip('Assigned', 'assigned'),
+          _chip(AppLocalizations.t('assigned'), 'assigned'),
           const SizedBox(width: 8),
-          _chip('Unassigned', 'unassigned'),
+          _chip(AppLocalizations.t('unassigned'), 'unassigned'),
           const SizedBox(width: 8),
-          _chip('Winners', 'winners'),
+          _chip(AppLocalizations.t('winner'), 'winners'),
         ],
       ),
     );
@@ -284,10 +285,10 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem('Total', '$total', Colors.blue),
-          _statItem('Assigned', '$assigned', Colors.green),
-          _statItem('Winners', '$winners', Colors.amber),
-          _statItem('Unassigned', '${total - assigned}', Colors.grey),
+          _statItem(AppLocalizations.t('total'), '$total', Colors.blue),
+          _statItem(AppLocalizations.t('assigned'), '$assigned', Colors.green),
+          _statItem(AppLocalizations.t('winner'), '$winners', Colors.amber),
+          _statItem(AppLocalizations.t('unassigned'), '${total - assigned}', Colors.grey),
         ],
       ),
     );
@@ -303,15 +304,15 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.confirmation_number, size: 64, color: Colors.white24),
           SizedBox(height: 16),
-          Text('No tickets found', style: TextStyle(color: Colors.white54, fontSize: 16)),
+          Text(AppLocalizations.t('no_tickets_found'), style: TextStyle(color: Colors.white54, fontSize: 16)),
           SizedBox(height: 8),
-          Text('Generate tickets for a day or assign to members', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          Text(AppLocalizations.t('generate_tickets'), style: TextStyle(color: Colors.white38, fontSize: 12)),
         ],
       ),
     );
@@ -378,8 +379,8 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                 onSelected: (value) => _handleTicketAction(value, ticket),
                 itemBuilder: (context) => [
                   if (!isWinner)
-                    const PopupMenuItem(value: 'winner', child: Text('Mark as Winner')),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                    PopupMenuItem(value: 'winner', child: Text(AppLocalizations.t('mark_winner'))),
+                  PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('delete'), style: TextStyle(color: Colors.red))),
                 ],
               ),
       ),
@@ -391,10 +392,10 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Mark as Winner?'),
+          title: Text(AppLocalizations.t('mark_winner_title')),
           content: Text('Mark ticket ${ticket['ticket_code']} as winner?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
             TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm', style: TextStyle(color: Colors.green))),
           ],
         ),
@@ -407,11 +408,11 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Delete Ticket?'),
+          title: Text(AppLocalizations.t('delete_ticket')),
           content: const Text('This cannot be undone.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('delete'), style: TextStyle(color: Colors.red))),
           ],
         ),
       );
@@ -430,7 +431,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.cardBg,
-          title: const Text('Generate Tickets', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('generate_tickets'), style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -453,14 +454,14 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: () async {
                 await DatabaseHelper.generateTickets(dayNumber: selectedDay, count: count);
                 Navigator.pop(ctx);
                 _loadData();
               },
-              child: const Text('Generate', style: TextStyle(color: AppTheme.goldPrimary)),
+              child: Text(AppLocalizations.t('generate'), style: TextStyle(color: AppTheme.goldPrimary)),
             ),
           ],
         ),
@@ -489,7 +490,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.cardBg,
-          title: const Text('Assign Ticket', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('assign_ticket_title'), style: const TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -499,9 +500,9 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                   controller: ticketController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: 'Ticket Code',
+                    labelText: AppLocalizations.t('ticket_code'),
                     labelStyle: const TextStyle(color: Colors.white70),
-                    hintText: 'Type ticket number to search...',
+                    hintText: AppLocalizations.t('type_ticket_search'),
                     suffixIcon: isSearchingTickets
                         ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary)))
                         : (ticketCode.isNotEmpty ? Icon(Icons.check, color: Colors.green, size: 18) : const Icon(Icons.search, color: Colors.white38, size: 18)),
@@ -568,7 +569,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                   decoration: InputDecoration(
                     labelText: 'House Number',
                     labelStyle: const TextStyle(color: Colors.white70),
-                    hintText: 'Type house number...',
+                    hintText: AppLocalizations.t('type_house_search'),
                     suffixIcon: isSearching
                         ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary)))
                         : (showMembers && members.isNotEmpty)
@@ -654,12 +655,12 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.person_add, color: AppTheme.goldPrimary, size: 16),
                             SizedBox(width: 6),
-                            Text('Add New Member to this House', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Text(AppLocalizations.t('add_new_member'), style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -695,7 +696,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                             textCapitalization: TextCapitalization.words,
                             decoration: InputDecoration(
-                              hintText: 'Member name *',
+                              hintText: AppLocalizations.t('member_name_hint'),
                               hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -709,7 +710,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                             keyboardType: TextInputType.phone,
                             decoration: InputDecoration(
-                              hintText: 'Mobile number (optional)',
+                              hintText: AppLocalizations.t('mobile_optional'),
                               hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -723,7 +724,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(vertical: 8)),
                               icon: const Icon(Icons.person_add, size: 14, color: Colors.white),
-                              label: const Text('Add & Select for Ticket', style: TextStyle(color: Colors.white, fontSize: 12)),
+                              label: Text(AppLocalizations.t('add_select_ticket'), style: TextStyle(color: Colors.white, fontSize: 12)),
                               onPressed: () async {
                                 if (nameController.text.trim().isNotEmpty) {
                                   try {
@@ -767,7 +768,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: (selectedUserId != null && ticketCode.isNotEmpty)
                   ? () async {
@@ -780,7 +781,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                       _loadData();
                     }
                   : null,
-              child: Text('Assign', style: TextStyle(color: selectedUserId != null ? AppTheme.goldPrimary : Colors.white38)),
+              child: Text(AppLocalizations.t('assign_ticket'), style: TextStyle(color: selectedUserId != null ? AppTheme.goldPrimary : Colors.white38)),
             ),
           ],
         ),

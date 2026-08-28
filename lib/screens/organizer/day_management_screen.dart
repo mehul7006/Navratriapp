@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class DayManagementScreen extends StatefulWidget {
   const DayManagementScreen({super.key});
@@ -46,7 +47,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Day & Schedule', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('day_schedule'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -73,7 +74,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                             TextButton.icon(
                               onPressed: _showAddEventDialog,
                               icon: const Icon(Icons.add, color: AppTheme.goldPrimary),
-                              label: const Text('Add Event', style: TextStyle(color: AppTheme.goldPrimary)),
+                              label: Text(AppLocalizations.t('add_event'), style: const TextStyle(color: AppTheme.goldPrimary)),
                             ),
                           ],
                         ),
@@ -151,17 +152,17 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                 Text('Day $_selectedDay', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
                 Row(
                   children: [
-                    _statusBadge(isActive ? 'Active' : 'Inactive', isActive ? Colors.green : Colors.grey),
+                    _statusBadge(isActive ? AppLocalizations.t('status_active') : AppLocalizations.t('status_inactive'), isActive ? Colors.green : Colors.grey),
                     const SizedBox(width: 8),
-                    _statusBadge(isCompleted ? 'Completed' : 'Pending', isCompleted ? Colors.blue : Colors.orange),
+                    _statusBadge(isCompleted ? AppLocalizations.t('status_completed') : 'Pending', isCompleted ? Colors.blue : Colors.orange),
                   ],
                 ),
               ],
             ),
             const Divider(color: Colors.white24),
-            _infoRow(Icons.temple_hindu, 'Goddess', dayData['goddess_name'] ?? 'Not set'),
-            _infoRow(Icons.checkroom, 'Dress Code', dayData['dress_code'] ?? 'Not set'),
-            _infoRow(Icons.calendar_today, 'Date', dayData['date'] ?? 'Not set'),
+            _infoRow(Icons.temple_hindu, AppLocalizations.t('goddess'), dayData['goddess_name'] ?? AppLocalizations.t('not_set')),
+            _infoRow(Icons.checkroom, AppLocalizations.t('dress_code'), dayData['dress_code'] ?? AppLocalizations.t('not_set')),
+            _infoRow(Icons.calendar_today, AppLocalizations.t('date'), dayData['date'] ?? AppLocalizations.t('not_set')),
             const SizedBox(height: 12),
             
             // Start/End Day buttons
@@ -179,8 +180,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                             content: Text('This will activate Day $_selectedDay and deactivate all other days.',
                             style: const TextStyle(color: Colors.white70)),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
-                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Start', style: TextStyle(color: Colors.green))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('start_day'), style: const TextStyle(color: Colors.green))),
                             ],
                           ),
                         );
@@ -191,7 +192,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         }
                       },
                       icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text('Start Day'),
+                      label: Text(AppLocalizations.t('start_day')),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
@@ -207,8 +208,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                             content: Text('This will complete Day $_selectedDay and auto-start the next day.',
                             style: const TextStyle(color: Colors.white70)),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
-                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('End Day', style: TextStyle(color: Colors.red))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('end_day'), style: const TextStyle(color: Colors.red))),
                             ],
                           ),
                         );
@@ -225,7 +226,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         }
                       },
                       icon: const Icon(Icons.stop, size: 18),
-                      label: const Text('End Day'),
+                      label: Text(AppLocalizations.t('end_day')),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
@@ -242,8 +243,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                             content: Text('This will reopen Day $_selectedDay and mark it as active again.',
                             style: const TextStyle(color: Colors.white70)),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
-                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reopen', style: TextStyle(color: Colors.orange))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('reopen_day'), style: const TextStyle(color: Colors.orange))),
                             ],
                           ),
                         );
@@ -254,7 +255,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         }
                       },
                       icon: const Icon(Icons.undo, size: 18),
-                      label: const Text('Reopen Day'),
+                      label: Text(AppLocalizations.t('reopen_day')),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
@@ -277,8 +278,8 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         content: Text('This will end Day $_selectedDay and reactivate Day $prevDay.',
                         style: const TextStyle(color: Colors.white70)),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppTheme.goldPrimary))),
-                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Go Back', style: TextStyle(color: Colors.orange))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('go_back_day'), style: const TextStyle(color: Colors.orange))),
                         ],
                       ),
                     );
@@ -292,7 +293,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                     }
                   },
                   icon: const Icon(Icons.arrow_back, size: 16),
-                  label: Text('Go Back to Day ${_selectedDay - 1}'),
+                  label: Text(AppLocalizations.t('go_back_day')),
                   style: OutlinedButton.styleFrom(foregroundColor: Colors.orange, side: const BorderSide(color: Colors.orange)),
                 ),
               ),
@@ -306,7 +307,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                     child: OutlinedButton.icon(
                       onPressed: () => _showEditDayDialog(dayData),
                       icon: const Icon(Icons.edit, size: 16),
-                      label: const Text('Edit Details'),
+                      label: Text(AppLocalizations.t('edit_day')),
                       style: OutlinedButton.styleFrom(foregroundColor: AppTheme.goldPrimary, side: const BorderSide(color: AppTheme.goldPrimary)),
                     ),
                   ),
@@ -349,7 +350,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
           children: [
             Icon(Icons.event, size: 48, color: Colors.white24),
             const SizedBox(height: 12),
-            const Text('No events scheduled', style: TextStyle(color: Colors.white54)),
+            Text(AppLocalizations.t('no_events_scheduled'), style: const TextStyle(color: Colors.white54)),
             const SizedBox(height: 8),
             const Text('Tap "Add Event" to create one', style: TextStyle(color: Colors.white38, fontSize: 12)),
           ],
@@ -390,10 +391,10 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Delete Event?'),
+                    title: Text(AppLocalizations.t('delete_event')),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red))),
                     ],
                   ),
                 );
@@ -421,21 +422,21 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(controller: goddessController, style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Goddess Name', labelStyle: TextStyle(color: Colors.white70))),
+                decoration: InputDecoration(labelText: AppLocalizations.t('goddess_name'), labelStyle: const TextStyle(color: Colors.white70))),
             const SizedBox(height: 12),
             TextField(controller: dressController, style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Dress Code', labelStyle: TextStyle(color: Colors.white70))),
+                decoration: InputDecoration(labelText: AppLocalizations.t('dress_code'), labelStyle: const TextStyle(color: Colors.white70))),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
           TextButton(
             onPressed: () async {
               await DatabaseHelper.updateNavratriDay(_selectedDay, goddessName: goddessController.text, dressCode: dressController.text);
               Navigator.pop(ctx);
               _loadData();
             },
-            child: const Text('Save', style: TextStyle(color: AppTheme.goldPrimary)),
+            child: Text(AppLocalizations.t('save'), style: const TextStyle(color: AppTheme.goldPrimary)),
           ),
         ],
       ),
@@ -451,7 +452,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.cardBg,
-        title: const Text('Add Event', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('add_event'), style: const TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -460,18 +461,18 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                   decoration: const InputDecoration(labelText: 'Time (HH:MM)', labelStyle: TextStyle(color: Colors.white70), hintText: '19:00')),
               const SizedBox(height: 12),
               TextField(controller: nameController, style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Event Name *', labelStyle: TextStyle(color: Colors.white70))),
+                  decoration: InputDecoration(labelText: AppLocalizations.t('event_name'), labelStyle: const TextStyle(color: Colors.white70))),
               const SizedBox(height: 12),
               TextField(controller: descController, style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: Colors.white70))),
+                  decoration: InputDecoration(labelText: AppLocalizations.t('description'), labelStyle: const TextStyle(color: Colors.white70))),
               const SizedBox(height: 12),
               TextField(controller: locationController, style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Location', labelStyle: TextStyle(color: Colors.white70))),
+                  decoration: InputDecoration(labelText: AppLocalizations.t('location'), labelStyle: const TextStyle(color: Colors.white70))),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
           TextButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty && timeController.text.isNotEmpty) {
@@ -483,7 +484,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                 _loadData();
               }
             },
-            child: const Text('Add', style: TextStyle(color: AppTheme.goldPrimary)),
+            child: Text(AppLocalizations.t('add'), style: const TextStyle(color: AppTheme.goldPrimary)),
           ),
         ],
       ),

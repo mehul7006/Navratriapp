@@ -154,7 +154,7 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Dashboard Overview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+            Text(AppLocalizations.t('dashboard_overview'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
             const SizedBox(height: 16),
             GridView.count(
               crossAxisCount: 4,
@@ -164,10 +164,10 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
               crossAxisSpacing: 8,
               childAspectRatio: 1.6,
               children: [
-                _buildStatCard('Members', '${_stats['totalUsers']}', Icons.people, Colors.blue),
-                _buildStatCard('Income', '₹${income.toStringAsFixed(0)}', Icons.attach_money, Colors.green),
-                _buildStatCard('Expenses', '₹${expenses.toStringAsFixed(0)}', Icons.receipt, Colors.red),
-                _buildStatCard('Aarti Pending', '${_stats['pendingBookings']}', Icons.pending_actions, Colors.orange),
+                _buildStatCard(AppLocalizations.t('members'), '${_stats['totalUsers']}', Icons.people, Colors.blue),
+                _buildStatCard(AppLocalizations.t('income'), '₹${income.toStringAsFixed(0)}', Icons.attach_money, Colors.green),
+                _buildStatCard(AppLocalizations.t('expenses'), '₹${expenses.toStringAsFixed(0)}', Icons.receipt, Colors.red),
+                _buildStatCard(AppLocalizations.t('aarti_pending'), '${_stats['pendingBookings']}', Icons.pending_actions, Colors.orange),
               ],
             ),
             const SizedBox(height: 12),
@@ -181,63 +181,63 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _miniStat('Net Balance', '₹${net.toStringAsFixed(0)}', net >= 0 ? Colors.green : Colors.red),
+                  _miniStat(AppLocalizations.t('net_balance'), '₹${net.toStringAsFixed(0)}', net >= 0 ? Colors.green : Colors.red),
                   Container(width: 1, height: 30, color: Colors.white24),
-                  _miniStat('Paid', '${_stats['totalPaid']}', Colors.green),
+                  _miniStat(AppLocalizations.t('paid'), '${_stats['totalPaid']}', Colors.green),
                   Container(width: 1, height: 30, color: Colors.white24),
-                  _miniStat('Pending', '${_stats['totalPending']}', Colors.orange),
+                  _miniStat(AppLocalizations.t('pending'), '${_stats['totalPending']}', Colors.orange),
                   Container(width: 1, height: 30, color: Colors.white24),
-                  _miniStat('Denied', '${_stats['totalDenied']}', Colors.red),
+                  _miniStat(AppLocalizations.t('denied'), '${_stats['totalDenied']}', Colors.red),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Management', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(AppLocalizations.t('management'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 12),
-            _buildQuickAction('Manage Members', Icons.people, () => setState(() => _selectedIndex = 1)),
-            _buildQuickAction('Aarti Bookings', Icons.self_improvement, () => setState(() => _selectedIndex = 2)),
-            _buildQuickAction('Snack Orders', Icons.restaurant, () => setState(() => _selectedIndex = 3)),
-            _buildQuickAction('Gifts & Prizes', Icons.card_giftcard, () => setState(() => _selectedIndex = 4)),
+            _buildQuickAction(AppLocalizations.t('manage_members'), Icons.people, () => setState(() => _selectedIndex = 1)),
+            _buildQuickAction(AppLocalizations.t('aarti_bookings'), Icons.self_improvement, () => setState(() => _selectedIndex = 2)),
+            _buildQuickAction(AppLocalizations.t('snack_orders'), Icons.restaurant, () => setState(() => _selectedIndex = 3)),
+            _buildQuickAction(AppLocalizations.t('gifts_prizes'), Icons.card_giftcard, () => setState(() => _selectedIndex = 4)),
             const SizedBox(height: 16),
-            const Text('Finance & Events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(AppLocalizations.t('finance_events'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 12),
-            _buildQuickAction('Collect Payment', Icons.payment, () async {
+            _buildQuickAction(AppLocalizations.t('collect_payment'), Icons.payment, () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentCollectionScreen()));
               _loadStats();
             }),
-            _buildQuickAction('Manage Expenses', Icons.receipt_long, () async {
+            _buildQuickAction(AppLocalizations.t('manage_expenses'), Icons.receipt_long, () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()));
               _loadStats();
             }),
-            _buildQuickAction('Announcements', Icons.announcement, () {
+            _buildQuickAction(AppLocalizations.t('announcements'), Icons.announcement, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementManagementScreen()));
             }),
             const SizedBox(height: 16),
-            const Text('Draw & Sponsors', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(AppLocalizations.t('draw_sponsors'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 12),
-            _buildQuickAction('Draw Tickets', Icons.confirmation_number, () async {
+            _buildQuickAction(AppLocalizations.t('draw_tickets'), Icons.confirmation_number, () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const TicketManagementScreen()));
               _loadStats();
             }),
-            _buildQuickAction('Day & Schedule', Icons.calendar_today, () {
+            _buildQuickAction(AppLocalizations.t('day_schedule'), Icons.calendar_today, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DayManagementScreen()));
             }),
-            _buildQuickAction('Sponsors', Icons.business, () {
+            _buildQuickAction(AppLocalizations.t('sponsors'), Icons.business, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SponsorManagementScreen()));
             }),
-            _buildQuickAction('Reports & Analytics', Icons.analytics, () {
+            _buildQuickAction(AppLocalizations.t('reports_analytics'), Icons.analytics, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
             }),
-            _buildQuickAction('Draw History', Icons.emoji_events_outlined, () {
+            _buildQuickAction(AppLocalizations.t('draw_history'), Icons.emoji_events_outlined, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DrawHistoryScreen()));
             }),
-            _buildQuickAction('Lucky Draw Spin', Icons.casino, () {
+            _buildQuickAction(AppLocalizations.t('lucky_draw_spin'), Icons.casino, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const LuckyDrawScreen()));
             }),
-            _buildQuickAction('Broadcasts', Icons.campaign, () {
+            _buildQuickAction(AppLocalizations.t('broadcasts'), Icons.campaign, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const BroadcastManagementScreen()));
             }),
-            _buildQuickAction('DJ Console', Icons.headset, () {
+            _buildQuickAction(AppLocalizations.t('dj_console'), Icons.headset, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DjConsoleScreen()));
             }),
           ],
@@ -303,12 +303,12 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
         unselectedItemColor: AppTheme.textMuted,
         selectedFontSize: 10,
         unselectedFontSize: 10,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Members'),
-          BottomNavigationBarItem(icon: Icon(Icons.self_improvement), label: 'Aarti'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: 'Snacks'),
-          BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'Gifts'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home), label: AppLocalizations.t('home')),
+          BottomNavigationBarItem(icon: const Icon(Icons.people), label: AppLocalizations.t('members')),
+          BottomNavigationBarItem(icon: const Icon(Icons.self_improvement), label: AppLocalizations.t('aarti')),
+          BottomNavigationBarItem(icon: const Icon(Icons.restaurant), label: AppLocalizations.t('snacks')),
+          BottomNavigationBarItem(icon: const Icon(Icons.card_giftcard), label: AppLocalizations.t('gifts')),
         ],
       ),
     );

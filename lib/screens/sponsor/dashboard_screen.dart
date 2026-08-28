@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class SponsorDashboardScreen extends StatefulWidget {
   const SponsorDashboardScreen({super.key});
@@ -50,7 +51,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Sponsor Dashboard'),
+        title: Text(AppLocalizations.t('sponsor_dashboard')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         actions: [
@@ -75,27 +76,27 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
                   const SizedBox(height: 16),
                   _buildSponsorInfo(),
                   const SizedBox(height: 16),
-                  const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(AppLocalizations.t('quick_actions'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.upload,
-                    title: 'My Advertisement',
+                    title: AppLocalizations.t('my_advertisement'),
                     subtitle: _sponsorData?['advertisement_image']?.toString().isNotEmpty == true
-                        ? 'Image uploaded - tap to change'
+                        ? AppLocalizations.t('image_uploaded')
                         : (_sponsorData?['advertisement_text']?.toString().isNotEmpty == true
                             ? _sponsorData!['advertisement_text']
-                            : 'No advertisement uploaded'),
+                            : AppLocalizations.t('no_advertisement')),
                     onTap: () => _showAdDialog(),
                   ),
                   _buildActionCard(
                     icon: Icons.card_giftcard,
-                    title: 'My Gift Contributions',
+                    title: AppLocalizations.t('my_gift_contributions'),
                     subtitle: '${_gifts.length} gifts distributed',
                     onTap: () {},
                   ),
                   _buildActionCard(
                     icon: Icons.payment,
-                    title: 'Payment Status',
+                    title: AppLocalizations.t('payment_status'),
                     subtitle: 'Status: ${(_sponsorData?['payment_status'] ?? 'pending').toString().toUpperCase()}',
                     onTap: () {},
                   ),
@@ -127,9 +128,9 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user?['name'] ?? 'Sponsor', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(user?['name'] ?? AppLocalizations.t('sponsor'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 4),
-                Text('House: ${user?['house_number'] ?? 'N/A'}', style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+                Text('House: ${user?['house_number'] ?? AppLocalizations.t('na')}', style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
                 if (_sponsorData?['company_name']?.toString().isNotEmpty == true)
                   Text('Company: ${_sponsorData!['company_name']}', style: const TextStyle(fontSize: 13, color: AppTheme.goldPrimary)),
               ],
@@ -152,11 +153,11 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your Sponsorship', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+          Text(AppLocalizations.t('your_sponsorship'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
           const SizedBox(height: 12),
-          _buildInfoRow('Status', status.toString().toUpperCase(), statusColor),
-          _buildInfoRow('Amount', '₹$amount', AppTheme.goldPrimary),
-          _buildInfoRow('Company', _sponsorData?['company_name'] ?? 'N/A', Colors.white),
+          _buildInfoRow(AppLocalizations.t('status_label'), status.toString().toUpperCase(), statusColor),
+          _buildInfoRow(AppLocalizations.t('amount'), '₹$amount', AppTheme.goldPrimary),
+          _buildInfoRow(AppLocalizations.t('company'), _sponsorData?['company_name'] ?? AppLocalizations.t('na'), Colors.white),
         ],
       ),
     );
@@ -201,7 +202,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.purpleCard,
-        title: const Text('My Advertisement', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('my_advertisement'), style: const TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -214,7 +215,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-              Text(adText.isNotEmpty ? adText : 'No advertisement uploaded yet.', style: const TextStyle(color: Colors.white70)),
+              Text(adText.isNotEmpty ? adText : AppLocalizations.t('no_advertisement'), style: const TextStyle(color: Colors.white70)),
             ],
           ),
         ),
@@ -225,9 +226,9 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
               await _pickAndUploadImage();
             },
             icon: const Icon(Icons.camera_alt, color: AppTheme.goldPrimary, size: 18),
-            label: const Text('Upload Image', style: TextStyle(color: AppTheme.goldPrimary)),
+            label: Text(AppLocalizations.t('upload_image'), style: const TextStyle(color: AppTheme.goldPrimary)),
           ),
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close', style: TextStyle(color: AppTheme.goldPrimary))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('close'), style: const TextStyle(color: AppTheme.goldPrimary))),
         ],
       ),
     );
@@ -244,7 +245,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
     try {
       await DatabaseHelper.updateSponsorImage(userId, base64Image);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image uploaded successfully'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('image_uploaded_success')), backgroundColor: Colors.green));
         _loadData();
       }
     } catch (e) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class SnackManagementScreen extends StatefulWidget {
   const SnackManagementScreen({super.key});
@@ -104,7 +105,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
   }
 
   Widget _buildSnacksList() {
-    if (_snacks.isEmpty) return const Center(child: Text('No snack items', style: TextStyle(color: AppTheme.textMuted)));
+    if (_snacks.isEmpty) return Center(child: Text(AppLocalizations.t('no_snack_items'), style: TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _snacks.length,
@@ -162,7 +163,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'toggle', child: Text(snack['is_active'] == true ? 'Deactivate' : 'Activate', style: const TextStyle(color: Colors.white))),
+              PopupMenuItem(value: 'toggle', child: Text(snack['is_active'] == true ? AppLocalizations.t('deactivate') : AppLocalizations.t('activate'), style: const TextStyle(color: Colors.white))),
             ],
           ),
         ],
@@ -171,7 +172,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
   }
 
   Widget _buildOrdersList() {
-    if (_orders.isEmpty) return const Center(child: Text('No orders yet', style: TextStyle(color: AppTheme.textMuted)));
+    if (_orders.isEmpty) return Center(child: Text(AppLocalizations.t('no_orders_yet'), style: TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _orders.length,
@@ -213,12 +214,12 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
             ),
           ),
           if (status == 'pending') ...[
-            _buildStatusBtn('Preparing', Colors.blue, () async {
+            _buildStatusBtn(AppLocalizations.t('preparing'), Colors.blue, () async {
               await DatabaseHelper.updateSnackOrderStatus(order['id'], 'preparing');
               _loadData();
             }),
             const SizedBox(width: 4),
-            _buildStatusBtn('Ready', Colors.green, () async {
+            _buildStatusBtn(AppLocalizations.t('ready'), Colors.green, () async {
               await DatabaseHelper.updateSnackOrderStatus(order['id'], 'delivered');
               _loadData();
             }),
@@ -262,15 +263,15 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Add Snack Item', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+            Text(AppLocalizations.t('add_snack_item'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
             const SizedBox(height: 16),
-            _buildField(controller: nameController, label: 'Item Name', icon: Icons.restaurant),
+            _buildField(controller: nameController, label: AppLocalizations.t('item_name'), icon: Icons.restaurant),
             const SizedBox(height: 12),
-            _buildField(controller: descController, label: 'Description', icon: Icons.description),
+            _buildField(controller: descController, label: AppLocalizations.t('description'), icon: Icons.description),
             const SizedBox(height: 12),
-            _buildField(controller: priceController, label: 'Price (₹)', icon: Icons.attach_money, keyboardType: TextInputType.number),
+            _buildField(controller: priceController, label: AppLocalizations.t('price_rs'), icon: Icons.attach_money, keyboardType: TextInputType.number),
             const SizedBox(height: 12),
-            _buildField(controller: qtyController, label: 'Quantity Available', icon: Icons.inventory, keyboardType: TextInputType.number),
+            _buildField(controller: qtyController, label: AppLocalizations.t('quantity_available'), icon: Icons.inventory, keyboardType: TextInputType.number),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
@@ -285,7 +286,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                 _loadData();
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: const Text('ADD ITEM', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(AppLocalizations.t('add_item'), style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 20),
           ],

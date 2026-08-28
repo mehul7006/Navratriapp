@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 
@@ -38,7 +39,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      _showError('Failed to load tickets');
+      _showError(AppLocalizations.t('failed_load_tickets'));
     }
   }
 
@@ -53,7 +54,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('My Coupons'),
+        title: Text(AppLocalizations.t('my_coupons')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
       ),
@@ -68,14 +69,14 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                 // Tickets List
                 Expanded(
                   child: _tickets.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.confirmation_number_outlined, size: 60, color: AppTheme.textMuted),
                               SizedBox(height: 16),
                               Text(
-                                'No coupons assigned yet',
+                                AppLocalizations.t('no_coupons_assigned'),
                                 style: TextStyle(color: AppTheme.textMuted, fontSize: 16),
                               ),
                             ],
@@ -179,7 +180,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildDayChip('All Days', 0),
+          _buildDayChip(AppLocalizations.t('all_days'), 0),
           ...List.generate(9, (index) => _buildDayChip('Day ${index + 1}', index + 1)),
         ],
       ),
@@ -317,8 +318,8 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                       color: Colors.green,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      '🏆 WINNER',
+                    child: Text(
+                      AppLocalizations.t('winner_badge'),
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),

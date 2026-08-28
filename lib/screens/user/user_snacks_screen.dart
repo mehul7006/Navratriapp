@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserSnacksScreen extends StatefulWidget {
   const UserSnacksScreen({super.key});
@@ -36,7 +37,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(title: const Text('Snack Counter'), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary),
+      appBar: AppBar(title: Text(AppLocalizations.t('snack_counter')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary),
       body: Column(
         children: [
           _buildDaySelector(),
@@ -120,7 +121,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
   }
 
   Widget _buildSnackMenu() {
-    if (_snacks.isEmpty) return const Center(child: Text('No snacks available', style: TextStyle(color: AppTheme.textMuted)));
+    if (_snacks.isEmpty) return Center(child: Text(AppLocalizations.t('no_snacks_available'), style: const TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _snacks.length,
@@ -191,18 +192,18 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                         quantity: quantity,
                       );
                       _loadData();
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed!'), backgroundColor: Colors.green));
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('order_placed')), backgroundColor: Colors.green));
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('BOOK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+                      child: Text(AppLocalizations.t('book'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
                     ),
                   ),
                 ],
               )
             else
-              const Text('SOLD OUT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.redAccent)),
+              Text(AppLocalizations.t('sold_out'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.redAccent)),
           ],
         ),
       ),
@@ -210,7 +211,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
   }
 
   Widget _buildMyOrders() {
-    if (_myOrders.isEmpty) return const Center(child: Text('No orders yet', style: TextStyle(color: AppTheme.textMuted)));
+    if (_myOrders.isEmpty) return Center(child: Text(AppLocalizations.t('no_orders_yet'), style: const TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _myOrders.length,
@@ -249,18 +250,18 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                       context: context,
                       builder: (ctx) => AlertDialog(
                         backgroundColor: AppTheme.cardBg,
-                        title: const Text('Cancel Order?', style: TextStyle(color: Colors.white)),
-                        content: const Text('Are you sure you want to cancel this snack order?', style: TextStyle(color: Colors.white70)),
+                        title: Text(AppLocalizations.t('cancel_order_title'), style: const TextStyle(color: Colors.white)),
+                        content: Text(AppLocalizations.t('cancel_order_content'), style: const TextStyle(color: Colors.white70)),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
-                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('no'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('yes_cancel'), style: const TextStyle(color: Colors.red))),
                         ],
                       ),
                     );
                     if (confirm == true) {
                       await DatabaseHelper.cancelSnackOrder(order['id']);
                       _loadData();
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cancelled'), backgroundColor: Colors.orange));
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('order_cancelled')), backgroundColor: Colors.orange));
                     }
                   },
                 ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -125,28 +126,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String get _loginHint {
     switch (_selectedUserType) {
-      case 'user': return 'Enter your House Number';
-      case 'organizer': return 'Enter organizer username';
-      case 'sponsor': return 'Enter your House Number';
-      default: return 'Enter User ID';
+      case 'user': return AppLocalizations.t('hint_enter_house_number');
+      case 'organizer': return AppLocalizations.t('hint_enter_organizer_username');
+      case 'sponsor': return AppLocalizations.t('hint_enter_house_number');
+      default: return AppLocalizations.t('hint_enter_house_number');
     }
   }
 
   String get _passwordHint {
     switch (_selectedUserType) {
-      case 'user': return 'Enter your Mobile Number';
-      case 'organizer': return 'Enter password';
-      case 'sponsor': return 'Enter password';
-      default: return 'Enter Password';
+      case 'user': return AppLocalizations.t('hint_enter_mobile');
+      case 'organizer': return AppLocalizations.t('hint_enter_password');
+      case 'sponsor': return AppLocalizations.t('hint_enter_password');
+      default: return AppLocalizations.t('hint_enter_password');
     }
   }
 
   String get _userIdLabel {
     switch (_selectedUserType) {
-      case 'user': return 'House Number (e.g., A-402, B-101)';
-      case 'organizer': return 'Username';
-      case 'sponsor': return 'House Number (e.g., SP-001)';
-      default: return 'User ID';
+      case 'user': return AppLocalizations.t('house_number_user');
+      case 'organizer': return AppLocalizations.t('username');
+      case 'sponsor': return AppLocalizations.t('house_number_sponsor');
+      default: return AppLocalizations.t('username');
     }
   }
 
@@ -184,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
           default: Navigator.pushReplacementNamed(context, '/user/home');
         }
       } else if (mounted) {
-        _showError(authProvider.error ?? 'Invalid credentials. Please try again.');
+        _showError(authProvider.error ?? AppLocalizations.t('invalid_credentials'));
       }
     } catch (e) {
       _showError('Login failed: ${e.toString()}');
@@ -213,9 +214,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   _buildLogo(),
                   const SizedBox(height: 24),
-                  const Text('NAVRATRI 2026', style: TextStyle(fontFamily: 'Cinzel', fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.goldPrimary, letterSpacing: 2)),
+                    Text(AppLocalizations.t('navratri_2026'), style: TextStyle(fontFamily: 'Cinzel', fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.goldPrimary, letterSpacing: 2)),
                   const SizedBox(height: 4),
-                  const Text('NISHITPARK SOCIETY', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.5)),
+                    Text(AppLocalizations.t('nishitpark_society'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.5)),
                   const SizedBox(height: 16),
                   _buildMarquee(),
                   const SizedBox(height: 24),
@@ -276,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
     if (giftAssignments.isEmpty) return const SizedBox.shrink();
 
-    final places = ['🥇 1st Prize', '🥈 2nd Prize', '🥉 3rd Prize'];
+    final places = [AppLocalizations.t('first_prize'), AppLocalizations.t('second_prize'), AppLocalizations.t('third_prize')];
     final winners = <Map<String, dynamic>>[];
     for (int i = 0; i < giftAssignments.length && i < 3; i++) {
       winners.add({
@@ -297,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       child: Column(
         children: [
-          const Text('Today\'s Prize Winners', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
           const SizedBox(height: 8),
           ...winners.map((w) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
@@ -335,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Login as', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+            Text(AppLocalizations.t('login_as'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
             const SizedBox(height: 8),
             _buildUserTypeSelector(),
             const SizedBox(height: 20),
@@ -343,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             _buildTextField(
               controller: _passwordController,
-              label: _selectedUserType == 'user' ? 'Mobile Number' : 'Password',
+              label: _selectedUserType == 'user' ? AppLocalizations.t('mobile_number') : AppLocalizations.t('password'),
               hint: _passwordHint,
               icon: Icons.lock,
               keyboardType: _selectedUserType == 'user' ? TextInputType.phone : TextInputType.visiblePassword,
@@ -358,11 +359,11 @@ class _LoginScreenState extends State<LoginScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: AppTheme.cyanAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.cyanAccent.withOpacity(0.3))),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: AppTheme.cyanAccent, size: 16),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Use your House Number as User ID and Mobile Number as Password', style: TextStyle(fontSize: 11, color: AppTheme.cyanAccent))),
+                    const Icon(Icons.info_outline, color: AppTheme.cyanAccent, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(AppLocalizations.t('use_house_as_id'), style: TextStyle(fontSize: 11, color: AppTheme.cyanAccent))),
                   ],
                 ),
               ),
@@ -372,13 +373,13 @@ class _LoginScreenState extends State<LoginScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
               child: _isLoading
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppTheme.purpleDark)))
-                  : const Text('LOGIN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+                   : Text(AppLocalizations.t('login'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
             ),
             const SizedBox(height: 16),
             if (_selectedUserType == 'user')
               TextButton(
                 onPressed: () => Navigator.pushNamed(context, '/register'),
-                child: const Text('New User? Register Here', style: TextStyle(color: AppTheme.goldPrimary, decoration: TextDecoration.underline)),
+                child: Text(AppLocalizations.t('new_user_register'), style: TextStyle(color: AppTheme.goldPrimary, decoration: TextDecoration.underline)),
               ),
           ],
         ),
@@ -392,11 +393,11 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(color: AppTheme.purpleDark.withOpacity(0.5), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))),
       child: Row(
         children: [
-          _buildUserTypeOption('User', 'user', Icons.person),
+          _buildUserTypeOption(AppLocalizations.t('user'), 'user', Icons.person),
           const SizedBox(width: 4),
-          _buildUserTypeOption('Organizer', 'organizer', Icons.admin_panel_settings),
+          _buildUserTypeOption(AppLocalizations.t('organizer'), 'organizer', Icons.admin_panel_settings),
           const SizedBox(width: 4),
-          _buildUserTypeOption('Sponsor', 'sponsor', Icons.business),
+          _buildUserTypeOption(AppLocalizations.t('sponsor'), 'sponsor', Icons.business),
         ],
       ),
     );
@@ -441,7 +442,7 @@ class _LoginScreenState extends State<LoginScreen> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.goldPrimary, width: 2)),
       ),
-      validator: (value) { if (value == null || value.isEmpty) return 'This field is required'; return null; },
+      validator: (value) { if (value == null || value.isEmpty) return AppLocalizations.t('field_required'); return null; },
     );
   }
 }

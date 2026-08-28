@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
@@ -43,7 +44,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('My Profile', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('my_profile'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -52,7 +53,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               onPressed: _isLoading ? null : _saveProfile,
               child: _isLoading
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary))
-                  : const Text('Save', style: TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
+                   : Text(AppLocalizations.t('save'), style: const TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
             )
           else
             IconButton(
@@ -67,11 +68,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             _buildAvatar(user),
             const SizedBox(height: 24),
-            _buildField('House Number', _houseController, Icons.home, enabled: false),
+            _buildField(AppLocalizations.t('house_number'), _houseController, Icons.home, enabled: false),
             const SizedBox(height: 16),
-            _buildField('Full Name', _nameController, Icons.person, enabled: _isEditing),
+            _buildField(AppLocalizations.t('full_name'), _nameController, Icons.person, enabled: _isEditing),
             const SizedBox(height: 16),
-            _buildField('Mobile Number', _mobileController, Icons.phone, enabled: _isEditing, keyboardType: TextInputType.phone),
+            _buildField(AppLocalizations.t('mobile_number'), _mobileController, Icons.phone, enabled: _isEditing, keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
             _buildTypeBadge(user),
             const SizedBox(height: 32),
@@ -83,7 +84,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, padding: const EdgeInsets.symmetric(vertical: 14)),
                   child: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                      : const Text('Save Changes', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                       : Text(AppLocalizations.t('save_changes'), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -98,7 +99,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     });
                   },
                   style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white24), padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                  child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: Colors.white70)),
                 ),
               ),
             ],
@@ -153,7 +154,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_nameController.text.isEmpty || _mobileController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name and mobile are required'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('name_mobile_required')), backgroundColor: Colors.red));
       return;
     }
     setState(() => _isLoading = true);
@@ -169,7 +170,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         authProvider.updateUser(result);
         if (mounted) {
           setState(() => _isEditing = false);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated!'), backgroundColor: Colors.green));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('profile_updated')), backgroundColor: Colors.green));
         }
       }
     } catch (e) {

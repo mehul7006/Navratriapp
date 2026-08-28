@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserShoutoutWallScreen extends StatefulWidget {
   const UserShoutoutWallScreen({super.key});
@@ -88,7 +89,7 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('🎉 Shoutout Wall', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('shoutout_wall'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -103,14 +104,14 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
                 _buildInputSection(),
                 Expanded(
                   child: _shoutouts.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.celebration, size: 48, color: Colors.white24),
-                              SizedBox(height: 12),
-                              Text('No shoutouts yet', style: TextStyle(color: Colors.white38, fontSize: 16)),
-                              Text('Be the first to congratulate!', style: TextStyle(color: Colors.white24, fontSize: 12)),
+                              const Icon(Icons.celebration, size: 48, color: Colors.white24),
+                              const SizedBox(height: 12),
+                              Text(AppLocalizations.t('no_shoutouts'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
+                              Text(AppLocalizations.t('be_first_congratulate'), style: const TextStyle(color: Colors.white24, fontSize: 12)),
                             ],
                           ),
                         )
@@ -168,7 +169,6 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Emoji picker
           SizedBox(
             height: 40,
             child: ListView.builder(
@@ -194,7 +194,6 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // To user dropdown
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
@@ -205,7 +204,7 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
               child: DropdownButton<int>(
                 isExpanded: true,
                 value: _selectedToUser,
-                hint: const Text('Tag someone (optional)', style: TextStyle(color: Colors.white38)),
+                hint: Text(AppLocalizations.t('hint_tag_someone'), style: const TextStyle(color: Colors.white38)),
                 dropdownColor: AppTheme.purpleCard,
                 style: const TextStyle(color: Colors.white),
                 items: _members.map((m) => DropdownMenuItem<int>(
@@ -217,7 +216,6 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // Message input
           Row(
             children: [
               Expanded(
@@ -226,7 +224,7 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
                   style: const TextStyle(color: Colors.white),
                   maxLines: 2,
                   decoration: InputDecoration(
-                    hintText: 'Write a shoutout...',
+                    hintText: AppLocalizations.t('hint_write_shoutout'),
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
                     fillColor: AppTheme.purpleCard,
@@ -304,7 +302,6 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
           const SizedBox(height: 10),
           Text(shoutout['message'] ?? '', style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.4)),
           const SizedBox(height: 10),
-          // Reaction buttons
           Row(
             children: ['❤️', '👏', '🔥', '💪'].map((r) {
               return GestureDetector(

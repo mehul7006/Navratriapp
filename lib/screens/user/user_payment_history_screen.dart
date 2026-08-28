@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
@@ -37,7 +38,7 @@ class _UserPaymentHistoryScreenState extends State<UserPaymentHistoryScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('My Payments', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('my_payments'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -47,7 +48,7 @@ class _UserPaymentHistoryScreenState extends State<UserPaymentHistoryScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : _payments.isEmpty
-              ? const Center(child: Text('No payments found', style: TextStyle(color: AppTheme.textMuted)))
+              ? Center(child: Text(AppLocalizations.t('no_payments_found'), style: const TextStyle(color: AppTheme.textMuted)))
               : RefreshIndicator(
                   onRefresh: _loadPayments,
                   child: ListView.builder(

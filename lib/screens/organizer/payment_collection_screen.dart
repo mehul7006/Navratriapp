@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class PaymentCollectionScreen extends StatefulWidget {
   const PaymentCollectionScreen({super.key});
@@ -129,7 +130,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
                 : filtered.isEmpty
-                    ? Center(child: Text(_selectedFilter == 'deleted' ? 'No deleted payments' : 'No payments found', style: const TextStyle(color: AppTheme.textMuted)))
+                    ? Center(child: Text(_selectedFilter == 'deleted' ? 'No deleted payments' : AppLocalizations.t('no_payments_found'), style: const TextStyle(color: AppTheme.textMuted)))
                     : _buildPaymentsList(filtered),
           ),
         ],
@@ -146,7 +147,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
         style: const TextStyle(color: Colors.white),
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
-          hintText: 'Search by name or house...',
+          hintText: AppLocalizations.t('search_payment'),
           hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5)),
           prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary),
           filled: true,
@@ -164,11 +165,11 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          _chip('All', 'all'), const SizedBox(width: 6),
-          _chip('Paid', 'paid'), const SizedBox(width: 6),
-          _chip('Pending', 'pending'), const SizedBox(width: 6),
-          _chip('Denied', 'denied'), const SizedBox(width: 6),
-          _chip('Deleted', 'deleted'),
+          _chip(AppLocalizations.t('all'), 'all'), const SizedBox(width: 6),
+          _chip(AppLocalizations.t('paid'), 'paid'), const SizedBox(width: 6),
+          _chip(AppLocalizations.t('pending'), 'pending'), const SizedBox(width: 6),
+          _chip(AppLocalizations.t('denied'), 'denied'), const SizedBox(width: 6),
+          _chip(AppLocalizations.t('deleted'), 'deleted'),
         ],
       ),
     );
@@ -204,11 +205,11 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem('Collected', '₹${totalPaid.toStringAsFixed(0)}', Colors.green),
+          _statItem(AppLocalizations.t('collected'), '₹${totalPaid.toStringAsFixed(0)}', Colors.green),
           Container(height: 30, width: 1, color: AppTheme.goldPrimary.withOpacity(0.3)),
-          _statItem('Pending', '₹${totalPending.toStringAsFixed(0)}', Colors.orange),
+          _statItem(AppLocalizations.t('pending'), '₹${totalPending.toStringAsFixed(0)}', Colors.orange),
           Container(height: 30, width: 1, color: AppTheme.goldPrimary.withOpacity(0.3)),
-          _statItem('Total', '$count', AppTheme.cyanAccent),
+          _statItem(AppLocalizations.t('total'), '$count', AppTheme.cyanAccent),
         ],
       ),
     );
@@ -309,14 +310,14 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             Row(
               children: [
                 if (status == 'pending') ...[
-                  _actionBtn('Mark Paid', Colors.green, Icons.check, () => _showMarkPaidDialog(p)),
+                  _actionBtn(AppLocalizations.t('mark_paid'), Colors.green, Icons.check, () => _showMarkPaidDialog(p)),
                   const SizedBox(width: 6),
-                  _actionBtn('Deny', Colors.red, Icons.close, () => _denyPayment(p)),
+                  _actionBtn(AppLocalizations.t('deny'), Colors.red, Icons.close, () => _denyPayment(p)),
                   const SizedBox(width: 6),
                 ],
                 _actionBtn('Edit', AppTheme.goldPrimary, Icons.edit, () => _showEditPaymentDialog(p)),
                 const SizedBox(width: 6),
-                _actionBtn('Delete', Colors.red, Icons.delete_outline, () => _showDeletePaymentDialog(p)),
+                _actionBtn(AppLocalizations.t('delete'), Colors.red, Icons.delete_outline, () => _showDeletePaymentDialog(p)),
               ],
             ),
           ],
@@ -348,19 +349,19 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.purpleCard,
-          title: const Text('Mark as Paid', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('mark_as_paid'), style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('House: ${p['house_number']} • ₹${p['amount']}', style: const TextStyle(color: Colors.white70)),
               const SizedBox(height: 16),
-              const Text('Payment Method', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+              Text(AppLocalizations.t('payment_method'), style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: _methodBtn('Cash', 'cash', method, (v) => setDialogState(() => method = v))),
+                  Expanded(child: _methodBtn(AppLocalizations.t('cash'), 'cash', method, (v) => setDialogState(() => method = v))),
                   const SizedBox(width: 8),
-                  Expanded(child: _methodBtn('UPI', 'online', method, (v) => setDialogState(() => method = v))),
+                  Expanded(child: _methodBtn(AppLocalizations.t('upi'), 'online', method, (v) => setDialogState(() => method = v))),
                 ],
               ),
               const SizedBox(height: 12),
@@ -378,7 +379,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: () async {
                 await DatabaseHelper.updatePaymentStatus(
@@ -416,11 +417,11 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.purpleCard,
-        title: const Text('Deny Payment?', style: TextStyle(color: Colors.white)),
-        content: Text('Deny payment for ${p['house_number']} (₹${p['amount']})?', style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Deny', style: TextStyle(color: Colors.red))),
+          title: Text(AppLocalizations.t('deny_payment'), style: const TextStyle(color: Colors.white)),
+          content: Text('Deny payment for ${p['house_number']} (₹${p['amount']})?', style: const TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('deny'), style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -440,31 +441,31 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.purpleCard,
-          title: const Text('Edit Payment', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('edit_payment'), style: const TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('House: ${p['house_number']}', style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 12),
-                _dialogField(amountCtrl, 'Amount', Icons.attach_money, TextInputType.number),
+                _dialogField(amountCtrl, AppLocalizations.t('amount'), Icons.attach_money, TextInputType.number),
                 const SizedBox(height: 10),
-                _dialogField(nameCtrl, 'Payer Name', Icons.person),
+                _dialogField(nameCtrl, AppLocalizations.t('payer_name'), Icons.person),
                 const SizedBox(height: 10),
-                _dialogField(notesCtrl, 'Notes', Icons.notes),
+                _dialogField(notesCtrl, AppLocalizations.t('notes'), Icons.notes),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(child: RadioListTile<String>(
                       contentPadding: EdgeInsets.zero, dense: true,
-                      title: const Text('Cash', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      title: Text(AppLocalizations.t('cash'), style: const TextStyle(color: Colors.white, fontSize: 12)),
                       value: 'cash', groupValue: method,
                       onChanged: (v) => setDialogState(() => method = v!),
                       activeColor: AppTheme.goldPrimary,
                     )),
                     Expanded(child: RadioListTile<String>(
                       contentPadding: EdgeInsets.zero, dense: true,
-                      title: const Text('UPI', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      title: Text(AppLocalizations.t('upi'), style: const TextStyle(color: Colors.white, fontSize: 12)),
                       value: 'online', groupValue: method,
                       onChanged: (v) => setDialogState(() => method = v!),
                       activeColor: AppTheme.goldPrimary,
@@ -475,7 +476,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: () async {
                 await DatabaseHelper.updatePayment(
@@ -488,7 +489,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                 Navigator.pop(ctx);
                 _loadPayments();
             },
-            child: const Text('Save', style: TextStyle(color: AppTheme.goldPrimary)),
+            child: Text(AppLocalizations.t('save'), style: const TextStyle(color: AppTheme.goldPrimary)),
           ),
         ],
         ),
@@ -531,14 +532,14 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                 style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 12),
-              const Text('Reason (required)', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.t('reason_required'), style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               TextField(
                 controller: reasonController,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
                 maxLines: 2,
                 decoration: InputDecoration(
-                  hintText: 'Enter reason for deletion...',
+                  hintText: AppLocalizations.t('enter_reason_deletion'),
                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
                   filled: true,
                   fillColor: AppTheme.purpleDark,
@@ -550,7 +551,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: Colors.white70))),
             TextButton(
               onPressed: reasonController.text.trim().isEmpty
                   ? null
@@ -560,11 +561,11 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                       _loadPayments();
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Payment deleted'), backgroundColor: Colors.red),
+                          SnackBar(content: Text(AppLocalizations.t('payment_deleted')), backgroundColor: Colors.red),
                         );
                       }
                     },
-              child: Text('Delete', style: TextStyle(color: reasonController.text.trim().isEmpty ? Colors.white38 : Colors.red)),
+              child: Text(AppLocalizations.t('delete'), style: TextStyle(color: reasonController.text.trim().isEmpty ? Colors.white38 : Colors.red)),
             ),
           ],
         ),
@@ -577,12 +578,12 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.purpleCard,
-        title: const Text('Sort By', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('sort_by'), style: const TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _sortOption('Date (Newest)', 'date_desc'), _sortOption('Date (Oldest)', 'date_asc'),
-            _sortOption('Name A→Z', 'name_asc'), _sortOption('Name Z→A', 'name_desc'),
+            _sortOption(AppLocalizations.t('date_newest'), 'date_desc'), _sortOption(AppLocalizations.t('date_oldest'), 'date_asc'),
+            _sortOption(AppLocalizations.t('name_az'), 'name_asc'), _sortOption(AppLocalizations.t('name_za'), 'name_desc'),
             _sortOption('House A→Z', 'house_asc'), _sortOption('House Z→A', 'house_desc'),
           ],
         ),
@@ -676,7 +677,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
       await DatabaseHelper.addPayment(userId: userId, houseNumber: house, amount: double.parse(_amountController.text), paymentMethod: _paymentMethod, paymentStatus: status, payerName: payerName.isNotEmpty ? payerName : null, paidDate: paidDate);
       widget.onPaymentAdded();
       if (mounted) Navigator.pop(context);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'pending' ? 'Payment recorded (Pay Later)' : 'Payment added'), backgroundColor: Colors.green));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'pending' ? 'Payment recorded (Pay Later)' : AppLocalizations.t('payment_added')), backgroundColor: Colors.green));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent));
     } finally { setState(() => _isLoading = false); }
@@ -693,9 +694,9 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Add Payment', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+              Text(AppLocalizations.t('add_payment'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
               const SizedBox(height: 16),
-              _buildField(_houseController, 'House Number', Icons.home, onChanged: _loadHouseMembers, textCapitalization: TextCapitalization.characters),
+              _buildField(_houseController, AppLocalizations.t('house_number'), Icons.home, onChanged: _loadHouseMembers, textCapitalization: TextCapitalization.characters),
               if (_showMembers && _houseMembers.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
@@ -717,15 +718,15 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                 ),
               ],
               const SizedBox(height: 10),
-              _buildField(_nameController, 'Payer Name', Icons.person),
+              _buildField(_nameController, AppLocalizations.t('payer_name'), Icons.person),
               const SizedBox(height: 10),
-              _buildField(_amountController, 'Amount (₹)', Icons.attach_money, keyboardType: TextInputType.number),
+              _buildField(_amountController, AppLocalizations.t('amount_rs'), Icons.attach_money, keyboardType: TextInputType.number),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _methodChip('Cash', 'cash', Icons.money), const SizedBox(width: 6),
-                  _methodChip('UPI', 'online', Icons.qr_code), const SizedBox(width: 6),
-                  _methodChip('Pay Later', 'pay_later', Icons.schedule),
+                  _methodChip(AppLocalizations.t('cash'), 'cash', Icons.money), const SizedBox(width: 6),
+                  _methodChip(AppLocalizations.t('upi'), 'online', Icons.qr_code), const SizedBox(width: 6),
+                  _methodChip(AppLocalizations.t('pay_later'), 'pay_later', Icons.schedule),
                 ],
               ),
               if (_paymentStatus == 'pay_later') ...[
@@ -747,7 +748,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitPayment,
                 style: ElevatedButton.styleFrom(backgroundColor: _paymentStatus == 'pay_later' ? Colors.orange : AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                child: _isLoading ? const CircularProgressIndicator(color: AppTheme.purpleDark) : Text(_paymentStatus == 'pay_later' ? 'SAVE PAY LATER' : 'ADD PAYMENT', style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: _isLoading ? const CircularProgressIndicator(color: AppTheme.purpleDark) : Text(_paymentStatus == 'pay_later' ? 'SAVE PAY LATER' : AppLocalizations.t('add_payment_btn'), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
             ],
@@ -767,7 +768,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
       ),
-      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+      validator: (v) => v == null || v.isEmpty ? AppLocalizations.t('required') : null,
     );
   }
 

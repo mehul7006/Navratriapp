@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class DrawHistoryScreen extends StatefulWidget {
   const DrawHistoryScreen({super.key});
@@ -62,7 +63,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Draw History'),
+        title: Text(AppLocalizations.t('draw_history')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         actions: [
@@ -78,7 +79,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
                 : filtered.isEmpty
-                    ? const Center(child: Text('No draw history found', style: TextStyle(color: AppTheme.textMuted)))
+                    ? Center(child: Text(AppLocalizations.t('no_draw_history'), style: const TextStyle(color: AppTheme.textMuted)))
                     : _buildHistoryList(filtered),
           ),
         ],
@@ -97,7 +98,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FilterChip(
-              label: const Text('All Days'),
+              label: Text(AppLocalizations.t('all_days_filter')),
               selected: _selectedDay == 0,
               selectedColor: AppTheme.goldPrimary,
               onSelected: (s) => setState(() => _selectedDay = 0),
@@ -127,11 +128,11 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          _chip('All', 'all'),
+          _chip(AppLocalizations.t('all'), 'all'),
           const SizedBox(width: 8),
-          _chip('Winners', 'winners'),
+          _chip(AppLocalizations.t('winners_filter'), 'winners'),
           const SizedBox(width: 8),
-          _chip('Assigned', 'assigned'),
+          _chip(AppLocalizations.t('assigned_filter'), 'assigned'),
         ],
       ),
     );
@@ -160,15 +161,15 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
         children: [
           Column(children: [
             Text('${_filteredHistory.length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue)),
-            const Text('Total', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+            Text(AppLocalizations.t('total_label'), style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
           ]),
           Column(children: [
             Text('${winners.length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.amber)),
-            const Text('Winners', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+            Text(AppLocalizations.t('winners_filter'), style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
           ]),
           Column(children: [
             Text('${_filteredHistory.where((t) => t['is_assigned'] == true).length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
-            const Text('Assigned', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+            Text(AppLocalizations.t('assigned_filter'), style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
           ]),
         ],
       ),

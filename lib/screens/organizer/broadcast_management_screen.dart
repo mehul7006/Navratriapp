@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class BroadcastManagementScreen extends StatefulWidget {
   const BroadcastManagementScreen({super.key});
@@ -40,7 +41,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.cardBg,
-          title: const Text('New Broadcast', style: TextStyle(color: Colors.white)),
+          title: Text(AppLocalizations.t('new_broadcast'), style: const TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -49,7 +50,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
                   controller: titleController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: 'Title',
+                    labelText: AppLocalizations.t('title'),
                     labelStyle: const TextStyle(color: AppTheme.textMuted),
                     filled: true,
                     fillColor: AppTheme.purpleDark,
@@ -62,7 +63,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
                   style: const TextStyle(color: Colors.white),
                   maxLines: 3,
                   decoration: InputDecoration(
-                    labelText: 'Message',
+                    labelText: AppLocalizations.t('message'),
                     labelStyle: const TextStyle(color: AppTheme.textMuted),
                     filled: true,
                     fillColor: AppTheme.purpleDark,
@@ -74,12 +75,12 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
                   value: priority,
                   dropdownColor: AppTheme.purpleDeep,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Priority', labelStyle: TextStyle(color: AppTheme.textMuted)),
-                  items: const [
-                    DropdownMenuItem(value: 'low', child: Text('Low')),
-                    DropdownMenuItem(value: 'normal', child: Text('Normal')),
-                    DropdownMenuItem(value: 'high', child: Text('High')),
-                    DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
+                  decoration: InputDecoration(labelText: AppLocalizations.t('priority'), labelStyle: const TextStyle(color: AppTheme.textMuted)),
+                  items: [
+                    DropdownMenuItem(value: 'low', child: Text(AppLocalizations.t('low'))),
+                    DropdownMenuItem(value: 'normal', child: Text(AppLocalizations.t('normal'))),
+                    DropdownMenuItem(value: 'high', child: Text(AppLocalizations.t('high'))),
+                    DropdownMenuItem(value: 'urgent', child: Text(AppLocalizations.t('urgent'))),
                   ],
                   onChanged: (v) => setDialogState(() => priority = v ?? 'normal'),
                 ),
@@ -87,7 +88,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'), style: const TextStyle(color: Colors.white70))),
             TextButton(
               onPressed: () async {
                 if (titleController.text.isNotEmpty && messageController.text.isNotEmpty) {
@@ -100,7 +101,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
                   _loadBroadcasts();
                 }
               },
-              child: const Text('Send', style: TextStyle(color: AppTheme.goldPrimary)),
+              child: Text(AppLocalizations.t('send'), style: const TextStyle(color: AppTheme.goldPrimary)),
             ),
           ],
         ),
@@ -113,7 +114,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Broadcasts'),
+        title: Text(AppLocalizations.t('broadcasts')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         actions: [
@@ -128,7 +129,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : _broadcasts.isEmpty
-              ? const Center(child: Text('No broadcasts yet', style: TextStyle(color: AppTheme.textMuted)))
+              ? Center(child: Text(AppLocalizations.t('no_broadcasts'), style: const TextStyle(color: AppTheme.textMuted)))
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _broadcasts.length,
@@ -183,10 +184,10 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text('Delete Broadcast?'),
+                                title: Text(AppLocalizations.t('delete_broadcast')),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
+                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red))),
                                 ],
                               ),
                             );

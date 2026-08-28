@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserGiftsScreen extends StatefulWidget {
   const UserGiftsScreen({super.key});
@@ -37,7 +38,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('My Gifts'),
+        title: Text(AppLocalizations.t('my_gifts')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         actions: [
@@ -134,9 +135,9 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
           children: [
             Icon(Icons.card_giftcard_outlined, size: 80, color: AppTheme.textMuted.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('No gifts received yet', style: TextStyle(fontSize: 18, color: AppTheme.textMuted)),
+            Text(AppLocalizations.t('no_gifts_received'), style: const TextStyle(fontSize: 18, color: AppTheme.textMuted)),
             const SizedBox(height: 8),
-            const Text('Gifts will appear here when assigned', style: TextStyle(fontSize: 13, color: AppTheme.textMuted), textAlign: TextAlign.center),
+            Text(AppLocalizations.t('gifts_will_appear'), style: const TextStyle(fontSize: 13, color: AppTheme.textMuted), textAlign: TextAlign.center),
           ],
         ),
       );
@@ -173,7 +174,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
 
   Widget _buildAvailableGifts() {
     if (_availableGifts.isEmpty) {
-      return const Center(child: Text('No gifts available for this day', style: TextStyle(color: AppTheme.textMuted)));
+      return Center(child: Text(AppLocalizations.t('no_gifts_available_day'), style: const TextStyle(color: AppTheme.textMuted)));
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -217,7 +218,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
                         dayNumber: _selectedDay,
                       );
                       _loadGifts();
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gift booked!'), backgroundColor: Colors.green));
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('gift_booked')), backgroundColor: Colors.green));
                     } catch (e) {
                       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
                     }
@@ -225,7 +226,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
-                    child: const Text('BOOK', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+                    child: Text(AppLocalizations.t('book'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
                   ),
                 ),
             ],
@@ -256,7 +257,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
               children: [
                 Icon(Icons.card_giftcard, color: typeColor, size: 18),
                 const SizedBox(width: 8),
-                Text(type == 'sponsor' ? 'Sponsor Gift' : 'Daily Gift', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: typeColor)),
+                Text(type == 'sponsor' ? AppLocalizations.t('sponsor_gift') : AppLocalizations.t('daily_gift'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: typeColor)),
                 const Spacer(),
                 Text('Day ${gift['day_number'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
               ],
@@ -290,18 +291,18 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           backgroundColor: AppTheme.cardBg,
-                          title: const Text('Cancel Gift?', style: TextStyle(color: Colors.white)),
-                          content: const Text('Are you sure you want to cancel this gift?', style: TextStyle(color: Colors.white70)),
+                          title: Text(AppLocalizations.t('cancel_gift_title'), style: const TextStyle(color: Colors.white)),
+                          content: Text(AppLocalizations.t('cancel_gift_content'), style: const TextStyle(color: Colors.white70)),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
-                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('no'), style: const TextStyle(color: AppTheme.goldPrimary))),
+                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('yes_cancel'), style: const TextStyle(color: Colors.red))),
                           ],
                         ),
                       );
                       if (confirm == true) {
                         await DatabaseHelper.cancelGiftAssignment(gift['id']);
                         _loadGifts();
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gift cancelled'), backgroundColor: Colors.orange));
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('gift_cancelled')), backgroundColor: Colors.orange));
                       }
                     },
                   )

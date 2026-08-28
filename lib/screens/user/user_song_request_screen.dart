@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import '../../l10n/app_localizations.dart';
 
 class UserSongRequestScreen extends StatefulWidget {
   const UserSongRequestScreen({super.key});
@@ -123,7 +124,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('🎵 Song Requests', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('song_requests'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -187,8 +188,8 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: _buildTab('live', 'Live Requests')),
-          Expanded(child: _buildTab('suggest', 'Tomorrow\'s Picks')),
+          Expanded(child: _buildTab('live', AppLocalizations.t('live_requests'))),
+          Expanded(child: _buildTab('suggest', AppLocalizations.t('tomorrows_picks'))),
         ],
       ),
     );
@@ -215,14 +216,14 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
 
   Widget _buildLiveTab() {
     if (_requests.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.music_note, size: 48, color: Colors.white24),
-            SizedBox(height: 12),
-            Text('No song requests yet', style: TextStyle(color: Colors.white38, fontSize: 16)),
-            Text('Be the first to request a song!', style: TextStyle(color: Colors.white24, fontSize: 12)),
+            const Icon(Icons.music_note, size: 48, color: Colors.white24),
+            const SizedBox(height: 12),
+            Text(AppLocalizations.t('no_song_requests'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
+            Text(AppLocalizations.t('be_first_song'), style: const TextStyle(color: Colors.white24, fontSize: 12)),
           ],
         ),
       );
@@ -287,14 +288,14 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
 
   Widget _buildSuggestionsTab() {
     if (_suggestions.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lightbulb_outline, size: 48, color: Colors.white24),
-            SizedBox(height: 12),
-            Text('No suggestions yet', style: TextStyle(color: Colors.white38, fontSize: 16)),
-            Text('Suggest songs for tomorrow!', style: TextStyle(color: Colors.white24, fontSize: 12)),
+            const Icon(Icons.lightbulb_outline, size: 48, color: Colors.white24),
+            const SizedBox(height: 12),
+            Text(AppLocalizations.t('no_suggestions'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
+            Text(AppLocalizations.t('suggest_songs_tomorrow'), style: const TextStyle(color: Colors.white24, fontSize: 12)),
           ],
         ),
       );
@@ -364,7 +365,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
                   controller: _songNameController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Song name...',
+                    hintText: AppLocalizations.t('hint_song_name'),
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
                     fillColor: AppTheme.purpleCard,
@@ -383,7 +384,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
                   controller: _youtubeController,
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: InputDecoration(
-                    hintText: 'YouTube link',
+                    hintText: AppLocalizations.t('hint_youtube_link'),
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
                     fillColor: AppTheme.purpleCard,
@@ -404,7 +405,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _isSubmitting ? null : _submitRequest,
                   icon: _isSubmitting ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.music_note, size: 16),
-                  label: Text(_activeTab == 'live' ? 'REQUEST' : 'SUGGEST'),
+                  label: Text(_activeTab == 'live' ? AppLocalizations.t('request') : AppLocalizations.t('suggest')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.goldPrimary,
                     foregroundColor: AppTheme.purpleDark,
