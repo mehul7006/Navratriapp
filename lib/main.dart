@@ -59,6 +59,13 @@ class NavratriApp extends StatelessWidget {
               Locale('hi'),
               Locale('gu'),
             ],
+            builder: (context, child) {
+              final locale = context.watch<LocaleProvider>().locale;
+              return KeyedSubtree(
+                key: ValueKey('app_${locale.languageCode}'),
+                child: child!,
+              );
+            },
             initialRoute: '/',
             routes: {
               '/': (context) => const SplashScreen(),
