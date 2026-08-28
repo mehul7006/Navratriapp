@@ -18,6 +18,8 @@ import 'draw_history_screen.dart';
 import 'lucky_draw_screen.dart';
 import 'broadcast_management_screen.dart';
 import 'dj_console_screen.dart';
+import '../../widgets/language_toggle.dart';
+import '../../l10n/app_localizations.dart';
 
 class OrganizerDashboardScreen extends StatefulWidget {
   const OrganizerDashboardScreen({super.key});
@@ -103,10 +105,11 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: const Text('Organizer Dashboard'),
+        title: Text(AppLocalizations.t('organizer_dashboard')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         actions: [
+          const LanguageToggle(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadStats,
