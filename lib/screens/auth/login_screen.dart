@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/locale_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -179,6 +180,13 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       if (success && mounted) {
         final userType = authProvider.currentUser?['user_type'];
+        final userId = authProvider.currentUser?['id'];
+        // Load user's saved language preference
+        if (userId != null) {
+          final localeProvider = context.read<LocaleProvider>();
+          await localeProvider.loadUserLocale(userId);
+          await AppLocalizations.loadLocale(localeProvider.locale);
+        }
         switch (userType) {
           case 'organizer': Navigator.pushReplacementNamed(context, '/organizer/dashboard'); break;
           case 'sponsor': Navigator.pushReplacementNamed(context, '/sponsor/dashboard'); break;

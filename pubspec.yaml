@@ -31,3 +31,6 @@ flutter:
 
   assets:
     - assets/images/BGIMAGE.png
+    - assets/l10n/en.json
+    - assets/l10n/hi.json
+    - assets/l10n/gu.json

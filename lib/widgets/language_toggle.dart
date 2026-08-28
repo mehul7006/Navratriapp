@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
 
@@ -9,7 +10,9 @@ class LanguageToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
+    final authProvider = context.watch<AuthProvider>();
     final currentCode = localeProvider.locale.languageCode;
+    final userId = authProvider.currentUser?['id'];
 
     return PopupMenuButton<String>(
       icon: Row(
@@ -23,19 +26,19 @@ class LanguageToggle extends StatelessWidget {
           ),
         ],
       ),
-      onSelected: (code) {
-        localeProvider.setLocale(Locale(code));
-        AppLocalizations.loadLocale(Locale(code));
+      onSelected: (code) async {
+        await localeProvider.setLocale(Locale(code), userId: userId);
+        await AppLocalizations.loadLocale(Locale(code));
       },
       itemBuilder: (_) => [
-        _buildItem('en', 'English', 'EN', localeProvider),
-        _buildItem('hi', 'हिंदी', 'HI', localeProvider),
-        _buildItem('gu', 'ગુજરાતી', 'GU', localeProvider),
+        _buildItem('en', 'English', localeProvider),
+        _buildItem('hi', 'हिंदी', localeProvider),
+        _buildItem('gu', 'ગુજરાતી', localeProvider),
       ],
     );
   }
 
-  PopupMenuItem<String> _buildItem(String code, String name, String short, LocaleProvider provider) {
+  PopupMenuItem<String> _buildItem(String code, String name, LocaleProvider provider) {
     final isActive = provider.locale.languageCode == code;
     return PopupMenuItem(
       value: code,

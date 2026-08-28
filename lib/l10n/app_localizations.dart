@@ -15,7 +15,7 @@ class AppLocalizations {
 
   static Future<Map<String, String>> _loadJson(String langCode) async {
     try {
-      final data = await rootBundle.loadString('lib/l10n/$langCode.json');
+      final data = await rootBundle.loadString('assets/l10n/$langCode.json');
       final map = jsonDecode(data) as Map<String, dynamic>;
       return map.map((k, v) => MapEntry(k, v.toString()));
     } catch (_) {
