@@ -20,13 +20,29 @@ class UserCouponScreen extends StatefulWidget {
 
 class _UserCouponScreenState extends State<UserCouponScreen> {
   List<Map<String, dynamic>> _tickets = [];
+  List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
   int _selectedDay = 0;
 
   @override
   void initState() {
     super.initState();
+    _initDay();
+  }
+
+  Future<void> _initDay() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
     _loadTickets();
+  }
+
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    return day.isNotEmpty && day['is_completed'] == true;
   }
 
   Future<void> _loadTickets() async {
@@ -189,6 +205,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
 
   Widget _buildDayChip(String label, int day) {
     final isSelected = _selectedDay == day;
+    final completed = day > 0 && _isDayCompleted(day);
     final count = day == 0
         ? _tickets.length
         : _tickets.where((t) => t['day_number'] == day).length;
@@ -200,21 +217,25 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+            color: isSelected ? AppTheme.goldPrimary : (completed ? Colors.red.withOpacity(0.1) : Colors.transparent),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.3),
+              color: completed ? Colors.red.withOpacity(0.5) : (isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.3)),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (completed) ...[
+                Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
+                const SizedBox(width: 4),
+              ],
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted,
+                  color: completed ? Colors.red.withOpacity(0.7) : (isSelected ? AppTheme.purpleDark : AppTheme.textMuted),
                 ),
               ),
               if (count > 0) ...[

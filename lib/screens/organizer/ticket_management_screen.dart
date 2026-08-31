@@ -22,7 +22,39 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   @override
   void initState() {
     super.initState();
+    _initDay();
+  }
+
+  Future<void> _initDay() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
     _loadData();
+  }
+
+  bool _isDayBookable(int dayNumber) {
+    if (dayNumber == 0) return true; // "All" filter is view-only
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return false;
+    if (day['is_completed'] == true) return false;
+    if (day['is_active'] == true) return true;
+    final activeDay = _days.firstWhere(
+      (d) => d['is_active'] == true,
+      orElse: () => {},
+    );
+    if (activeDay.isEmpty) return false;
+    return dayNumber > (activeDay['day_number'] as int);
+  }
+
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    return day.isNotEmpty && day['is_completed'] == true;
   }
 
   void _toggleMultiSelect() {
@@ -183,20 +215,26 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FloatingActionButton.extended(
+           FloatingActionButton.extended(
             heroTag: 'generate',
-            backgroundColor: AppTheme.goldPrimary,
-            onPressed: _showGenerateDialog,
-            icon: const Icon(Icons.add, color: Colors.black),
-            label: Text(AppLocalizations.t('generate'), style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: _isDayBookable(_selectedDay) ? AppTheme.goldPrimary : Colors.grey,
+            onPressed: _isDayBookable(_selectedDay) ? _showGenerateDialog : null,
+            icon: Icon(_isDayBookable(_selectedDay) ? Icons.add : Icons.lock, color: _isDayBookable(_selectedDay) ? Colors.black : Colors.white70),
+            label: Text(
+              _isDayBookable(_selectedDay) ? AppLocalizations.t('generate') : 'Day Closed',
+              style: TextStyle(color: _isDayBookable(_selectedDay) ? Colors.black : Colors.white70, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 12),
           FloatingActionButton.extended(
             heroTag: 'assign',
-            backgroundColor: Colors.blue,
-            onPressed: _showAssignDialog,
-            icon: const Icon(Icons.person_add, color: Colors.white),
-            label: Text(AppLocalizations.t('assign_ticket'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            backgroundColor: _isDayBookable(_selectedDay) ? Colors.blue : Colors.grey,
+            onPressed: _isDayBookable(_selectedDay) ? _showAssignDialog : null,
+            icon: Icon(_isDayBookable(_selectedDay) ? Icons.person_add : Icons.lock, color: Colors.white),
+            label: Text(
+              _isDayBookable(_selectedDay) ? AppLocalizations.t('assign_ticket') : 'Day Closed',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -225,14 +263,18 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             final dayNum = i + 1;
             final dayData = _days.where((d) => d['day_number'] == dayNum).toList();
             final goddess = dayData.isNotEmpty ? dayData[0]['goddess_name'] ?? '' : '';
+            final completed = _isDayCompleted(dayNum);
+            final bookable = _isDayBookable(dayNum);
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: FilterChip(
+                avatar: completed ? const Icon(Icons.lock, size: 14, color: Colors.red) : null,
                 label: Text('D$dayNum${goddess.isNotEmpty ? " $goddess" : ""}'),
                 selected: _selectedDay == dayNum,
-                selectedColor: AppTheme.goldPrimary,
+                selectedColor: completed ? Colors.red.withValues(alpha: 0.3) : AppTheme.goldPrimary,
                 onSelected: (s) { setState(() => _selectedDay = dayNum); _loadData(); },
-                labelStyle: TextStyle(color: _selectedDay == dayNum ? Colors.black : Colors.white, fontSize: 12),
+                labelStyle: TextStyle(color: completed ? Colors.red.withValues(alpha: 0.7) : (_selectedDay == dayNum ? Colors.black : Colors.white), fontSize: 12),
+                side: completed ? BorderSide(color: Colors.red.withOpacity(0.6)) : null,
               ),
             );
           }),
