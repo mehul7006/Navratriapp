@@ -86,6 +86,10 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS is_available BOOLEAN");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS rescheduled_to_day INT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS cancelled_reason TEXT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP");
     // Reset all is_winner flags - 9-day cooldown now uses daily_draws table only
     await _db!.execute('UPDATE draw_tickets SET is_winner = FALSE WHERE is_winner = TRUE');
     // Gift assignments status column
@@ -206,6 +210,7 @@ final router = Router()
   ..post('/api/daily-draws/confirm', _confirmDraw)
   ..post('/api/daily-draws/disqualify', _disqualifyDraw)
   ..post('/api/daily-draws/create', _createDraw)
+  ..post('/api/daily-draws/cancel', _cancelDraw)
   ..get('/api/daily-info', _getDailyInfo)
   ..put('/api/navratri-days/<day>/start', _startDay)
   ..put('/api/navratri-days/<day>/end', _endDay)
@@ -2239,6 +2244,54 @@ Future<Response> _disqualifyDraw(Request request) async {
     }
 
     return _jsonResponse({'ok': true, 'rescheduled_to_day': nextDay <= 9 ? nextDay : null});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== CANCEL DRAW ==========
+
+Future<Response> _cancelDraw(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final drawId = body['draw_id'] as int;
+    final reason = body['reason'] as String;
+
+    if (reason.isEmpty) {
+      return _errorResponse('Cancellation reason is required');
+    }
+
+    // Check if draw exists and is confirmed
+    final drawResult = await conn.execute(
+      Sql.named('SELECT id, status, prize_level FROM daily_draws WHERE id = @id'),
+      parameters: {'id': drawId},
+    );
+    if (drawResult.isEmpty) return _errorResponse('Draw not found');
+
+    final drawData = drawResult.first.toColumnMap();
+    if (drawData['status'] != 'confirmed') {
+      return _errorResponse('Only confirmed draws can be cancelled');
+    }
+
+    // Update the daily_draws record as cancelled
+    await conn.execute(
+      Sql.named('''
+        UPDATE daily_draws 
+        SET status = 'cancelled', 
+            cancelled_reason = @reason, 
+            cancelled_at = NOW()
+        WHERE id = @id
+      '''),
+      parameters: {'id': drawId, 'reason': reason},
+    );
+
+    return _jsonResponse({
+      'ok': true, 
+      'draw_id': drawId,
+      'prize_level': drawData['prize_level'],
+      'cancelled_reason': reason
+    });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

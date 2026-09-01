@@ -710,6 +710,24 @@ class DatabaseHelper {
     throw Exception('Failed to disqualify draw: ${response.body}');
   }
 
+  static Future<Map<String, dynamic>> cancelDraw({
+    required int drawId,
+    required String reason,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/api/daily-draws/cancel'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'draw_id': drawId,
+        'reason': reason,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to cancel draw: ${response.body}');
+  }
+
   static Future<Map<String, dynamic>> createDraw({
     required int dayNumber,
     required int ticketId,
