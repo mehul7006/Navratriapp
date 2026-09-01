@@ -522,7 +522,6 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
     bool isSearching = false;
     bool isSearchingTickets = false;
     bool showTicketSuggestions = false;
-    bool isDialogOpen = true;
     final ticketController = TextEditingController();
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
@@ -530,6 +529,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
 
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppTheme.cardBg,
@@ -538,7 +538,6 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Ticket code search field
                 TextFormField(
                   controller: ticketController,
                   style: const TextStyle(color: Colors.white),
@@ -548,38 +547,33 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                     hintText: AppLocalizations.t('type_ticket_search'),
                     suffixIcon: isSearchingTickets
                         ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary)))
-                        : (ticketCode.isNotEmpty ? Icon(Icons.check, color: Colors.green, size: 18) : const Icon(Icons.search, color: Colors.white38, size: 18)),
+                        : (ticketCode.isNotEmpty ? const Icon(Icons.check, color: Colors.green, size: 18) : const Icon(Icons.search, color: Colors.white38, size: 18)),
                   ),
-                  onChanged: (v) async {
+                  onChanged: (v) {
                     ticketCode = v;
                     if (v.length >= 2) {
-                      if (!isDialogOpen) return;
                       setDialogState(() => isSearchingTickets = true);
-                      try {
-                        final results = await DatabaseHelper.getAllTickets();
-                        if (!isDialogOpen) return;
+                      DatabaseHelper.getAllTickets().then((results) {
+                        if (!ctx.mounted) return;
                         final filtered = results.where((t) {
                           final code = (t['ticket_code'] ?? '').toString();
                           final isAssigned = t['is_assigned'] == true;
                           return !isAssigned && code.contains(v);
                         }).toList();
-                        if (!isDialogOpen) return;
                         setDialogState(() {
                           ticketSuggestions = filtered;
                           showTicketSuggestions = filtered.isNotEmpty;
                           isSearchingTickets = false;
                         });
-                      } catch (e) {
-                        if (!isDialogOpen) return;
+                      }).catchError((_) {
+                        if (!ctx.mounted) return;
                         setDialogState(() { ticketSuggestions = []; showTicketSuggestions = false; isSearchingTickets = false; });
-                      }
+                      });
                     } else {
-                      if (!isDialogOpen) return;
                       setDialogState(() { ticketSuggestions = []; showTicketSuggestions = false; isSearchingTickets = false; });
                     }
                   },
                 ),
-                // Ticket suggestions dropdown
                 if (showTicketSuggestions && ticketSuggestions.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Container(
@@ -591,8 +585,9 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                     ),
                     child: ListView.builder(
                       shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
                       itemCount: ticketSuggestions.length,
-                      itemBuilder: (ctx, index) {
+                      itemBuilder: (_, index) {
                         final t = ticketSuggestions[index];
                         return Material(
                           color: Colors.transparent,
@@ -604,7 +599,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                             onTap: () {
                               ticketCode = t['ticket_code'] ?? '';
                               ticketController.text = ticketCode;
-                              setDialogState(() { showTicketSuggestions = false; ticketCode = ticketCode; });
+                              setDialogState(() { showTicketSuggestions = false; });
                             },
                           ),
                         );
@@ -624,17 +619,15 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                     suffixIcon: isSearching
                         ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.goldPrimary)))
                         : (showMembers && members.isNotEmpty)
-                            ? Icon(Icons.check, color: Colors.green, size: 18)
+                            ? const Icon(Icons.check, color: Colors.green, size: 18)
                             : null,
                   ),
-                  onChanged: (v) async {
+                  onChanged: (v) {
                     houseNumber = v.toUpperCase();
                     if (v.length >= 2) {
-                      if (!isDialogOpen) return;
                       setDialogState(() => isSearching = true);
-                      try {
-                        final result = await DatabaseHelper.getMembersByHouse(houseNumber);
-                        if (!isDialogOpen) return;
+                      DatabaseHelper.getMembersByHouse(houseNumber).then((result) {
+                        if (!ctx.mounted) return;
                         setDialogState(() {
                           members = result;
                           showMembers = true;
@@ -642,17 +635,16 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                           isSearching = false;
                           showAddMember = false;
                         });
-                      } catch (e) {
-                        if (!isDialogOpen) return;
+                      }).catchError((_) {
+                        if (!ctx.mounted) return;
                         setDialogState(() {
                           members = [];
                           showMembers = true;
                           isSearching = false;
                           showAddMember = false;
                         });
-                      }
+                      });
                     } else {
-                      if (!isDialogOpen) return;
                       setDialogState(() { members = []; showMembers = false; showAddMember = false; isSearching = false; });
                     }
                   },
@@ -668,36 +660,37 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
                     ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: members.map((m) {
-                          final isSelected = selectedUserId == m['id'];
-                          final memberName = (m['name'] ?? '').toString();
-                          final memberMobile = (m['mobile_number'] ?? '').toString();
-                          return Material(
-                            color: Colors.transparent,
-                            child: ListTile(
-                              dense: true,
-                              leading: CircleAvatar(
-                                backgroundColor: isSelected ? Colors.green : AppTheme.goldPrimary,
-                                radius: 14,
-                                child: Text(memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
-                                    style: const TextStyle(fontSize: 11, color: AppTheme.purpleDark, fontWeight: FontWeight.bold)),
-                              ),
-                              title: Text(memberName, style: TextStyle(color: isSelected ? Colors.green : Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                              subtitle: memberMobile.isNotEmpty && memberMobile != '0' ? Text(memberMobile, style: const TextStyle(color: Colors.white54, fontSize: 11)) : null,
-                              trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green, size: 20) : null,
-                              onTap: () {
-                                setDialogState(() {
-                                  selectedUserId = m['id'];
-                                  showAddMember = false;
-                                });
-                              },
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const ClampingScrollPhysics(),
+                      itemCount: members.length,
+                      itemBuilder: (_, index) {
+                        final m = members[index];
+                        final isSelected = selectedUserId == m['id'];
+                        final memberName = (m['name'] ?? '').toString();
+                        final memberMobile = (m['mobile_number'] ?? '').toString();
+                        return Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              backgroundColor: isSelected ? Colors.green : AppTheme.goldPrimary,
+                              radius: 14,
+                              child: Text(memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.purpleDark, fontWeight: FontWeight.bold)),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                            title: Text(memberName, style: TextStyle(color: isSelected ? Colors.green : Colors.white, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                            subtitle: memberMobile.isNotEmpty && memberMobile != '0' ? Text(memberMobile, style: const TextStyle(color: Colors.white54, fontSize: 11)) : null,
+                            trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green, size: 20) : null,
+                            onTap: () {
+                              setDialogState(() {
+                                selectedUserId = m['id'];
+                                showAddMember = false;
+                              });
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -716,8 +709,8 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.person_add, color: AppTheme.goldPrimary, size: 16),
-                            SizedBox(width: 6),
+                            const Icon(Icons.person_add, color: AppTheme.goldPrimary, size: 16),
+                            const SizedBox(width: 6),
                             Text(AppLocalizations.t('add_new_member'), style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
                           ],
                         ),
@@ -793,7 +786,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                                       userType: 'user',
                                     );
                                     final result = await DatabaseHelper.getMembersByHouse(houseNumber);
-                                    if (!isDialogOpen) return;
+                                    if (!ctx.mounted) return;
                                     setDialogState(() {
                                       members = result;
                                       showMembers = true;
@@ -827,18 +820,37 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () { isDialogOpen = false; Navigator.pop(ctx); }, child: Text(AppLocalizations.t('cancel'))),
+            TextButton(
+              onPressed: () {
+                ticketController.dispose();
+                nameController.dispose();
+                mobileController.dispose();
+                houseController.dispose();
+                Navigator.pop(ctx);
+              },
+              child: Text(AppLocalizations.t('cancel')),
+            ),
             TextButton(
               onPressed: (selectedUserId != null && ticketCode.isNotEmpty)
                   ? () async {
+                      final nav = Navigator.of(ctx);
+                      final messenger = ScaffoldMessenger.of(context);
                       await DatabaseHelper.assignTicket(
                         ticketCode: ticketCode,
                         userId: selectedUserId!,
                         houseNumber: houseNumber,
                       );
-                      isDialogOpen = false;
-                      Navigator.pop(ctx);
+                      ticketController.dispose();
+                      nameController.dispose();
+                      mobileController.dispose();
+                      houseController.dispose();
+                      if (ctx.mounted) nav.pop();
                       _loadData();
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(content: const Text('Ticket assigned successfully'), backgroundColor: Colors.green),
+                        );
+                      }
                     }
                   : null,
               child: Text(AppLocalizations.t('assign_ticket'), style: TextStyle(color: selectedUserId != null ? AppTheme.goldPrimary : Colors.white38)),
@@ -846,6 +858,11 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
           ],
         ),
       ),
-    );
+    ).then((_) {
+      ticketController.dispose();
+      nameController.dispose();
+      mobileController.dispose();
+      houseController.dispose();
+    });
   }
 }
