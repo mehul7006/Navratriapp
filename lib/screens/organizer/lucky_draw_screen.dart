@@ -26,6 +26,10 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   bool _isProcessing = false;
   int? _currentDrawId;
   int? _assignedPrizeLevel;
+  bool _isCancelling = false;
+  bool _isRedrawing = false;
+  String? _cancelledReason;
+  int? _cancelledPrizeLevel;
   int _shakeOffset = 0;
   Timer? _shakeTimer;
   late ConfettiController _confettiController;
@@ -242,6 +246,130 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _cancelPrize() async {
+    if (_currentDrawId == null) return;
+    
+    // Show dialog to get cancellation reason
+    final reason = await _showCancelDialog();
+    if (reason == null || reason.isEmpty) return;
+    
+    setState(() => _isCancelling = true);
+    try {
+      final result = await DatabaseHelper.cancelDraw(
+        drawId: _currentDrawId!,
+        reason: reason,
+      );
+      if (mounted) {
+        setState(() {
+          _cancelledReason = reason;
+          _cancelledPrizeLevel = result['prize_level'];
+          _isCancelling = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Prize cancelled successfully. Reason: $reason'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isCancelling = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel prize: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _showCancelDialog() async {
+    final reasonController = TextEditingController();
+    
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Cancel Prize', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Are you sure you want to cancel this prize? The ticket will be returned to the pot for re-draw.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Reason for cancellation *',
+                labelStyle: const TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.white38),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                ),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: reasonController.text.isEmpty
+                ? null
+                : () => Navigator.pop(ctx, reasonController.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm Cancellation'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startRedraw() async {
+    if (_currentDrawId == null || _cancelledPrizeLevel == null) return;
+    
+    setState(() => _isRedrawing = true);
+    try {
+      // Reset the state to allow a new draw
+      setState(() {
+        _drawnTicket = null;
+        _isRevealed = false;
+        _currentDrawId = null;
+        _assignedPrizeLevel = null;
+        _cancelledReason = null;
+        _cancelledPrizeLevel = null;
+        _isRedrawing = false;
+      });
+      _loadTickets();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ready for re-draw. Generate a new ticket.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (mounted) setState(() => _isRedrawing = false);
     }
   }
 
@@ -746,6 +874,64 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               padding: EdgeInsets.all(12),
               child: CircularProgressIndicator(color: AppTheme.goldPrimary, strokeWidth: 2),
             ),
+          // Cancel Prize button - show when winner is confirmed
+          if (_assignedPrizeLevel != null && _cancelledReason == null && !_isCancelling) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _cancelPrize,
+              icon: const Icon(Icons.cancel, color: Colors.white),
+              label: const Text('Cancel Prize', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ],
+          if (_isCancelling)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
+            ),
+          // Re-draw button - show after cancellation
+          if (_cancelledReason != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Prize Cancelled',
+                    style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Reason: $_cancelledReason',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: _isRedrawing ? null : _startRedraw,
+                    icon: _isRedrawing
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.refresh, color: Colors.white),
+                    label: Text(_isRedrawing ? 'Re-drawing...' : 'Re-draw Prize', style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.goldPrimary,
+                      foregroundColor: AppTheme.purpleDark,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
         // Confetti
         Align(
