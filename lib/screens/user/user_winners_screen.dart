@@ -144,6 +144,19 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
               backgroundColor: Colors.amber,
               child: Text('#${index + 1}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
             ),
+            if (winner['prize_level'] != null)
+              Container(
+                margin: const EdgeInsets.only(left: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  ['', '1st', '2nd', '3rd'][winner['prize_level'] as int] + ' Prize',
+                  style: const TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -23,6 +23,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   Map<String, dynamic>? _drawnTicket;
   bool _isRevealed = false;
   bool _isDrawing = false;
+  bool _isProcessing = false;
+  int? _currentDrawId;
+  int? _assignedPrizeLevel;
   int _shakeOffset = 0;
   Timer? _shakeTimer;
   late ConfettiController _confettiController;
@@ -128,6 +131,181 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     if (_drawnTicket == null || _isRevealed) return;
     setState(() => _isRevealed = true);
     _confettiController.play();
+    _createDrawRecord();
+  }
+
+  Future<void> _createDrawRecord() async {
+    if (_drawnTicket == null) return;
+    try {
+      final auth = context.read<AuthProvider>();
+      final userId = auth.currentUser?['id'] ?? 0;
+      final result = await DatabaseHelper.createDraw(
+        dayNumber: _selectedDay,
+        ticketId: _drawnTicket!['id'] ?? 0,
+        ticketCode: _drawnTicket!['ticket_code'] ?? '',
+        winnerId: _drawnTicket!['user_id'] ?? 0,
+        houseNumber: _drawnTicket!['house_number'] ?? '',
+        drawnBy: userId,
+      );
+      if (mounted) {
+        setState(() => _currentDrawId = result['id']);
+      }
+    } catch (e) {
+      // Silently handle - draw record creation is best-effort
+    }
+  }
+
+  void _showAvailabilityDialog() {
+    if (_drawnTicket == null || _currentDrawId == null) return;
+    final userName = _drawnTicket!['user_name'] ?? '';
+    final houseNumber = _drawnTicket!['house_number'] ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Is person available?', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$userName (House: $houseNumber)',
+              style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Is this person present at the lucky draw?',
+              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _disqualifyPerson();
+            },
+            child: const Text('Not Available', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _confirmPerson();
+            },
+            child: const Text('Available', style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmPerson() async {
+    if (_currentDrawId == null) return;
+    setState(() => _isProcessing = true);
+    try {
+      final result = await DatabaseHelper.confirmDraw(_currentDrawId!, _selectedDay);
+      if (mounted) {
+        setState(() {
+          _assignedPrizeLevel = result['prize_level'];
+          _isProcessing = false;
+        });
+        _loadTickets();
+        _showPrizeResult(result['prize_level']);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _disqualifyPerson() async {
+    if (_currentDrawId == null) return;
+    setState(() => _isProcessing = true);
+    try {
+      final result = await DatabaseHelper.disqualifyDraw(_currentDrawId!, _selectedDay);
+      if (mounted) {
+        setState(() {
+          _drawnTicket = null;
+          _isRevealed = false;
+          _currentDrawId = null;
+          _isProcessing = false;
+        });
+        _loadTickets();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['rescheduled_to_day'] != null
+                ? 'Person not available. Ticket moved to Day ${result['rescheduled_to_day']}'
+                : 'Person not available. Ticket removed.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  void _showPrizeResult(int? prizeLevel) {
+    String prizeText;
+    String prizeIcon;
+    if (prizeLevel == 1) {
+      prizeText = '1st Prize Winner!';
+      prizeIcon = '🏆';
+    } else if (prizeLevel == 2) {
+      prizeText = '2nd Prize Winner!';
+      prizeIcon = '🥈';
+    } else if (prizeLevel == 3) {
+      prizeText = '3rd Prize Winner!';
+      prizeIcon = '🥉';
+    } else {
+      prizeText = 'Winner!';
+      prizeIcon = '🎉';
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(prizeIcon, style: const TextStyle(fontSize: 50)),
+            const SizedBox(height: 12),
+            Text(
+              prizeText,
+              style: TextStyle(
+                color: prizeLevel != null ? AppTheme.goldPrimary : Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${_drawnTicket?['user_name'] ?? ''}',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            Text(
+              'House: ${_drawnTicket?['house_number'] ?? ''}',
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() {
+                _drawnTicket = null;
+                _isRevealed = false;
+                _currentDrawId = null;
+                _assignedPrizeLevel = null;
+              });
+            },
+            child: const Text('OK', style: TextStyle(color: AppTheme.goldPrimary)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -550,6 +728,24 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             'House: $houseNumber',
             style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
           ),
+          if (_assignedPrizeLevel == null && _currentDrawId != null && !_isProcessing) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _showAvailabilityDialog,
+              icon: const Icon(Icons.person_search, color: Colors.white),
+              label: const Text('Check Availability', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.goldPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+            ),
+          ],
+          if (_isProcessing)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: CircularProgressIndicator(color: AppTheme.goldPrimary, strokeWidth: 2),
+            ),
         ],
         // Confetti
         Align(
@@ -729,16 +925,24 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             const SizedBox(height: 8),
             ...history.take(6).map((draw) {
               final isPrize = draw['prize_level'] != null;
+              final isDisqualified = draw['status'] == 'disqualified';
               final prizeLabel = isPrize
                   ? ['🏆 1st', '🥈 2nd', '🥉 3rd'][draw['prize_level'] - 1]
-                  : '';
+                  : isDisqualified
+                      ? '❌ Disqualified'
+                      : '';
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg,
+                  color: isDisqualified
+                      ? Colors.red.withOpacity(0.1)
+                      : AppTheme.cardBg,
                   borderRadius: BorderRadius.circular(10),
+                  border: isDisqualified
+                      ? Border.all(color: Colors.red.withOpacity(0.3))
+                      : null,
                 ),
                 child: Row(
                   children: [
@@ -751,6 +955,15 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                         ),
                         child: Text(prizeLabel, style: const TextStyle(fontSize: 10, color: AppTheme.goldPrimary)),
                       )
+                    else if (isDisqualified)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(prizeLabel, style: TextStyle(fontSize: 10, color: Colors.red.withOpacity(0.7))),
+                      )
                     else
                       const Icon(Icons.confirmation_number, size: 16, color: Colors.white54),
                     const SizedBox(width: 10),
@@ -760,7 +973,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                         children: [
                           Text(
                             draw['ticket_code'] ?? '',
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace'),
+                            style: TextStyle(
+                              color: isDisqualified ? Colors.white54 : Colors.white,
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                              decoration: isDisqualified ? TextDecoration.lineThrough : null,
+                            ),
                           ),
                           Text(
                             '${draw['user_name'] ?? ''} • ${draw['house_number'] ?? ''}',

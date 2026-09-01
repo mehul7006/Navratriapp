@@ -412,6 +412,11 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
               Text('House: ${ticket['assigned_house'] ?? ticket['house_number'] ?? ''} • ${ticket['user_name'] ?? ''}', style: const TextStyle(color: Colors.blue, fontSize: 11)),
             if (isWinner)
               const Text('WINNER', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)),
+            if (isWinner && ticket['prize_level'] != null)
+              Text(
+                (ticket['prize_level'] == 1 ? '🏆 1st' : ticket['prize_level'] == 2 ? '🥈 2nd' : '🥉 3rd') + ' Prize',
+                style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 10),
+              ),
           ],
         ),
         trailing: _isMultiSelectMode

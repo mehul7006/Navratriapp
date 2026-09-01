@@ -347,6 +347,29 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
               ],
             ),
           ),
+          if (isWinner)
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: DatabaseHelper.getDailyDrawHistory(dayNumber: ticket['day_number']),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox.shrink();
+                final draws = snapshot.data ?? [];
+                final draw = draws.where((d) =>
+                  d['ticket_code']?.toString() == ticket['ticket_code']?.toString() &&
+                  d['prize_level'] != null
+                ).firstOrNull;
+                if (draw == null) return const SizedBox.shrink();
+                final labels = ['', '🏆 1st Prize', '🥈 2nd Prize', '🥉 3rd Prize'];
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(labels[draw['prize_level']] ?? '', style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                );
+              },
+            ),
           // Content
           Padding(
             padding: const EdgeInsets.all(16),

@@ -686,6 +686,56 @@ class DatabaseHelper {
     }
   }
 
+  static Future<Map<String, dynamic>> confirmDraw(int drawId, int dayNumber) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/api/daily-draws/confirm'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'draw_id': drawId, 'day_number': dayNumber}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to confirm draw: ${response.body}');
+  }
+
+  static Future<Map<String, dynamic>> disqualifyDraw(int drawId, int dayNumber) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/api/daily-draws/disqualify'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'draw_id': drawId, 'day_number': dayNumber}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to disqualify draw: ${response.body}');
+  }
+
+  static Future<Map<String, dynamic>> createDraw({
+    required int dayNumber,
+    required int ticketId,
+    required String ticketCode,
+    required int winnerId,
+    required String houseNumber,
+    required int drawnBy,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_apiBase/api/daily-draws/create'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'day_number': dayNumber,
+        'ticket_id': ticketId,
+        'ticket_code': ticketCode,
+        'winner_id': winnerId,
+        'house_number': houseNumber,
+        'drawn_by': drawnBy,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to create draw: ${response.body}');
+  }
+
   static Future<Map<String, dynamic>?> spinDrawPrize({required int dayNumber, required int drawnBy, required int prizeLevel}) async {
     try {
       final result = await _post('/api/daily-draws/spin-prize', {

@@ -80,6 +80,12 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS house_number VARCHAR");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS prize_level INT");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'drawn'");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS is_available BOOLEAN");
+    await _db!.execute(
+        "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS rescheduled_to_day INT");
     // Reset all is_winner flags - 9-day cooldown now uses daily_draws table only
     await _db!.execute('UPDATE draw_tickets SET is_winner = FALSE WHERE is_winner = TRUE');
     // Gift assignments status column
@@ -197,6 +203,9 @@ final router = Router()
   ..get('/api/daily-draws/history', _getDailyDrawHistory)
   ..get('/api/daily-draws/count', _getDailyDrawCount)
   ..get('/api/daily-draws/tickets/<day>', _getDrawTicketsForDay)
+  ..post('/api/daily-draws/confirm', _confirmDraw)
+  ..post('/api/daily-draws/disqualify', _disqualifyDraw)
+  ..post('/api/daily-draws/create', _createDraw)
   ..get('/api/daily-info', _getDailyInfo)
   ..put('/api/navratri-days/<day>/start', _startDay)
   ..put('/api/navratri-days/<day>/end', _endDay)
@@ -1410,10 +1419,12 @@ Future<Response> _getAllTickets(Request request) async {
     final assigned = request.url.queryParameters['assigned'];
     String sql = '''
       SELECT dt.*, nd.goddess_name, nd.date as event_date, 
-             u.name as user_name, u.house_number as assigned_house
+             u.name as user_name, u.house_number as assigned_house,
+             dd.prize_level
       FROM draw_tickets dt
       LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
       LEFT JOIN users u ON dt.user_id = u.id
+      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code AND dd.day_number = dt.day_number AND dd.status = 'confirmed'
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
@@ -1697,10 +1708,12 @@ Future<Response> _getWinners(Request request) async {
     String sql = '''
       SELECT dt.ticket_code, dt.day_number, dt.is_winner,
              u.name as user_name, u.house_number,
-             nd.goddess_name, nd.date as event_date
+             nd.goddess_name, nd.date as event_date,
+             dd.prize_level, dd.status as draw_status
       FROM draw_tickets dt
       LEFT JOIN users u ON dt.user_id = u.id
       LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
+      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code AND dd.day_number = dt.day_number AND dd.status = 'confirmed'
       WHERE dt.is_winner = TRUE
     ''';
     final params = <String, dynamic>{};
@@ -2040,9 +2053,10 @@ Future<Response> _getDailyDrawHistory(Request request) async {
     final day = request.url.queryParameters['day'];
     final conn = await db;
     var sql = '''
-      SELECT dd.*, u.name as winner_name, u.house_number
+      SELECT dd.*, u.name as winner_name, u.house_number, nd.goddess_name, nd.date as event_date
       FROM daily_draws dd
       LEFT JOIN users u ON dd.winner_id = u.id
+      LEFT JOIN navratri_days nd ON dd.day_number = nd.day_number
     ''';
     final params = <String, dynamic>{};
     if (day != null) {
@@ -2092,6 +2106,139 @@ Future<Response> _getDrawTicketsForDay(Request request, String day) async {
       parameters: {'day': int.parse(day)},
     );
     return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== CREATE DRAW ==========
+
+Future<Response> _createDraw(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final dayNumber = body['day_number'] as int;
+    final ticketId = body['ticket_id'] as int;
+    final ticketCode = body['ticket_code'] as String;
+    final winnerId = body['winner_id'] as int;
+    final houseNumber = body['house_number'] as String;
+    final drawnBy = body['drawn_by'] as int;
+
+    final countResult = await conn.execute(
+      Sql.named(
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE"),
+      parameters: {'day': dayNumber},
+    );
+    final drawsToday = countResult.first.toColumnMap()['cnt'] ?? 0;
+
+    final result = await conn.execute(
+      Sql.named('''
+        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by, drawn_at, status)
+        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy, NOW(), 'drawn')
+        RETURNING id
+      '''),
+      parameters: {
+        'day': dayNumber,
+        'ticketId': ticketId,
+        'ticketCode': ticketCode,
+        'winnerId': winnerId,
+        'house': houseNumber,
+        'drawNum': drawsToday + 1,
+        'drawnBy': drawnBy,
+      },
+    );
+
+    return _jsonResponse({'id': result.first.toColumnMap()['id']});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== CONFIRM / DISQUALIFY DRAW ==========
+
+Future<Response> _confirmDraw(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final drawId = body['draw_id'] as int;
+    final dayNumber = body['day_number'] as int;
+
+    // Count existing confirmed prize winners for this day to determine prize level
+    final countResult = await conn.execute(
+      Sql.named(
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND status = 'confirmed' AND prize_level IS NOT NULL"),
+      parameters: {'day': dayNumber},
+    );
+    final confirmedCount = countResult.first.toColumnMap()['cnt'] ?? 0;
+
+    int prizeLevel;
+    if (confirmedCount == 0) {
+      prizeLevel = 3; // First available = 3rd prize
+    } else if (confirmedCount == 1) {
+      prizeLevel = 2; // Second available = 2nd prize
+    } else if (confirmedCount == 2) {
+      prizeLevel = 1; // Third available = 1st prize
+    } else {
+      prizeLevel = 0; // No more prizes, just a general winner
+    }
+
+    // Update the daily_draws record
+    await conn.execute(
+      Sql.named('''
+        UPDATE daily_draws SET status = 'confirmed', is_available = TRUE, prize_level = @prizeLevel
+        WHERE id = @id
+      '''),
+      parameters: {'id': drawId, 'prizeLevel': prizeLevel > 0 ? prizeLevel : null},
+    );
+
+    // Also mark the ticket as winner in draw_tickets
+    await conn.execute(
+      Sql.named('UPDATE draw_tickets SET is_winner = TRUE WHERE ticket_code = (SELECT ticket_code FROM daily_draws WHERE id = @id)'),
+      parameters: {'id': drawId},
+    );
+
+    return _jsonResponse({'ok': true, 'prize_level': prizeLevel});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _disqualifyDraw(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final drawId = body['draw_id'] as int;
+    final currentDay = body['day_number'] as int;
+    final nextDay = currentDay + 1;
+
+    // Get the ticket_code and winner_id from this draw
+    final drawResult = await conn.execute(
+      Sql.named('SELECT ticket_code, winner_id FROM daily_draws WHERE id = @id'),
+      parameters: {'id': drawId},
+    );
+    if (drawResult.isEmpty) return _errorResponse('Draw not found');
+
+    final drawData = drawResult.first.toColumnMap();
+    final ticketCode = drawData['ticket_code'];
+
+    // Update the daily_draws record as disqualified
+    await conn.execute(
+      Sql.named('''
+        UPDATE daily_draws SET status = 'disqualified', is_available = FALSE, rescheduled_to_day = @nextDay
+        WHERE id = @id
+      '''),
+      parameters: {'id': drawId, 'nextDay': nextDay <= 9 ? nextDay : null},
+    );
+
+    // Move the ticket to the next day if within 9 days
+    if (nextDay <= 9) {
+      await conn.execute(
+        Sql.named('UPDATE draw_tickets SET day_number = @nextDay WHERE ticket_code = @code'),
+        parameters: {'nextDay': nextDay, 'code': ticketCode},
+      );
+    }
+
+    return _jsonResponse({'ok': true, 'rescheduled_to_day': nextDay <= 9 ? nextDay : null});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -2166,6 +2313,19 @@ Future<Response> _getDailyInfo(Request request) async {
       '''),
     );
 
+    // Yesterday's prize winners
+    final yesterdayWinners = await conn.execute(
+      Sql.named('''
+        SELECT dd.*, u.name as user_name, nd.goddess_name
+        FROM daily_draws dd
+        LEFT JOIN users u ON dd.winner_id = u.id
+        LEFT JOIN navratri_days nd ON dd.day_number = nd.day_number
+        WHERE dd.status = 'confirmed' AND dd.day_number = @yesterdayDay
+        ORDER BY dd.prize_level ASC
+      '''),
+      parameters: {'yesterdayDay': dayNumber > 1 ? dayNumber - 1 : 1},
+    );
+
     return _jsonResponse({
       'day_number': dayNumber,
       'day_info': dayData.isNotEmpty ? _parseRow(dayData.first) : null,
@@ -2173,6 +2333,7 @@ Future<Response> _getDailyInfo(Request request) async {
       'gift_assignments': _parseResults(giftAssignments),
       'snack_orders': _parseResults(snackOrders),
       'sponsors': _parseResults(sponsors),
+      'yesterday_prize_winners': _parseResults(yesterdayWinners),
     });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
