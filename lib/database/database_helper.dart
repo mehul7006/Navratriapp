@@ -705,6 +705,10 @@ class DatabaseHelper {
     return jsonDecode(response.body);
   }
 
+  static Future<List<Map<String, dynamic>>> getDrawTicketsForDay(int dayNumber) async {
+    return _get('/api/daily-draws/tickets/$dayNumber');
+  }
+
   static Future<List<Map<String, dynamic>>> getDailyDrawHistory({int? dayNumber}) async {
     final params = dayNumber != null ? '?day=$dayNumber' : '';
     return _get('/api/daily-draws/history$params');

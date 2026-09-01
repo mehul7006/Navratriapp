@@ -196,6 +196,7 @@ final router = Router()
   ..post('/api/daily-draws/spin', _spinDraw)
   ..get('/api/daily-draws/history', _getDailyDrawHistory)
   ..get('/api/daily-draws/count', _getDailyDrawCount)
+  ..get('/api/daily-draws/tickets/<day>', _getDrawTicketsForDay)
   ..get('/api/daily-info', _getDailyInfo)
   ..put('/api/navratri-days/<day>/start', _startDay)
   ..put('/api/navratri-days/<day>/end', _endDay)
@@ -1920,7 +1921,7 @@ Future<Response> _spinPrizeDraw(Request request) async {
     if (prizeSpinsToday >= 3)
       return _errorResponse('Maximum 3 prize draws per day reached');
 
-    // Pick random assigned ticket for this day, excluding users who won any prize in last 9 days
+    // Pick random assigned ticket for this day, excluding users who won any prize in last 3 days
     final ticketResult = await conn.execute(
       Sql.named('''
         SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
@@ -1930,7 +1931,7 @@ Future<Response> _spinPrizeDraw(Request request) async {
         AND dt.user_id NOT IN (
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
-          AND drawn_at > NOW() - INTERVAL '9 days'
+          AND drawn_at > NOW() - INTERVAL '3 days'
         )
         ORDER BY RANDOM() LIMIT 1
       '''),
@@ -1986,7 +1987,7 @@ Future<Response> _spinDraw(Request request) async {
     if (spinsToday >= 6)
       return _errorResponse('Maximum 6 draws per day reached');
 
-    // Pick random assigned ticket for this day, excluding users who won in last 9 days
+    // Pick random assigned ticket for this day, excluding users who won in last 3 days
     final ticketResult = await conn.execute(
       Sql.named('''
         SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
@@ -1996,7 +1997,7 @@ Future<Response> _spinDraw(Request request) async {
         AND dt.user_id NOT IN (
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
-          AND drawn_at > NOW() - INTERVAL '9 days'
+          AND drawn_at > NOW() - INTERVAL '3 days'
         )
         ORDER BY RANDOM() LIMIT 1
       '''),
@@ -2067,6 +2068,30 @@ Future<Response> _getDailyDrawCount(Request request) async {
     );
     return _jsonResponse(
         {'count': results.first.toColumnMap()['cnt'] ?? 0, 'max': 6});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getDrawTicketsForDay(Request request, String day) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('''
+        SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
+        FROM draw_tickets dt
+        JOIN users u ON dt.user_id = u.id
+        WHERE dt.day_number = @day AND dt.is_assigned = TRUE
+        AND dt.user_id NOT IN (
+          SELECT winner_id FROM daily_draws 
+          WHERE winner_id IS NOT NULL 
+          AND drawn_at > NOW() - INTERVAL '3 days'
+        )
+        ORDER BY dt.id
+      '''),
+      parameters: {'day': int.parse(day)},
+    );
+    return _jsonResponse(_parseResults(results));
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

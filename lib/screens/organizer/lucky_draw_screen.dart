@@ -15,68 +15,62 @@ class LuckyDrawScreen extends StatefulWidget {
   State<LuckyDrawScreen> createState() => _LuckyDrawScreenState();
 }
 
-class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
+class _LuckyDrawScreenState extends State<LuckyDrawScreen>
+    with SingleTickerProviderStateMixin {
   int _selectedDay = 1;
-  int _spinsToday = 0;
-  int _maxSpins = 6;
-  bool _isSpinning = false;
   bool _isLoading = true;
-  Map<String, dynamic>? _lastResult;
-  List<Map<String, dynamic>> _drawHistory = [];
   List<Map<String, dynamic>> _days = [];
-
-  Map<String, dynamic>? _result;
-  List<Map<String, dynamic>> _prizeWinners = [];
-  bool _isPrizeMode = true;
-
-  // Slot machine state - 3 digits for 3 prizes
-  List<_SlotDigit> _slots = List.generate(3, (_) => _SlotDigit(value: 0, locked: true));
-  Timer? _spinTimer;
-  final Random _random = Random();
+  List<Map<String, dynamic>> _potTickets = [];
+  Map<String, dynamic>? _drawnTicket;
+  bool _isPotShaking = false;
+  bool _isRevealed = false;
+  bool _isDrawing = false;
   late ConfettiController _confettiController;
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    _loadData();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 4));
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _shakeController, curve: Curves.elasticOut),
+    );
+    _initDay();
   }
 
   @override
   void dispose() {
-    _spinTimer?.cancel();
     _confettiController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final countData = await DatabaseHelper.getDailyDrawCount(_selectedDay);
-      final history = await DatabaseHelper.getDailyDrawHistory(dayNumber: _selectedDay);
-      final days = await DatabaseHelper.getNavratriDays();
-      if (mounted) {
-        setState(() {
-          _spinsToday = countData['count'] ?? 0;
-          _maxSpins = countData['max'] ?? 6;
-          _drawHistory = history;
-          _days = days;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  Future<void> _initDay() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
+    _loadTickets();
   }
 
-  Map<String, dynamic>? _getDayData(int dayNum) {
-    final matches = _days.where((d) => d['day_number'] == dayNum);
-    return matches.isNotEmpty ? matches.first : null;
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    return day.isNotEmpty && day['is_completed'] == true;
   }
 
   bool _isDayBookable(int dayNumber) {
-    final day = _getDayData(dayNumber);
-    if (day == null) return false;
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return false;
     if (day['is_completed'] == true) return false;
     if (day['is_active'] == true) return true;
     final activeDay = _days.firstWhere(
@@ -87,216 +81,56 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     return dayNumber > (activeDay['day_number'] as int);
   }
 
-  bool _isDayCompleted(int dayNumber) {
-    final day = _getDayData(dayNumber);
-    return day != null && day['is_completed'] == true;
+  Future<void> _loadTickets() async {
+    setState(() {
+      _isLoading = true;
+      _drawnTicket = null;
+      _isRevealed = false;
+    });
+    try {
+      final tickets = await DatabaseHelper.getDrawTicketsForDay(_selectedDay);
+      if (mounted) {
+        setState(() {
+          _potTickets = tickets;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> _doSpin() async {
-    if (_spinsToday >= _maxSpins || _isSpinning) return;
+  Future<void> _drawTicket() async {
+    if (_isDrawing || _potTickets.isEmpty || !_isDayBookable(_selectedDay)) return;
 
-    final auth = context.read<AuthProvider>();
-    final drawnBy = auth.currentUser?['id'] ?? 0;
+    setState(() => _isDrawing = true);
+
+    // Shake the pot
+    _shakeController.forward(from: 0);
+    setState(() => _isPotShaking = true);
+
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // Pick a random ticket
+    final random = Random();
+    final index = random.nextInt(_potTickets.length);
+    final ticket = _potTickets[index];
 
     setState(() {
-      _isSpinning = true;
-      _lastResult = null;
-      _result = null;
-      _prizeWinners = [];
-      _slots = List.generate(3, (_) => _SlotDigit(value: 0, locked: false));
+      _drawnTicket = ticket;
+      _potTickets.removeAt(index);
+      _isPotShaking = false;
+      _isRevealed = false;
+      _isDrawing = false;
     });
 
-    final prizeLabels = ['3rd', '2nd', '1st'];
-    final prizeLevels = [3, 2, 1];
-    bool stopEarly = false;
-
-    for (int i = 0; i < 3; i++) {
-      if (stopEarly) break;
-
-      // Start random animation for this digit
-      _spinTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
-        if (!mounted || !_isSpinning) {
-          timer.cancel();
-          return;
-        }
-        final newSlots = _slots
-            .asMap()
-            .entries
-            .map((entry) {
-          if (entry.key < i) return entry.value; // already locked
-          return _SlotDigit(value: _random.nextInt(10), locked: false);
-        }).toList();
-        setState(() {
-          _slots = newSlots;
-        });
-      });
-
-      // Call API for this prize level
-      final result = await DatabaseHelper.spinDrawPrize(
-        dayNumber: _selectedDay,
-        drawnBy: drawnBy,
-        prizeLevel: prizeLevels[i],
-      );
-
-      // Wait ~3 seconds for animation
-      await Future.delayed(const Duration(seconds: 3));
-      _spinTimer?.cancel();
-
-      if (!mounted) break;
-
-      if (result == null) {
-        // No more eligible tickets - show message and stop
-        setState(() {
-          _isSpinning = false;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('No more eligible tickets for ${prizeLabels[i]} prize'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        stopEarly = true;
-        break;
-      }
-
-      // Lock this digit with result
-      int targetDigit = 0;
-      final code = (result['ticket_code'] ?? '0000').toString();
-      if (code.isNotEmpty) {
-        targetDigit = int.tryParse(code[code.length - 1]) ?? 0;
-      }
-
-      final lockedSlots = _slots.asMap().entries.map((entry) {
-        if (entry.key <= i) {
-          return _SlotDigit(value: targetDigit, locked: true);
-        }
-        return entry.value;
-      }).toList();
-
-      setState(() {
-        _slots = lockedSlots;
-        _prizeWinners.add({...result, 'prize_level': prizeLevels[i]});
-      });
-
-      // Brief pause to show locked digit before next spin
-      await Future.delayed(const Duration(milliseconds: 600));
-    }
-
-    _spinTimer?.cancel();
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    if (mounted) {
-      setState(() {
-        _isSpinning = false;
-        if (_prizeWinners.isNotEmpty) {
-          _lastResult = _prizeWinners.last;
-        }
-      });
-    }
-
-    if (_prizeWinners.isNotEmpty) {
-      _showAllPrizeWinnersDialog();
-    }
-
-    _loadData();
+    _shakeController.reverse();
   }
 
-  void _showAllPrizeWinnersDialog() {
+  void _revealTicket() {
+    if (_drawnTicket == null || _isRevealed) return;
+    setState(() => _isRevealed = true);
     _confettiController.play();
-    final prizeNames = {3: AppLocalizations.t('prize_3rd_bronze'), 2: AppLocalizations.t('prize_2nd_silver'), 1: AppLocalizations.t('prize_1st_gold')};
-    final prizeColors = {3: Colors.orange, 2: Colors.grey.shade300, 1: AppTheme.goldPrimary};
-    final prizeIcons = {3: '🥉', 2: '🥈', 1: '🥇'};
-
-    showDialog(
-      context: context,
-      builder: (ctx) => Stack(
-        children: [
-          AlertDialog(
-            backgroundColor: AppTheme.cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: AppTheme.goldPrimary, width: 2),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🎉', style: TextStyle(fontSize: 48)),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.t('prize_draw_results'),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  ..._prizeWinners.map((winner) {
-                    final level = winner['prize_level'] as int;
-                    final color = prizeColors[level] ?? Colors.white;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '${prizeIcons[level]} ${prizeNames[level]}',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            winner['ticket_code'] ?? '',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color, letterSpacing: 2),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            winner['user_name'] ?? 'Unknown',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          Text(
-                            'House: ${winner['house_number'] ?? ''}',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(AppLocalizations.t('close'), style: const TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
-                shouldLoop: false,
-                colors: const [
-                  Colors.green, Colors.purple, Colors.orange, Colors.red, Colors.blue, Colors.yellow,
-                ],
-                numberOfParticles: 30,
-                gravity: 0.1,
-                emissionFrequency: 0.05,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -304,94 +138,95 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: Text(AppLocalizations.t('lucky_draw'), style: const TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.t('lucky_draw')),
         backgroundColor: AppTheme.purpleDeep,
-        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: AppTheme.goldPrimary,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadTickets,
+          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildDaySelector(),
-                  const SizedBox(height: 16),
-                  _buildSpinCounter(),
-                  const SizedBox(height: 24),
-                  _buildSlotMachine(),
-                  const SizedBox(height: 16),
-                  _buildSpinButton(),
-                  const SizedBox(height: 20),
-                  if (_lastResult != null) _buildLastResult(),
-                  const SizedBox(height: 20),
-                  _buildDrawHistory(),
-                ],
-              ),
-            ),
+      body: Column(
+        children: [
+          _buildDaySelector(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        _buildPotZone(),
+                        const SizedBox(height: 20),
+                        _buildDrawnTicket(),
+                        const SizedBox(height: 20),
+                        _buildDrawHistory(),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildDaySelector() {
-    return SizedBox(
+    return Container(
       height: 60,
+      color: AppTheme.purpleDeep.withValues(alpha: 0.3),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         itemCount: 9,
         itemBuilder: (context, index) {
           final day = index + 1;
-          final dayData = _getDayData(day);
-          final isActive = dayData?['is_active'] == true;
-          final isCompleted = dayData?['is_completed'] == true;
-          final isSelected = _selectedDay == day;
+          final completed = _isDayCompleted(day);
           final bookable = _isDayBookable(day);
-          return GestureDetector(
-            onTap: bookable ? () {
-              setState(() => _selectedDay = day);
-              _loadData();
-            } : null,
-            child: Container(
-              width: 65,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppTheme.goldPrimary
-                    : (isCompleted
-                        ? Colors.red.withValues(alpha: 0.2)
-                        : AppTheme.cardBg),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isCompleted ? Colors.red.withValues(alpha: 0.6) : (isActive ? Colors.amber : Colors.white24),
-                  width: isActive ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'D$day',
-                    style: TextStyle(
-                      color: isCompleted ? Colors.red.withValues(alpha: 0.7) : (isSelected ? Colors.black : Colors.white),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+          final isSelected = _selectedDay == day;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: bookable
+                  ? () {
+                      setState(() => _selectedDay = day);
+                      _loadTickets();
+                    }
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.goldPrimary
+                      : (completed ? Colors.red.withOpacity(0.15) : AppTheme.purpleCard),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: completed
+                        ? Colors.red.withOpacity(0.6)
+                        : (isSelected ? AppTheme.goldPrimary : Colors.transparent),
                   ),
-                  if (isActive)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.amber,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'LIVE',
-                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Day $day',
+                      style: TextStyle(
+                        color: completed
+                            ? Colors.red.withOpacity(0.7)
+                            : (isSelected ? AppTheme.purpleDark : Colors.white),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
                     ),
-                  if (isCompleted) const Icon(Icons.lock, size: 12, color: Colors.red),
-                ],
+                    if (completed) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
+                    ],
+                  ],
+                ),
               ),
             ),
           );
@@ -400,42 +235,384 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     );
   }
 
-  Widget _buildSpinCounter() {
-    final remaining = _maxSpins - _spinsToday;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppTheme.purpleCard, AppTheme.purpleDeep]),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.goldPrimary.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.casino, color: AppTheme.goldPrimary, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'Spins Today: $_spinsToday / $_maxSpins',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+  Widget _buildPotZone() {
+    final bookable = _isDayBookable(_selectedDay);
+    final completed = _isDayCompleted(_selectedDay);
+    final ticketCount = _potTickets.length;
+
+    return Column(
+      children: [
+        // Pot with tickets
+        GestureDetector(
+          onTap: bookable ? _drawTicket : null,
+          child: AnimatedBuilder(
+            animation: _shakeAnimation,
+            builder: (context, child) {
+              final shake = _isPotShaking
+                  ? sin(_shakeController.value * pi * 4) * 8 * (1 - _shakeController.value)
+                  : 0.0;
+              return Transform.translate(
+                offset: Offset(shake, 0),
+                child: child,
+              );
+            },
+            child: Container(
+              width: 280,
+              height: 260,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Pot body (glass effect)
+                  Positioned(
+                    top: 30,
+                    left: 20,
+                    right: 20,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                          bottomLeft: Radius.circular(50),
+                          bottomRight: Radius.circular(50),
+                        ),
+                        border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withOpacity(0.15),
+                            Colors.white.withOpacity(0.05),
+                            Colors.white.withOpacity(0.1),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, -5),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(28),
+                          topRight: Radius.circular(28),
+                          bottomLeft: Radius.circular(48),
+                          bottomRight: Radius.circular(48),
+                        ),
+                        child: Stack(
+                          children: [
+                            // Glass highlight
+                            Positioned(
+                              top: 10,
+                              left: 15,
+                              width: 30,
+                              child: Container(
+                                height: 150,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.white.withOpacity(0.5),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Tickets pile inside pot
+                            _buildTicketsPile(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Pot neck
+                  Positioned(
+                    top: 20,
+                    left: 10,
+                    right: 10,
+                    height: 30,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.white.withOpacity(0.5),
+                            Colors.white.withOpacity(0.1),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Pot rim
+                  Positioned(
+                    top: 15,
+                    left: 5,
+                    right: 5,
+                    height: 18,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withOpacity(0.6),
+                            Colors.white.withOpacity(0.2),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: _maxSpins > 0 ? _spinsToday / _maxSpins : 0,
-            backgroundColor: Colors.white12,
-            valueColor: AlwaysStoppedAnimation(remaining > 0 ? AppTheme.goldPrimary : Colors.red),
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
+        ),
+        const SizedBox(height: 12),
+        // Status text
+        if (completed)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.red.withOpacity(0.5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock, color: Colors.red.withOpacity(0.7), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'Day Completed - Draw Closed',
+                  style: TextStyle(color: Colors.red.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          )
+        else if (_potTickets.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.withOpacity(0.5)),
+            ),
+            child: Text(
+              'No tickets available - Assign tickets first',
+              style: TextStyle(color: Colors.orange.withOpacity(0.8), fontSize: 13),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.confirmation_number, color: AppTheme.goldPrimary, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '$ticketCount ticket${ticketCount != 1 ? 's' : ''} in pot',
+                  style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        if (bookable && _potTickets.isNotEmpty && !_isDrawing)
+          Text(
+            'Tap the pot to draw a ticket',
+            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+          ),
+        if (_isDrawing)
+          const Text(
+            'Drawing...',
+            style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTicketsPile() {
+    if (_potTickets.isEmpty) {
+      return const Center(
+        child: Icon(Icons.inbox, size: 50, color: Colors.white24),
+      );
+    }
+
+    final random = Random(42); // Fixed seed for consistent layout
+    final count = min(_potTickets.length, 30);
+
+    return Stack(
+      children: List.generate(count, (i) {
+        final left = 15 + random.nextDouble() * 180;
+        final top = 20 + random.nextDouble() * 150;
+        final rotation = -30 + random.nextDouble() * 60;
+
+        return Positioned(
+          left: left,
+          top: top,
+          child: Transform.rotate(
+            angle: rotation * pi / 180,
+            child: Container(
+              width: 50,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7A1839), Color(0xFF3A0B1E)],
+                ),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white.withOpacity(0.35), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '🎫',
+                  style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8)),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDrawnTicket() {
+    if (_drawnTicket == null) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: Text(
+          'Draw a ticket from the pot',
+          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 15),
+        ),
+      );
+    }
+
+    final ticketCode = _drawnTicket!['ticket_code'] ?? '';
+    final userName = _drawnTicket!['user_name'] ?? '';
+    final houseNumber = _drawnTicket!['house_number'] ?? '';
+
+    return Column(
+      children: [
+        if (!_isRevealed)
+          Text(
+            'Double-click the ticket to reveal',
+            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+          ),
+        if (_isRevealed)
+          Text(
+            'Winner Revealed!',
+            style: TextStyle(color: AppTheme.goldPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onDoubleTap: _revealTicket,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+            width: 300,
+            height: 180,
+            child: _isRevealed ? _buildRevealedSide(ticketCode, userName, houseNumber) : _buildCoverSide(),
+          ),
+        ),
+        if (_isRevealed) ...[
+          const SizedBox(height: 16),
+          Text(
+            'Congratulations, $userName!',
+            style: const TextStyle(
+              color: AppTheme.goldPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            '$remaining spins remaining',
+            'House: $houseNumber',
+            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+          ),
+        ],
+        // Confetti
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            shouldLoop: false,
+            colors: const [
+              Colors.red, Colors.green, Colors.blue, Colors.yellow,
+              Colors.purple, Colors.orange, Colors.white, AppTheme.goldPrimary,
+            ],
+            numberOfParticles: 30,
+            gravity: 0.1,
+            emissionFrequency: 0.05,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCoverSide() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF7A1839), Color(0xFF3A0B1E)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('🎫', style: TextStyle(fontSize: 40)),
+          const SizedBox(height: 10),
+          Text(
+            'DOUBLE-CLICK TO REVEAL',
             style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
               fontSize: 12,
-              color: remaining > 0 ? AppTheme.goldPrimary : Colors.red,
+              letterSpacing: 3,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -443,257 +620,174 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     );
   }
 
-  Widget _buildSlotMachine() {
-    final lockedCount = _slots.where((s) => s.locked).length;
-    final progress = _isSpinning ? (lockedCount / 3.0) : (_lastResult != null ? 1.0 : 0.0);
-    final prizeLabels = ['3rd', '2nd', '1st'];
-    final prizeColors = [Colors.orange, Colors.grey.shade300, AppTheme.goldPrimary];
-
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade900,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.goldPrimary, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.goldPrimary.withValues(alpha: 0.3),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
+  Widget _buildRevealedSide(String ticketCode, String userName, String houseNumber) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFD99A1C), Color(0xFF7A1839)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.goldPrimary.withOpacity(0.4),
+            blurRadius: 20,
+            spreadRadius: 3,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(3, (index) {
-              final slot = _slots[index];
-              final labelColor = prizeColors[index];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Star
+          const Positioned(
+            top: 10,
+            right: 14,
+            child: Text('🌟', style: TextStyle(fontSize: 22)),
+          ),
+          // Content overlay
+          Center(
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.25)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 56,
-                    height: 64,
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: BoxDecoration(
-                      color: slot.locked ? AppTheme.purpleDeep : Colors.black,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: slot.locked ? labelColor : Colors.white24,
-                        width: slot.locked ? 2 : 1,
-                      ),
-                      boxShadow: slot.locked
-                          ? [BoxShadow(color: labelColor.withValues(alpha: 0.3), blurRadius: 8)]
-                          : [],
+                  Text(
+                    'COUPON CODE',
+                    style: TextStyle(
+                      color: AppTheme.goldPrimary,
+                      fontSize: 10,
+                      letterSpacing: 3,
+                      fontWeight: FontWeight.bold,
                     ),
-                    child: Center(
-                      child: Text(
-                        '${slot.value}',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: slot.locked ? labelColor : Colors.white54,
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatTicketCode(ticketCode),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 3,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    prizeLabels[index],
+                    'HOLDER / ASSIGNEE',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: slot.locked ? labelColor : AppTheme.textMuted,
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 9,
+                      letterSpacing: 2,
                     ),
                   ),
-                ],
-              );
-            }),
-          ),
-        ),
-        if (_isSpinning) ...[
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.white12,
-            valueColor: const AlwaysStoppedAnimation(AppTheme.goldPrimary),
-            minHeight: 4,
-            borderRadius: BorderRadius.circular(2),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$lockedCount / 3 prizes drawn',
-            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSpinButton() {
-    final dayBookable = _isDayBookable(_selectedDay);
-    final canSpin = _spinsToday < _maxSpins && !_isSpinning && dayBookable;
-    return GestureDetector(
-      onTap: canSpin ? _doSpin : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: canSpin
-              ? const LinearGradient(
-                  colors: [AppTheme.goldPrimary, Color(0xFFB8860B)])
-              : LinearGradient(colors: [Colors.grey, Colors.black54]),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: canSpin
-              ? [
-                  BoxShadow(
-                    color: AppTheme.goldPrimary.withValues(alpha: 0.5),
-                    blurRadius: 15,
-                    spreadRadius: 3,
-                  )
-                ]
-              : [],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _isSpinning ? Icons.hourglass_top : (!dayBookable ? Icons.lock : Icons.play_arrow),
-              color: canSpin ? Colors.black : Colors.white70,
-              size: 28,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              _isSpinning
-                  ? 'DRAWING...'
-                  : (!dayBookable
-                      ? 'DAY CLOSED'
-                      : (_spinsToday >= _maxSpins ? 'LIMIT REACHED' : 'DRAW PRIZES')),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: canSpin ? Colors.black : Colors.white70,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLastResult() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green.withValues(alpha: 0.2), AppTheme.purpleCard],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        children: [
-          Text(AppLocalizations.t('last_winner'), style: const TextStyle(fontSize: 14, color: Colors.green)),
-          const SizedBox(height: 8),
-          Text(
-            _lastResult!['ticket_code'] ?? '',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.goldPrimary,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _lastResult!['user_name'] ?? '',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          Text(
-            'House: ${_lastResult!['house_number'] ?? ''}',
-            style: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawHistory() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppLocalizations.t('draw_history'),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary),
-        ),
-        const SizedBox(height: 8),
-        if (_drawHistory.isEmpty)
-          Center(child: Text(AppLocalizations.t('no_draws_today'), style: const TextStyle(color: AppTheme.textMuted)))
-        else
-          ..._drawHistory.map(
-            (draw) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: AppTheme.hubItemDecoration,
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      gradient: AppTheme.goldGradient,
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '#${draw['draw_number'] ?? ''}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.purpleDark,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          draw['ticket_code'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        Text(
-                          draw['winner_name'] ?? '',
-                          style: const TextStyle(fontSize: 13, color: AppTheme.goldPrimary),
-                        ),
-                      ],
+                  const SizedBox(height: 2),
+                  Text(
+                    userName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    draw['house_number'] ?? '',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    'House: $houseNumber',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
-}
 
-class _SlotDigit {
-  final int value;
-  final bool locked;
-  const _SlotDigit({required this.value, required this.locked});
+  String _formatTicketCode(String code) {
+    if (code.length >= 10) {
+      return '${code.substring(0, 3)} ${code.substring(3, 6)} ${code.substring(6)}';
+    }
+    return code;
+  }
+
+  Widget _buildDrawHistory() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseHelper.getDailyDrawHistory(dayNumber: _selectedDay),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final history = snapshot.data!;
+        if (history.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Today\'s Winners',
+              style: TextStyle(
+                color: AppTheme.goldPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...history.take(6).map((draw) {
+              final isPrize = draw['prize_level'] != null;
+              final prizeLabel = isPrize
+                  ? ['🏆 1st', '🥈 2nd', '🥉 3rd'][draw['prize_level'] - 1]
+                  : '';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    if (isPrize)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.goldPrimary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(prizeLabel, style: const TextStyle(fontSize: 10, color: AppTheme.goldPrimary)),
+                      )
+                    else
+                      const Icon(Icons.confirmation_number, size: 16, color: Colors.white54),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            draw['ticket_code'] ?? '',
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace'),
+                          ),
+                          Text(
+                            '${draw['user_name'] ?? ''} • ${draw['house_number'] ?? ''}',
+                            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
 }
