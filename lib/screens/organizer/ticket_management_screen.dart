@@ -427,6 +427,8 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                 itemBuilder: (context) => [
                   if (!isWinner)
                     PopupMenuItem(value: 'winner', child: Text(AppLocalizations.t('mark_winner'))),
+                  if (isWinner)
+                    const PopupMenuItem(value: 'cancel_prize', child: Text('Cancel Prize', style: TextStyle(color: Colors.orange))),
                   PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('delete'), style: TextStyle(color: Colors.red))),
                 ],
               ),
@@ -451,6 +453,50 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
         await DatabaseHelper.markWinner(ticket['id']);
         _loadData();
       }
+    } else if (action == 'cancel_prize') {
+      final reason = await _showCancelDialog();
+      if (reason == null || reason.isEmpty) return;
+      
+      try {
+        // Find the draw_id for this ticket
+        final drawHistory = await DatabaseHelper.getDailyDrawHistory(dayNumber: ticket['day_number']);
+        final draw = drawHistory.firstWhere(
+          (d) => d['ticket_code'] == ticket['ticket_code'] && d['status'] == 'confirmed',
+          orElse: () => {},
+        );
+        
+        if (draw.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No confirmed draw found for this ticket'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+        
+        await DatabaseHelper.cancelDraw(drawId: draw['id'], reason: reason);
+        _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Prize cancelled successfully'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to cancel prize: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else if (action == 'delete') {
       final confirm = await showDialog<bool>(
         context: context,
@@ -468,6 +514,64 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
         _loadData();
       }
     }
+  }
+
+  Future<String?> _showCancelDialog() async {
+    final reasonController = TextEditingController();
+    
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Cancel Prize', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Are you sure you want to cancel this prize? The ticket will be returned to the pot for re-draw.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Reason for cancellation *',
+                labelStyle: const TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.white38),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                ),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: reasonController.text.isEmpty
+                ? null
+                : () => Navigator.pop(ctx, reasonController.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm Cancellation'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showGenerateDialog() {
