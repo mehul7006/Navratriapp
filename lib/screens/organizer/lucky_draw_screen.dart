@@ -15,38 +15,29 @@ class LuckyDrawScreen extends StatefulWidget {
   State<LuckyDrawScreen> createState() => _LuckyDrawScreenState();
 }
 
-class _LuckyDrawScreenState extends State<LuckyDrawScreen>
-    with SingleTickerProviderStateMixin {
+class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   int _selectedDay = 1;
   bool _isLoading = true;
   List<Map<String, dynamic>> _days = [];
   List<Map<String, dynamic>> _potTickets = [];
   Map<String, dynamic>? _drawnTicket;
-  bool _isPotShaking = false;
   bool _isRevealed = false;
   bool _isDrawing = false;
+  int _shakeOffset = 0;
+  Timer? _shakeTimer;
   late ConfettiController _confettiController;
-  late AnimationController _shakeController;
-  late Animation<double> _shakeAnimation;
 
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(duration: const Duration(seconds: 4));
-    _shakeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _shakeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _shakeController, curve: Curves.elasticOut),
-    );
     _initDay();
   }
 
   @override
   void dispose() {
+    _shakeTimer?.cancel();
     _confettiController.dispose();
-    _shakeController.dispose();
     super.dispose();
   }
 
@@ -100,18 +91,27 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen>
     }
   }
 
+  void _startShake() {
+    int count = 0;
+    _shakeTimer?.cancel();
+    _shakeTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      count++;
+      setState(() => _shakeOffset = count.isEven ? 8 : -8);
+      if (count >= 8) {
+        timer.cancel();
+        setState(() => _shakeOffset = 0);
+      }
+    });
+  }
+
   Future<void> _drawTicket() async {
     if (_isDrawing || _potTickets.isEmpty || !_isDayBookable(_selectedDay)) return;
 
     setState(() => _isDrawing = true);
-
-    // Shake the pot
-    _shakeController.forward(from: 0);
-    setState(() => _isPotShaking = true);
+    _startShake();
 
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Pick a random ticket
     final random = Random();
     final index = random.nextInt(_potTickets.length);
     final ticket = _potTickets[index];
@@ -119,12 +119,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen>
     setState(() {
       _drawnTicket = ticket;
       _potTickets.removeAt(index);
-      _isPotShaking = false;
       _isRevealed = false;
       _isDrawing = false;
     });
-
-    _shakeController.reverse();
   }
 
   void _revealTicket() {
@@ -245,13 +242,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen>
         // Pot with tickets
         GestureDetector(
           onTap: bookable ? _drawTicket : null,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            transform: Matrix4.translationValues(
-              _isPotShaking ? sin(_shakeController.value * pi * 4) * 8 * (1 - _shakeController.value) : 0,
-              0,
-              0,
-            ),
+          child: Transform.translate(
+            offset: Offset(_shakeOffset.toDouble(), 0),
             child: Container(
               width: 280,
               height: 260,
