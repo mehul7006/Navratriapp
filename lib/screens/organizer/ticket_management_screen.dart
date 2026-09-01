@@ -522,6 +522,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
     bool isSearching = false;
     bool isSearchingTickets = false;
     bool showTicketSuggestions = false;
+    bool isDialogOpen = true;
     final ticketController = TextEditingController();
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
@@ -552,23 +553,28 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                   onChanged: (v) async {
                     ticketCode = v;
                     if (v.length >= 2) {
+                      if (!isDialogOpen) return;
                       setDialogState(() => isSearchingTickets = true);
                       try {
                         final results = await DatabaseHelper.getAllTickets();
+                        if (!isDialogOpen) return;
                         final filtered = results.where((t) {
                           final code = (t['ticket_code'] ?? '').toString();
                           final isAssigned = t['is_assigned'] == true;
                           return !isAssigned && code.contains(v);
                         }).toList();
+                        if (!isDialogOpen) return;
                         setDialogState(() {
                           ticketSuggestions = filtered;
                           showTicketSuggestions = filtered.isNotEmpty;
                           isSearchingTickets = false;
                         });
                       } catch (e) {
+                        if (!isDialogOpen) return;
                         setDialogState(() { ticketSuggestions = []; showTicketSuggestions = false; isSearchingTickets = false; });
                       }
                     } else {
+                      if (!isDialogOpen) return;
                       setDialogState(() { ticketSuggestions = []; showTicketSuggestions = false; isSearchingTickets = false; });
                     }
                   },
@@ -624,9 +630,11 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                   onChanged: (v) async {
                     houseNumber = v.toUpperCase();
                     if (v.length >= 2) {
+                      if (!isDialogOpen) return;
                       setDialogState(() => isSearching = true);
                       try {
                         final result = await DatabaseHelper.getMembersByHouse(houseNumber);
+                        if (!isDialogOpen) return;
                         setDialogState(() {
                           members = result;
                           showMembers = true;
@@ -635,6 +643,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                           showAddMember = false;
                         });
                       } catch (e) {
+                        if (!isDialogOpen) return;
                         setDialogState(() {
                           members = [];
                           showMembers = true;
@@ -643,6 +652,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                         });
                       }
                     } else {
+                      if (!isDialogOpen) return;
                       setDialogState(() { members = []; showMembers = false; showAddMember = false; isSearching = false; });
                     }
                   },
@@ -783,6 +793,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                                       userType: 'user',
                                     );
                                     final result = await DatabaseHelper.getMembersByHouse(houseNumber);
+                                    if (!isDialogOpen) return;
                                     setDialogState(() {
                                       members = result;
                                       showMembers = true;
@@ -816,7 +827,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
+            TextButton(onPressed: () { isDialogOpen = false; Navigator.pop(ctx); }, child: Text(AppLocalizations.t('cancel'))),
             TextButton(
               onPressed: (selectedUserId != null && ticketCode.isNotEmpty)
                   ? () async {
@@ -825,6 +836,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                         userId: selectedUserId!,
                         houseNumber: houseNumber,
                       );
+                      isDialogOpen = false;
                       Navigator.pop(ctx);
                       _loadData();
                     }
