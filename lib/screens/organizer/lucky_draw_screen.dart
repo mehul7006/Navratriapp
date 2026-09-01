@@ -1112,23 +1112,30 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             ...history.take(6).map((draw) {
               final isPrize = draw['prize_level'] != null;
               final isDisqualified = draw['status'] == 'disqualified';
+              final isCancelled = draw['status'] == 'cancelled';
               final prizeLabel = isPrize
                   ? ['🏆 1st', '🥈 2nd', '🥉 3rd'][draw['prize_level'] - 1]
                   : isDisqualified
                       ? '❌ Disqualified'
-                      : '';
+                      : isCancelled
+                          ? '🚫 Cancelled'
+                          : '';
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isDisqualified
-                      ? Colors.red.withOpacity(0.1)
-                      : AppTheme.cardBg,
+                  color: isCancelled
+                      ? Colors.orange.withOpacity(0.1)
+                      : isDisqualified
+                          ? Colors.red.withOpacity(0.1)
+                          : AppTheme.cardBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: isDisqualified
-                      ? Border.all(color: Colors.red.withOpacity(0.3))
-                      : null,
+                  border: isCancelled
+                      ? Border.all(color: Colors.orange.withOpacity(0.3))
+                      : isDisqualified
+                          ? Border.all(color: Colors.red.withOpacity(0.3))
+                          : null,
                 ),
                 child: Row(
                   children: [
@@ -1150,6 +1157,15 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                         ),
                         child: Text(prizeLabel, style: TextStyle(fontSize: 10, color: Colors.red.withOpacity(0.7))),
                       )
+                    else if (isCancelled)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(prizeLabel, style: TextStyle(fontSize: 10, color: Colors.orange)),
+                      )
                     else
                       const Icon(Icons.confirmation_number, size: 16, color: Colors.white54),
                     const SizedBox(width: 10),
@@ -1160,16 +1176,21 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                           Text(
                             draw['ticket_code'] ?? '',
                             style: TextStyle(
-                              color: isDisqualified ? Colors.white54 : Colors.white,
+                              color: isCancelled || isDisqualified ? Colors.white54 : Colors.white,
                               fontSize: 12,
                               fontFamily: 'monospace',
-                              decoration: isDisqualified ? TextDecoration.lineThrough : null,
+                              decoration: isCancelled || isDisqualified ? TextDecoration.lineThrough : null,
                             ),
                           ),
                           Text(
                             '${draw['user_name'] ?? ''} • ${draw['house_number'] ?? ''}',
                             style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
                           ),
+                          if (isCancelled && draw['cancelled_reason'] != null)
+                            Text(
+                              'Reason: ${draw['cancelled_reason']}',
+                              style: TextStyle(color: Colors.orange.withOpacity(0.7), fontSize: 10),
+                            ),
                         ],
                       ),
                     ),
