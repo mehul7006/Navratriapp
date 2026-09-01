@@ -245,17 +245,13 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen>
         // Pot with tickets
         GestureDetector(
           onTap: bookable ? _drawTicket : null,
-          child: AnimatedBuilder(
-            animation: _shakeAnimation,
-            builder: (context, child) {
-              final shake = _isPotShaking
-                  ? sin(_shakeController.value * pi * 4) * 8 * (1 - _shakeController.value)
-                  : 0.0;
-              return Transform.translate(
-                offset: Offset(shake, 0),
-                child: child,
-              );
-            },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            transform: Matrix4.translationValues(
+              _isPotShaking ? sin(_shakeController.value * pi * 4) * 8 * (1 - _shakeController.value) : 0,
+              0,
+              0,
+            ),
             child: Container(
               width: 280,
               height: 260,
