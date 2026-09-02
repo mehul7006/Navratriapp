@@ -90,8 +90,6 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS cancelled_reason TEXT");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP");
-    // Reset all is_winner flags - 9-day cooldown now uses daily_draws table only
-    await _db!.execute('UPDATE draw_tickets SET is_winner = FALSE WHERE is_winner = TRUE');
     // Gift assignments status column
     await _db!.execute(
         "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
