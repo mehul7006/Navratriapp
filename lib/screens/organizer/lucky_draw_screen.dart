@@ -480,6 +480,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                         const SizedBox(height: 20),
                         _buildDrawnTicket(),
                         const SizedBox(height: 20),
+                        _buildCurrentWinners(),
+                        const SizedBox(height: 20),
                         _buildDrawHistory(),
                       ],
                     ),
@@ -1216,5 +1218,114 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
         );
       },
     );
+  }
+
+  Widget _buildCurrentWinners() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseHelper.getDailyDrawHistory(dayNumber: _selectedDay),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final history = snapshot.data!;
+        // Filter only confirmed winners
+        final winners = history.where((draw) => 
+          draw['status'] == 'confirmed' && draw['prize_level'] != null
+        ).toList();
+        
+        if (winners.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current Winners (Tap to Cancel)',
+              style: TextStyle(
+                color: AppTheme.goldPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...winners.map((draw) {
+              final prizeLevel = draw['prize_level'];
+              final prizeLabel = prizeLevel == 1 ? '🏆 1st' : prizeLevel == 2 ? '🥈 2nd' : '🥉 3rd';
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.goldPrimary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(prizeLabel, style: const TextStyle(fontSize: 10, color: AppTheme.goldPrimary)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            draw['ticket_code'] ?? '',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          Text(
+                            '${draw['user_name'] ?? ''} • ${draw['house_number'] ?? ''}',
+                            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                      onPressed: () => _cancelWinnerFromList(draw),
+                      tooltip: 'Cancel Prize',
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _cancelWinnerFromList(Map<String, dynamic> draw) async {
+    final reason = await _showCancelDialog();
+    if (reason == null || reason.isEmpty) return;
+    
+    try {
+      await DatabaseHelper.cancelDraw(drawId: draw['id'], reason: reason);
+      _loadTickets();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Prize cancelled successfully'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel prize: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

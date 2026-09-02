@@ -376,15 +376,20 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
     final isWinner = ticket['is_winner'] == true;
     final isAssigned = ticket['is_assigned'] == true;
     final isSelected = _selectedTicketIds.contains(ticket['id']);
+    final isCancelled = ticket['draw_status'] == 'cancelled';
+    final hasDrawRecord = ticket['draw_status'] != null;
+    
     return Card(
       color: isSelected
           ? Colors.blue.withOpacity(0.3)
-          : isWinner ? Colors.green.withValues(alpha: 0.2) : AppTheme.cardBg,
+          : isCancelled 
+              ? Colors.orange.withOpacity(0.1)
+              : isWinner ? Colors.green.withValues(alpha: 0.2) : AppTheme.cardBg,
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? Colors.blue : isWinner ? Colors.green : isAssigned ? Colors.blue : Colors.white24,
+          color: isSelected ? Colors.blue : isCancelled ? Colors.orange : isWinner ? Colors.green : isAssigned ? Colors.blue : Colors.white24,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -397,8 +402,8 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                 checkColor: Colors.white,
               )
             : CircleAvatar(
-                backgroundColor: isWinner ? Colors.green : isAssigned ? Colors.blue : Colors.grey,
-                child: Icon(isWinner ? Icons.emoji_events : isAssigned ? Icons.person : Icons.confirmation_number, color: Colors.white, size: 20),
+                backgroundColor: isCancelled ? Colors.orange : isWinner ? Colors.green : isAssigned ? Colors.blue : Colors.grey,
+                child: Icon(isCancelled ? Icons.cancel : isWinner ? Icons.emoji_events : isAssigned ? Icons.person : Icons.confirmation_number, color: Colors.white, size: 20),
               ),
         title: Text(
           ticket['ticket_code']?.toString().substring(0, [ticket['ticket_code']?.toString().length ?? 0, 30].reduce((a, b) => a < b ? a : b)) ?? 'Ticket',
@@ -410,12 +415,19 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             Text('Day ${ticket['day_number'] ?? '?'} • ${ticket['goddess_name'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
             if (isAssigned)
               Text('House: ${ticket['assigned_house'] ?? ticket['house_number'] ?? ''} • ${ticket['user_name'] ?? ''}', style: const TextStyle(color: Colors.blue, fontSize: 11)),
-            if (isWinner)
+            if (isWinner && !isCancelled)
               const Text('WINNER', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)),
-            if (isWinner && ticket['prize_level'] != null)
+            if (isCancelled)
+              const Text('CANCELLED', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11)),
+            if (isWinner && !isCancelled && ticket['prize_level'] != null)
               Text(
                 (ticket['prize_level'] == 1 ? '🏆 1st' : ticket['prize_level'] == 2 ? '🥈 2nd' : '🥉 3rd') + ' Prize',
                 style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 10),
+              ),
+            if (isCancelled && ticket['cancelled_reason'] != null)
+              Text(
+                'Reason: ${ticket['cancelled_reason']}',
+                style: TextStyle(color: Colors.orange.withOpacity(0.7), fontSize: 10),
               ),
           ],
         ),
@@ -425,9 +437,9 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                 icon: const Icon(Icons.more_vert, color: Colors.white70),
                 onSelected: (value) => _handleTicketAction(value, ticket),
                 itemBuilder: (context) => [
-                  if (!isWinner)
+                  if (!isWinner && !hasDrawRecord)
                     PopupMenuItem(value: 'winner', child: Text(AppLocalizations.t('mark_winner'))),
-                  if (isWinner)
+                  if (hasDrawRecord && !isCancelled)
                     const PopupMenuItem(value: 'cancel_prize', child: Text('Cancel Prize', style: TextStyle(color: Colors.orange))),
                   PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('delete'), style: TextStyle(color: Colors.red))),
                 ],
@@ -458,10 +470,10 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       if (reason == null || reason.isEmpty) return;
       
       try {
-        // Find the draw_id for this ticket
+        // Find the draw_id for this ticket - look for any draw record
         final drawHistory = await DatabaseHelper.getDailyDrawHistory(dayNumber: ticket['day_number']);
         final draw = drawHistory.firstWhere(
-          (d) => d['ticket_code'] == ticket['ticket_code'] && d['status'] == 'confirmed',
+          (d) => d['ticket_code'] == ticket['ticket_code'],
           orElse: () => {},
         );
         
@@ -469,8 +481,21 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('No confirmed draw found for this ticket'),
+                content: Text('No draw record found for this ticket'),
                 backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+        
+        // Check if already cancelled
+        if (draw['status'] == 'cancelled') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('This prize is already cancelled'),
+                backgroundColor: Colors.orange,
               ),
             );
           }
