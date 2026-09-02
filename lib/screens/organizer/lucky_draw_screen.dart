@@ -290,58 +290,70 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
 
   Future<String?> _showCancelDialog() async {
     final reasonController = TextEditingController();
+    bool _hasReason = false;
     
     return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text('Cancel Prize', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Are you sure you want to cancel this prize? The ticket will be returned to the pot for re-draw.',
-              style: TextStyle(color: Colors.white70),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          reasonController.addListener(() {
+            final hasText = reasonController.text.trim().isNotEmpty;
+            if (hasText != _hasReason) {
+              setDialogState(() => _hasReason = hasText);
+            }
+          });
+          
+          return AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: const Text('Cancel Prize', style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Are you sure you want to cancel this prize? The ticket will be returned to the pot for re-draw.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Reason for cancellation *',
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.white38),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                    ),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Reason for cancellation *',
-                labelStyle: const TextStyle(color: Colors.white70),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Colors.white38),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.goldPrimary),
-                ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
               ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            onPressed: reasonController.text.isEmpty
-                ? null
-                : () => Navigator.pop(ctx, reasonController.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Confirm Cancellation'),
-          ),
-        ],
+              ElevatedButton(
+                onPressed: _hasReason
+                    ? () => Navigator.pop(ctx, reasonController.text.trim())
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirm Cancellation'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
