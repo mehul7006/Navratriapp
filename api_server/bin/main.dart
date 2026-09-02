@@ -1423,18 +1423,13 @@ Future<Response> _getAllTickets(Request request) async {
     String sql = '''
       SELECT dt.*, nd.goddess_name, nd.date as event_date, 
              u.name as user_name, u.house_number as assigned_house,
-             dd.prize_level, dd.status as draw_status, dd.cancelled_reason,
-             CASE WHEN dd.status = 'confirmed' THEN TRUE ELSE FALSE END as is_winner
+             (SELECT prize_level FROM daily_draws WHERE ticket_code = dt.ticket_code AND day_number = dt.day_number AND status = 'confirmed' ORDER BY drawn_at DESC LIMIT 1) as prize_level,
+             (SELECT status FROM daily_draws WHERE ticket_code = dt.ticket_code AND day_number = dt.day_number ORDER BY drawn_at DESC LIMIT 1) as draw_status,
+             (SELECT cancelled_reason FROM daily_draws WHERE ticket_code = dt.ticket_code AND day_number = dt.day_number AND status = 'cancelled' ORDER BY drawn_at DESC LIMIT 1) as cancelled_reason,
+             CASE WHEN EXISTS(SELECT 1 FROM daily_draws WHERE ticket_code = dt.ticket_code AND day_number = dt.day_number AND status = 'confirmed') THEN TRUE ELSE FALSE END as is_winner
       FROM draw_tickets dt
       LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
       LEFT JOIN users u ON dt.user_id = u.id
-      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code 
-        AND dd.day_number = dt.day_number 
-        AND dd.id = (
-          SELECT id FROM daily_draws 
-          WHERE ticket_code = dt.ticket_code AND day_number = dt.day_number 
-          ORDER BY drawn_at DESC LIMIT 1
-        )
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
