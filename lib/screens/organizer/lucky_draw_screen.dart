@@ -268,9 +268,11 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           _cancelledPrizeLevel = result['prize_level'];
           _isCancelling = false;
         });
+        // Reload tickets so cancelled ticket becomes eligible again
+        _loadTickets();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Prize cancelled successfully. Reason: $reason'),
+            content: Text('Prize cancelled successfully. Ticket is now eligible for re-draw.'),
             backgroundColor: Colors.orange,
           ),
         );

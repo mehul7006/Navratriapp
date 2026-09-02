@@ -2264,7 +2264,7 @@ Future<Response> _cancelDraw(Request request) async {
 
     // Check if draw exists and is confirmed
     final drawResult = await conn.execute(
-      Sql.named('SELECT id, status, prize_level FROM daily_draws WHERE id = @id'),
+      Sql.named('SELECT id, status, prize_level, ticket_code FROM daily_draws WHERE id = @id'),
       parameters: {'id': drawId},
     );
     if (drawResult.isEmpty) return _errorResponse('Draw not found');
@@ -2285,6 +2285,15 @@ Future<Response> _cancelDraw(Request request) async {
       '''),
       parameters: {'id': drawId, 'reason': reason},
     );
+
+    // Reset the is_winner flag in draw_tickets so ticket becomes eligible again
+    final ticketCode = drawData['ticket_code'];
+    if (ticketCode != null) {
+      await conn.execute(
+        Sql.named('UPDATE draw_tickets SET is_winner = FALSE WHERE ticket_code = @code'),
+        parameters: {'code': ticketCode},
+      );
+    }
 
     return _jsonResponse({
       'ok': true, 
