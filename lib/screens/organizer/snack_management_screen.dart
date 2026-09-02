@@ -26,7 +26,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
     setState(() => _isLoading = true);
     _snacks = await DatabaseHelper.getAllSnacks();
     _orders = await DatabaseHelper.getSnackOrders();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
