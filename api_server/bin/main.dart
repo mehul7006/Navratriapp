@@ -1423,11 +1423,12 @@ Future<Response> _getAllTickets(Request request) async {
     String sql = '''
       SELECT dt.*, nd.goddess_name, nd.date as event_date, 
              u.name as user_name, u.house_number as assigned_house,
-             dd.prize_level, dd.status as draw_status, dd.cancelled_reason
+             dd.prize_level, dd.status as draw_status, dd.cancelled_reason,
+             CASE WHEN dd.status = 'confirmed' THEN TRUE ELSE FALSE END as is_winner
       FROM draw_tickets dt
       LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
       LEFT JOIN users u ON dt.user_id = u.id
-      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code AND dd.day_number = dt.day_number AND dd.status IN ('confirmed', 'cancelled')
+      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code AND dd.day_number = dt.day_number
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
