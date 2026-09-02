@@ -1428,7 +1428,13 @@ Future<Response> _getAllTickets(Request request) async {
       FROM draw_tickets dt
       LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
       LEFT JOIN users u ON dt.user_id = u.id
-      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code AND dd.day_number = dt.day_number
+      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code 
+        AND dd.day_number = dt.day_number 
+        AND dd.id = (
+          SELECT id FROM daily_draws 
+          WHERE ticket_code = dt.ticket_code AND day_number = dt.day_number 
+          ORDER BY drawn_at DESC LIMIT 1
+        )
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
