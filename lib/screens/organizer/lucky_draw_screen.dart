@@ -1130,9 +1130,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               final isCancelled = draw['status'] == 'cancelled';
               final isConfirmed = draw['status'] == 'confirmed';
               final prizeLabel = isPrize
-                  ? ['[1st]', '[2nd]', '[3rd]'][draw['prize_level'] - 1]
+                  ? ['🥇 1st', '🥈 2nd', '🥉 3rd'][(draw['prize_level'] ?? 1) - 1]
                   : isDisqualified
-                      ? 'X Disqualified'
+                      ? '❌ Disqualified'
                       : isCancelled
                           ? '/ Cancelled'
                           : '';

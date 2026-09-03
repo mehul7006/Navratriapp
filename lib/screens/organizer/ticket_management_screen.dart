@@ -76,7 +76,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   }
 
   void _selectAll() {
-    final filtered = _filter == 'winners' ? _tickets.where((t) => t['draw_status'] == 'confirmed').toList() : _tickets;
+    final filtered = _filter == 'winners' ? _tickets.where((t) => t['is_winner'] == true).toList() : _tickets;
     setState(() {
       if (_selectedTicketIds.length == filtered.length) {
         _selectedTicketIds.clear();
@@ -317,7 +317,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   Widget _buildStats() {
     final total = _tickets.length;
     final assigned = _tickets.where((t) => t['is_assigned'] == true).length;
-    final winners = _tickets.where((t) => t['draw_status'] == 'confirmed').length;
+    final winners = _tickets.where((t) => t['is_winner'] == true).length;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -362,7 +362,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   }
 
   Widget _buildTicketList() {
-    final filtered = _filter == 'winners' ? _tickets.where((t) => t['draw_status'] == 'confirmed').toList() : _tickets;
+    final filtered = _filter == 'winners' ? _tickets.where((t) => t['is_winner'] == true).toList() : _tickets;
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: filtered.length,

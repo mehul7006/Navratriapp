@@ -333,7 +333,7 @@ Future<Response> _loginUser(Request request) async {
       Sql.named('''
         SELECT id, house_number, name, mobile_number, user_type, profile_image
         FROM users 
-        WHERE house_number = @house AND mobile_number = @mobile AND is_active = TRUE
+        WHERE UPPER(house_number) = UPPER(@house) AND mobile_number = @mobile AND is_active = TRUE
       '''),
       parameters: {
         'house': body['house_number'],
@@ -355,7 +355,7 @@ Future<Response> _loginOrganizer(Request request) async {
       Sql.named('''
         SELECT id, house_number, name, user_type
         FROM users 
-        WHERE house_number = @username AND password = @password 
+        WHERE UPPER(house_number) = UPPER(@username) AND password = @password 
         AND user_type = 'organizer' AND is_active = TRUE
       '''),
       parameters: {'username': body['username'], 'password': body['password']},
@@ -377,7 +377,7 @@ Future<Response> _loginSponsor(Request request) async {
                s.company_name, s.advertisement_text, s.sponsorship_amount, s.payment_status
         FROM users u
         LEFT JOIN sponsors s ON u.id = s.user_id
-        WHERE u.house_number = @house AND u.password = @password 
+        WHERE UPPER(u.house_number) = UPPER(@house) AND u.password = @password 
         AND u.user_type = 'sponsor' AND u.is_active = TRUE
       '''),
       parameters: {'house': body['house_number'], 'password': body['password']},
