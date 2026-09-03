@@ -31,29 +31,28 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(
-        title: Text(AppLocalizations.t('snack_orders'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: AppTheme.purpleDeep,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          _buildTabBar(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _showOrders ? _buildOrdersList() : _buildSnacksList(),
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _buildTabBar(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _showOrders ? _buildOrdersList() : _buildSnacksList(),
+            ),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            backgroundColor: AppTheme.goldPrimary,
+            onPressed: () => _showAddSnackDialog(),
+            child: const Icon(Icons.add, color: AppTheme.purpleDark),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.goldPrimary,
-        onPressed: () => _showAddSnackDialog(),
-        child: const Icon(Icons.add, color: AppTheme.purpleDark),
-      ),
+        ),
+      ],
     );
   }
 

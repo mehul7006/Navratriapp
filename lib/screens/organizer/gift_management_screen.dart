@@ -32,30 +32,29 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(
-        title: Text(AppLocalizations.t('gifts_prizes'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: AppTheme.purpleDeep,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          _buildDaySelector(),
-          _buildTabBar(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _showAssignments ? _buildAssignmentsList() : _buildGiftsList(),
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _buildDaySelector(),
+            _buildTabBar(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _showAssignments ? _buildAssignmentsList() : _buildGiftsList(),
+            ),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            backgroundColor: AppTheme.goldPrimary,
+            onPressed: () => _showAddGiftDialog(),
+            child: const Icon(Icons.add, color: AppTheme.purpleDark),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.goldPrimary,
-        onPressed: () => _showAddGiftDialog(),
-        child: const Icon(Icons.add, color: AppTheme.purpleDark),
-      ),
+        ),
+      ],
     );
   }
 

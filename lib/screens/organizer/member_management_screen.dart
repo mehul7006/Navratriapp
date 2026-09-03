@@ -50,33 +50,32 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(
-        title: Text(AppLocalizations.t('manage_members'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: AppTheme.purpleDeep,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildFilterBar(),
-          _buildSortRow(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredMembers.isEmpty
-                    ? Center(child: Text(AppLocalizations.t('no_members_found'), style: const TextStyle(color: AppTheme.textMuted)))
-                    : _buildMembersList(),
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _buildHeader(),
+            _buildFilterBar(),
+            _buildSortRow(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredMembers.isEmpty
+                      ? Center(child: Text(AppLocalizations.t('no_members_found'), style: const TextStyle(color: AppTheme.textMuted)))
+                      : _buildMembersList(),
+            ),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            backgroundColor: AppTheme.goldPrimary,
+            onPressed: () => _showAddMemberDialog(),
+            child: const Icon(Icons.person_add, color: AppTheme.purpleDark),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.goldPrimary,
-        onPressed: () => _showAddMemberDialog(),
-        child: const Icon(Icons.person_add, color: AppTheme.purpleDark),
-      ),
+        ),
+      ],
     );
   }
 

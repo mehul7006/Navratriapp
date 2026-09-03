@@ -32,30 +32,29 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(
-        title: Text(AppLocalizations.t('aarti_bookings'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: AppTheme.purpleDeep,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          _buildDaySelector(),
-          _buildTabBar(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _showBookings ? _buildBookingsList() : _buildSlotsList(),
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _buildDaySelector(),
+            _buildTabBar(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _showBookings ? _buildBookingsList() : _buildSlotsList(),
+            ),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            backgroundColor: AppTheme.goldPrimary,
+            onPressed: () => _showAddSlotDialog(),
+            child: const Icon(Icons.add, color: AppTheme.purpleDark),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.goldPrimary,
-        onPressed: () => _showAddSlotDialog(),
-        child: const Icon(Icons.add, color: AppTheme.purpleDark),
-      ),
+        ),
+      ],
     );
   }
 

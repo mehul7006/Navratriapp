@@ -106,9 +106,11 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
-        title: Text(AppLocalizations.t('organizer_dashboard')),
+        title: Text(_getTabTitle(), style: const TextStyle(color: AppTheme.goldPrimary)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+        automaticallyImplyLeading: false,
         actions: [
           const LanguageToggle(),
           IconButton(
@@ -127,6 +129,17 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
       body: _buildBody(),
       bottomNavigationBar: _buildBottomNav(),
     );
+  }
+
+  String _getTabTitle() {
+    switch (_selectedIndex) {
+      case 0: return AppLocalizations.t('organizer_dashboard');
+      case 1: return AppLocalizations.t('manage_members');
+      case 2: return AppLocalizations.t('aarti_bookings');
+      case 3: return AppLocalizations.t('snack_orders');
+      case 4: return AppLocalizations.t('gifts_prizes');
+      default: return AppLocalizations.t('organizer_dashboard');
+    }
   }
 
   Widget _buildBody() {
