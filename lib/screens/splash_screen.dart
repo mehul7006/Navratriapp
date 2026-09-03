@@ -97,10 +97,17 @@ class _SplashScreenState extends State<SplashScreen>
                           ],
                           color: AppTheme.purpleCard.withOpacity(0.7),
                         ),
-                        child: const Center(
-                          child: Text(
-                            '🪔',
-                            style: TextStyle(fontSize: 56),
+                        child: Center(
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(colors: [AppTheme.goldPrimary, AppTheme.goldDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.self_improvement, size: 48, color: AppTheme.purpleDark),
+                            ),
                           ),
                         ),
                       ),

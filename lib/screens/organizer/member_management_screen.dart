@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
@@ -423,7 +424,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
                 Expanded(child: RadioListTile<String>(title: Text(AppLocalizations.t('sponsor'), style: const TextStyle(color: Colors.white, fontSize: 12)), value: 'sponsor', groupValue: _userType, onChanged: (v) => setState(() => _userType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
               ],
             ),
-            _buildField(controller: _houseController, label: AppLocalizations.t('house_number'), icon: Icons.home, textCapitalization: TextCapitalization.characters),
+            _buildField(controller: _houseController, label: AppLocalizations.t('house_number'), icon: Icons.home, textCapitalization: TextCapitalization.characters, onChanged: (v) { final upper = v.toUpperCase(); if (v != upper) { _houseController.value = _houseController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length)); } }),
             const SizedBox(height: 12),
             _buildField(controller: _nameController, label: AppLocalizations.t('full_name'), icon: Icons.person),
             const SizedBox(height: 12),
@@ -441,10 +442,12 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
     );
   }
 
-  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none}) {
+  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none, List<FilteringTextInputFormatter>? inputFormatters, ValueChanged<String>? onChanged}) {
     return TextFormField(
       controller: controller, keyboardType: keyboardType, style: const TextStyle(color: Colors.white),
       textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon, color: AppTheme.goldPrimary),
         labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,

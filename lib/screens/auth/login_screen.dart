@@ -98,12 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
     // Yesterday's prize winners
     final yesterdayWinners = _dailyInfo!['yesterday_prize_winners'] as List? ?? [];
     if (yesterdayWinners.isNotEmpty) {
-      parts.add('🎉 Yesterday\'s Prize Winners:');
+      parts.add('* Yesterday\'s Prize Winners:');
       for (final w in yesterdayWinners) {
         final prizeLevel = w['prize_level'];
         final name = w['user_name']?.toString() ?? '';
         final house = w['house_number']?.toString() ?? '';
-        final labels = ['', '🏆 1st', '🥈 2nd', '🥉 3rd'];
+        final labels = ['', '[1st]', '[2nd]', '[3rd]'];
         final label = prizeLevel != null ? labels[prizeLevel as int] ?? '' : '';
         if (name.isNotEmpty) parts.add('$label: $name (House $house)');
       }

@@ -392,16 +392,16 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     String prizeIcon;
     if (prizeLevel == 1) {
       prizeText = '1st Prize Winner!';
-      prizeIcon = '🏆';
+      prizeIcon = '1st';
     } else if (prizeLevel == 2) {
       prizeText = '2nd Prize Winner!';
-      prizeIcon = '🥈';
+      prizeIcon = '2nd';
     } else if (prizeLevel == 3) {
       prizeText = '3rd Prize Winner!';
-      prizeIcon = '🥉';
+      prizeIcon = '3rd';
     } else {
       prizeText = 'Winner!';
-      prizeIcon = '🎉';
+      prizeIcon = '*';
     }
 
     showDialog(
@@ -1129,11 +1129,11 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               final isCancelled = draw['status'] == 'cancelled';
               final isConfirmed = draw['status'] == 'confirmed';
               final prizeLabel = isPrize
-                  ? ['🏆 1st', '🥈 2nd', '🥉 3rd'][draw['prize_level'] - 1]
+                  ? ['[1st]', '[2nd]', '[3rd]'][draw['prize_level'] - 1]
                   : isDisqualified
-                      ? '❌ Disqualified'
+                      ? 'X Disqualified'
                       : isCancelled
-                          ? '🚫 Cancelled'
+                          ? '/ Cancelled'
                           : '';
 
               return Container(

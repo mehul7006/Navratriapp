@@ -22,9 +22,9 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
   bool _isSubmitting = false;
   Timer? _refreshTimer;
   int? _selectedToUser;
-  String _selectedEmoji = '🎉';
+  String _selectedEmoji = '*';
 
-  final _emojis = ['🎉', '👏', '🔥', '💪', '🏆', '❤️', '🙏', '✨'];
+  final _emojis = ['*', '+', '!', '#', '1', '<3', '>>', '~'];
 
   @override
   void initState() {

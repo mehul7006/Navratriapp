@@ -215,9 +215,9 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
     final isActive = member['is_active'] == true;
 
     String prizeText = '';
-    if (lastPrizeLevel == 1) prizeText = '🏆 1st';
-    else if (lastPrizeLevel == 2) prizeText = '🥈 2nd';
-    else if (lastPrizeLevel == 3) prizeText = '🥉 3rd';
+    if (lastPrizeLevel == 1) prizeText = '[1st]';
+    else if (lastPrizeLevel == 2) prizeText = '[2nd]';
+    else if (lastPrizeLevel == 3) prizeText = '[3rd]';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

@@ -188,9 +188,9 @@ class _GarbaMemberDetailScreenState extends State<GarbaMemberDetailScreen> {
                 final isAssigned = t['is_assigned'] == true;
 
                 String prizeText = '';
-                if (prizeLevel == 1) prizeText = '🏆 1st Prize';
-                else if (prizeLevel == 2) prizeText = '🥈 2nd Prize';
-                else if (prizeLevel == 3) prizeText = '🥉 3rd Prize';
+                if (prizeLevel == 1) prizeText = '[1st Prize]';
+                else if (prizeLevel == 2) prizeText = '[2nd Prize]';
+                else if (prizeLevel == 3) prizeText = '[3rd Prize]';
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 6),
@@ -272,9 +272,9 @@ class _GarbaMemberDetailScreenState extends State<GarbaMemberDetailScreen> {
           final date = w['event_date'] ?? '';
           String prizeText = '';
           String prizeIcon = '';
-          if (prizeLevel == 1) { prizeText = '1st Prize'; prizeIcon = '🏆'; }
-          else if (prizeLevel == 2) { prizeText = '2nd Prize'; prizeIcon = '🥈'; }
-          else if (prizeLevel == 3) { prizeText = '3rd Prize'; prizeIcon = '🥉'; }
+          if (prizeLevel == 1) { prizeText = '1st Prize'; prizeIcon = '1'; }
+          else if (prizeLevel == 2) { prizeText = '2nd Prize'; prizeIcon = '2'; }
+          else if (prizeLevel == 3) { prizeText = '3rd Prize'; prizeIcon = '3'; }
 
           return Card(
             color: AppTheme.cardBg,

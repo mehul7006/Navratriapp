@@ -420,7 +420,7 @@ Future<Response> _getAllMembers(Request request) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named(
-          "SELECT u.*, COALESCE(SUM(p.amount), 0) as total_paid FROM users u LEFT JOIN payments p ON p.user_id = u.id AND p.payment_status = 'paid' WHERE u.user_type != 'organizer' AND (u.member_type IS NULL OR u.member_type = 'main') GROUP BY u.id ORDER BY u.house_number"),
+          "SELECT u.*, COALESCE(SUM(fc.amount), 0) as total_paid FROM users u LEFT JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE WHERE u.user_type != 'organizer' AND (u.member_type IS NULL OR u.member_type = 'main') GROUP BY u.id ORDER BY u.house_number"),
     );
     return _jsonResponse(_parseResults(results));
   } catch (e) {
