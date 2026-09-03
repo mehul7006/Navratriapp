@@ -936,6 +936,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                                       name: nameController.text.trim(),
                                       mobileNumber: mobileController.text.trim().isNotEmpty ? mobileController.text.trim() : '0000000000',
                                       userType: 'user',
+                                      memberType: 'sub',
                                     );
                                     final result = await DatabaseHelper.getMembersByHouse(houseNumber);
                                     if (!ctx.mounted) return;

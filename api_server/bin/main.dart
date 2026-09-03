@@ -90,6 +90,9 @@ Future<Connection> get db async {
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS cancelled_reason TEXT");
     await _db!.execute(
         "ALTER TABLE daily_draws ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP");
+    // Member type column - main = paid member, sub = garba participant
+    await _db!.execute(
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS member_type VARCHAR DEFAULT 'main'");
     // Gift assignments status column
     await _db!.execute(
         "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
@@ -140,6 +143,12 @@ final router = Router()
   ..put('/api/members/<id>/status', _updateMemberStatus)
   ..put('/api/members/<id>', _updateMember)
   ..delete('/api/members/<id>', _deleteMember)
+  ..get('/api/garba/houses', _getGarbaHouses)
+  ..get('/api/garba/members/<house>', _getGarbaMembersByHouse)
+  ..post('/api/garba/members', _addGarbaMember)
+  ..put('/api/garba/members/<id>/move', _moveGarbaMember)
+  ..delete('/api/garba/members/<id>', _deleteGarbaMember)
+  ..get('/api/garba/member/<id>/details', _getGarbaMemberDetails)
   ..get('/api/payments', _getAllPayments)
   ..get('/api/payments/house/<house>', _getPaymentsByHouse)
   ..post('/api/payments', _addPayment)
@@ -387,14 +396,15 @@ Future<Response> _register(Request request) async {
 
     final results = await conn.execute(
       Sql.named('''
-        INSERT INTO users (house_number, name, mobile_number, user_type)
-        VALUES (@house, @name, @mobile, @type) RETURNING id
+        INSERT INTO users (house_number, name, mobile_number, user_type, member_type)
+        VALUES (@house, @name, @mobile, @type, @member_type) RETURNING id
       '''),
       parameters: {
         'house': body['house_number'],
         'name': body['name'],
         'mobile': body['mobile_number'],
         'type': body['user_type'] ?? 'user',
+        'member_type': body['member_type'] ?? 'main',
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -410,7 +420,7 @@ Future<Response> _getAllMembers(Request request) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named(
-          "SELECT * FROM users WHERE user_type != 'organizer' ORDER BY house_number"),
+          "SELECT u.*, COALESCE(SUM(p.amount), 0) as total_paid FROM users u LEFT JOIN payments p ON p.user_id = u.id AND p.payment_status = 'paid' WHERE u.user_type != 'organizer' AND u.member_type = 'main' GROUP BY u.id ORDER BY u.house_number"),
     );
     return _jsonResponse(_parseResults(results));
   } catch (e) {
@@ -482,6 +492,131 @@ Future<Response> _getMembersByHouse(Request request, String house) async {
       parameters: {'house': house},
     );
     return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+// ========== GARBA PARTICIPATION ==========
+
+Future<Response> _getGarbaHouses(Request request) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(Sql.named('''
+      SELECT house_number, COUNT(*) as member_count,
+             array_agg(name ORDER BY name) as member_names
+      FROM users 
+      WHERE user_type != 'organizer' AND house_number IS NOT NULL
+      GROUP BY house_number 
+      ORDER BY house_number
+    '''));
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getGarbaMembersByHouse(Request request, String house) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(Sql.named('''
+      SELECT u.id, u.name, u.house_number, u.user_type, u.member_type, u.is_active,
+             (SELECT COUNT(*) FROM draw_tickets dt WHERE dt.user_id = u.id) as total_tickets,
+             (SELECT COUNT(*) FROM draw_tickets dt WHERE dt.user_id = u.id AND dt.is_winner = TRUE) as winning_tickets,
+             (SELECT dd.prize_level FROM daily_draws dd WHERE dd.winner_id = u.id AND dd.status = 'confirmed' ORDER BY dd.drawn_at DESC LIMIT 1) as last_prize_level
+      FROM users u
+      WHERE u.house_number = @house AND u.user_type != 'organizer'
+      ORDER BY u.member_type, u.name
+    '''), parameters: {'house': house});
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _addGarbaMember(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final name = body['name'] as String;
+    final houseNumber = body['house_number'] as String;
+    final memberType = body['member_type'] as String? ?? 'sub';
+    
+    final result = await conn.execute(Sql.named(
+      'INSERT INTO users (name, house_number, user_type, member_type, is_active) VALUES (@name, @house, @userType, @memberType, true) RETURNING id'),
+      parameters: {'name': name, 'house': houseNumber, 'userType': 'user', 'memberType': memberType});
+    
+    return _jsonResponse({'ok': true, 'id': result.first.toColumnMap()['id']});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _moveGarbaMember(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final newHouse = body['new_house_number'] as String;
+    
+    await conn.execute(Sql.named(
+      'UPDATE users SET house_number = @house WHERE id = @id'),
+      parameters: {'house': newHouse, 'id': int.parse(id)});
+    
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _deleteGarbaMember(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named('DELETE FROM users WHERE id = @id'),
+      parameters: {'id': int.parse(id)});
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getGarbaMemberDetails(Request request, String id) async {
+  try {
+    final conn = await db;
+    final userId = int.parse(id);
+    
+    // Get user info
+    final userResult = await conn.execute(
+      Sql.named('SELECT * FROM users WHERE id = @id'),
+      parameters: {'id': userId});
+    if (userResult.isEmpty) return _errorResponse('Member not found');
+    final user = userResult.first.toColumnMap();
+    
+    // Get tickets with day info
+    final ticketsResult = await conn.execute(Sql.named('''
+      SELECT dt.*, nd.goddess_name, nd.date as event_date,
+             dd.status as draw_status, dd.prize_level
+      FROM draw_tickets dt
+      LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
+      LEFT JOIN daily_draws dd ON dd.ticket_code = dt.ticket_code AND dd.day_number = dt.day_number
+      WHERE dt.user_id = @userId
+      ORDER BY dt.day_number, dt.ticket_code
+    '''), parameters: {'userId': userId});
+    
+    // Get lucky draw wins
+    final winsResult = await conn.execute(Sql.named('''
+      SELECT dd.*, nd.goddess_name, nd.date as event_date
+      FROM daily_draws dd
+      LEFT JOIN navratri_days nd ON dd.day_number = nd.day_number
+      WHERE dd.winner_id = @userId AND dd.status = 'confirmed'
+      ORDER BY dd.drawn_at DESC
+    '''), parameters: {'userId': userId});
+    
+    return _jsonResponse({
+      'user': user,
+      'tickets': _parseResults(ticketsResult),
+      'wins': _parseResults(winsResult),
+    });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

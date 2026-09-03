@@ -199,24 +199,26 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                 const SizedBox(height: 2),
                 Text('${member['house_number']} • ${member['mobile_number'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: typeColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                      child: Text(type.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: typeColor)),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: typeColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                        child: Text(type.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: typeColor)),
                       ),
-                      child: Text(isActive ? AppLocalizations.t('active') : AppLocalizations.t('inactive'), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isActive ? Colors.green : Colors.red)),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(isActive ? AppLocalizations.t('active') : AppLocalizations.t('inactive'), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isActive ? Colors.green : Colors.red)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text('₹${(member['total_paid'] ?? 0).toStringAsFixed(0)}', style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
               ],
             ),
           ),

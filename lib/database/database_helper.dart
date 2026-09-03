@@ -111,12 +111,14 @@ class DatabaseHelper {
     required String name,
     required String mobileNumber,
     String userType = 'user',
+    String memberType = 'main',
   }) async {
     final result = await _post('/api/auth/register', {
       'house_number': houseNumber,
       'name': name,
       'mobile_number': mobileNumber,
       'user_type': userType,
+      'member_type': memberType,
     });
     return result?['id'] ?? 0;
   }
@@ -145,6 +147,51 @@ class DatabaseHelper {
 
   static Future<List<Map<String, dynamic>>> getMembersByHouse(String houseNumber) async {
     return _get('/api/members/house/$houseNumber');
+  }
+
+  // ========== GARBA PARTICIPATION ==========
+
+  static Future<List<Map<String, dynamic>>> getGarbaHouses() async {
+    return _get('/api/garba/houses');
+  }
+
+  static Future<List<Map<String, dynamic>>> getGarbaMembersByHouse(String houseNumber) async {
+    return _get('/api/garba/members/$houseNumber');
+  }
+
+  static Future<Map<String, dynamic>?> addGarbaMember({
+    required String name,
+    required String houseNumber,
+    String memberType = 'sub',
+  }) async {
+    return _post('/api/garba/members', {
+      'name': name,
+      'house_number': houseNumber,
+      'member_type': memberType,
+    });
+  }
+
+  static Future<void> moveGarbaMember(int memberId, String newHouseNumber) async {
+    await _put('/api/garba/members/$memberId/move', {
+      'new_house_number': newHouseNumber,
+    });
+  }
+
+  static Future<void> deleteGarbaMember(int memberId) async {
+    await _delete('/api/garba/members/$memberId');
+  }
+
+  static Future<Map<String, dynamic>?> getGarbaMemberDetails(int memberId) async {
+    try {
+      final response = await http.get(Uri.parse('$_apiBase/api/garba/member/$memberId/details'))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body);
+      if (data == null) return null;
+      return Map<String, dynamic>.from(data);
+    } catch (_) {
+      return null;
+    }
   }
 
   // ========== PAYMENTS ==========

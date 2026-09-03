@@ -18,6 +18,7 @@ import 'draw_history_screen.dart';
 import 'lucky_draw_screen.dart';
 import 'broadcast_management_screen.dart';
 import 'dj_console_screen.dart';
+import 'garba_participation_screen.dart';
 import '../../widgets/language_toggle.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -233,6 +234,9 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
             }),
             _buildQuickAction(AppLocalizations.t('lucky_draw_spin'), Icons.casino, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const LuckyDrawScreen()));
+            }),
+            _buildQuickAction(AppLocalizations.t('garba_participation'), Icons.groups, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const GarbaParticipationScreen()));
             }),
             _buildQuickAction(AppLocalizations.t('broadcasts'), Icons.campaign, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const BroadcastManagementScreen()));
