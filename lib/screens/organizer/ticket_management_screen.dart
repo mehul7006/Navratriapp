@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
@@ -912,7 +913,9 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                             controller: mobileController,
                             style: const TextStyle(color: Colors.white, fontSize: 12),
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
                             decoration: InputDecoration(
+                              counterText: '',
                               hintText: AppLocalizations.t('mobile_optional'),
                               hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
                               isDense: true,
@@ -929,6 +932,10 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                               icon: const Icon(Icons.person_add, size: 14, color: Colors.white),
                               label: Text(AppLocalizations.t('add_select_ticket'), style: TextStyle(color: Colors.white, fontSize: 12)),
                               onPressed: () async {
+                                if (mobileController.text.trim().isNotEmpty && mobileController.text.trim().length != 10) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('enter_valid_10_digit_mobile')), backgroundColor: Colors.red));
+                                  return;
+                                }
                                 if (nameController.text.trim().isNotEmpty) {
                                   try {
                                     final userId = await DatabaseHelper.registerUser(

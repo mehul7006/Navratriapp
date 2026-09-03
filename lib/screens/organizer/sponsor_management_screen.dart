@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
@@ -309,7 +310,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
             children: [
               _field(houseController, AppLocalizations.t('house_number')),
               _field(nameController, AppLocalizations.t('contact_name')),
-              _field(mobileController, AppLocalizations.t('mobile_number')),
+              _field(mobileController, AppLocalizations.t('mobile_number'), inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)], maxLength: 10),
               _field(companyController, AppLocalizations.t('company_name')),
               _field(adController, AppLocalizations.t('ad_text')),
               _field(amountController, AppLocalizations.t('sponsorship_amount'), isNumber: true),
@@ -321,6 +322,10 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
           TextButton(
             onPressed: () async {
+              if (mobileController.text.trim().isNotEmpty && mobileController.text.trim().length != 10) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('enter_valid_10_digit_mobile')), backgroundColor: Colors.red));
+                return;
+              }
               if (houseController.text.isNotEmpty && nameController.text.isNotEmpty) {
                 await DatabaseHelper.addSponsor(
                   houseNumber: houseController.text,
@@ -384,14 +389,17 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
     );
   }
 
-  Widget _field(TextEditingController controller, String label, {bool isNumber = false}) {
+  Widget _field(TextEditingController controller, String label, {bool isNumber = false, List<TextInputFormatter>? inputFormatters, int? maxLength}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        keyboardType: isNumber ? TextInputType.number : (inputFormatters != null ? TextInputType.phone : TextInputType.text),
+        inputFormatters: inputFormatters,
+        maxLength: maxLength,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
+          counterText: '',
           labelText: label,
           labelStyle: const TextStyle(color: Colors.white70),
           border: const OutlineInputBorder(),

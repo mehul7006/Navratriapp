@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -72,7 +73,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SizedBox(height: 16),
             _buildField(AppLocalizations.t('full_name'), _nameController, Icons.person, enabled: _isEditing),
             const SizedBox(height: 16),
-            _buildField(AppLocalizations.t('mobile_number'), _mobileController, Icons.phone, enabled: _isEditing, keyboardType: TextInputType.phone),
+            _buildField(AppLocalizations.t('mobile_number'), _mobileController, Icons.phone, enabled: _isEditing, keyboardType: TextInputType.phone, inputFormatters: _isEditing ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)] : null),
             const SizedBox(height: 16),
             _buildTypeBadge(user),
             const SizedBox(height: 32),
@@ -123,11 +124,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, IconData icon, {bool enabled = true, TextInputType? keyboardType}) {
+  Widget _buildField(String label, TextEditingController controller, IconData icon, {bool enabled = true, TextInputType? keyboardType, List<TextInputFormatter>? inputFormatters}) {
     return TextField(
       controller: controller,
       enabled: enabled,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: TextStyle(color: enabled ? Colors.white : Colors.white70),
       decoration: InputDecoration(
         labelText: label,
@@ -155,6 +157,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _saveProfile() async {
     if (_nameController.text.isEmpty || _mobileController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('name_mobile_required')), backgroundColor: Colors.red));
+      return;
+    }
+    if (_mobileController.text.trim().length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('enter_valid_10_digit_mobile')), backgroundColor: Colors.red));
       return;
     }
     setState(() => _isLoading = true);

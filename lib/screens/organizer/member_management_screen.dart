@@ -324,8 +324,11 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               TextField(
                 controller: mobileController,
                 keyboardType: TextInputType.phone,
+                maxLength: 10,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
+                  counterText: '',
                   labelText: AppLocalizations.t('mobile_number'), prefixIcon: const Icon(Icons.phone, color: AppTheme.goldPrimary),
                   labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,
                   fillColor: AppTheme.purpleDark.withOpacity(0.5),
@@ -342,6 +345,10 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark),
             onPressed: () async {
+              if (mobileController.text.trim().isNotEmpty && mobileController.text.trim().length != 10) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('enter_valid_10_digit_mobile')), backgroundColor: Colors.red));
+                return;
+              }
               if (nameController.text.isNotEmpty && houseController.text.isNotEmpty) {
                 await DatabaseHelper.updateMember(
                   member['id'],
@@ -394,6 +401,10 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_mobileController.text.trim().length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('enter_valid_10_digit_mobile')), backgroundColor: Colors.red));
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       await DatabaseHelper.registerUser(
@@ -434,7 +445,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
             const SizedBox(height: 12),
             _buildField(controller: _nameController, label: AppLocalizations.t('full_name'), icon: Icons.person),
             const SizedBox(height: 12),
-            _buildField(controller: _mobileController, label: AppLocalizations.t('mobile_number'), icon: Icons.phone, keyboardType: TextInputType.phone),
+            _buildField(controller: _mobileController, label: AppLocalizations.t('mobile_number'), icon: Icons.phone, keyboardType: TextInputType.phone, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)]),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLoading ? null : _submit,
@@ -448,7 +459,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
     );
   }
 
-  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none, List<FilteringTextInputFormatter>? inputFormatters, ValueChanged<String>? onChanged}) {
+  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none, List<TextInputFormatter>? inputFormatters, ValueChanged<String>? onChanged}) {
     return TextFormField(
       controller: controller, keyboardType: keyboardType, style: const TextStyle(color: Colors.white),
       textCapitalization: textCapitalization,
