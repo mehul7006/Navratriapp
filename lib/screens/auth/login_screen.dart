@@ -260,10 +260,22 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: AppTheme.goldPrimary, width: 3),
-        boxShadow: [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.6), blurRadius: 35, spreadRadius: 5)],
-        color: AppTheme.purpleCard.withOpacity(0.7),
+        boxShadow: [BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.6), blurRadius: 35, spreadRadius: 5)],
+        gradient: const LinearGradient(colors: [AppTheme.purpleDeep, AppTheme.purpleCard], begin: Alignment.topLeft, end: Alignment.bottomRight),
       ),
-      child: const Center(child: Text('🪔', style: TextStyle(fontSize: 44))),
+      child: Center(
+        child: Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(colors: [AppTheme.goldPrimary, AppTheme.goldDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          ),
+          child: const Center(
+            child: Icon(Icons.self_improvement, size: 40, color: AppTheme.purpleDark),
+          ),
+        ),
+      ),
     );
   }
 
