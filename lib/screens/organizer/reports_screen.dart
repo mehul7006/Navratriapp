@@ -389,7 +389,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Income vs Expense', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+          const Text('📊 Income vs Expense', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 12),
           SizedBox(
             height: 200,
@@ -424,7 +424,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Expense Breakdown', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+          const Text('🥧 Expense Breakdown', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
           const SizedBox(height: 12),
           SizedBox(
             height: 200,
@@ -515,10 +515,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       build: (ctx) => [
-        pw.Header(level: 0, child: pw.Text('Navratri 2026 - Nishitpark Society', style: pw.TextStyle(font: fontBold, fontSize: 22))),
-        pw.Header(level: 1, child: pw.Text('Financial Report', style: pw.TextStyle(font: font, fontSize: 16))),
+        pw.Header(level: 0, child: pw.Text('🪔 Navratri 2026 - Nishitpark Society', style: pw.TextStyle(font: fontBold, fontSize: 22))),
+        pw.Header(level: 1, child: pw.Text('📊 Financial Report', style: pw.TextStyle(font: font, fontSize: 16))),
         pw.SizedBox(height: 20),
-        pw.Text('INCOME REPORT', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+        pw.Text('💰 INCOME REPORT', style: pw.TextStyle(font: fontBold, fontSize: 14)),
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
@@ -544,7 +544,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       build: (ctx) => [
-        pw.Text('EXPENSE REPORT (Date-wise)', style: pw.TextStyle(font: fontBold, fontSize: 16)),
+        pw.Text('💸 EXPENSE REPORT (Date-wise)', style: pw.TextStyle(font: fontBold, fontSize: 16)),
         pw.SizedBox(height: 10),
         ..._buildExpensePdfSections(font, fontBold),
         pw.SizedBox(height: 10),
@@ -556,7 +556,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           cellAlignment: pw.Alignment.centerLeft,
         ),
         pw.SizedBox(height: 20),
-        pw.Text('BALANCE SHEET', style: pw.TextStyle(font: fontBold, fontSize: 16)),
+        pw.Text('📋 BALANCE SHEET', style: pw.TextStyle(font: fontBold, fontSize: 16)),
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
@@ -579,7 +579,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       pdf.addPage(pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         build: (ctx) => [
-          pw.Text('DAILY ACTIVITY (Days ${i + 1}-${i + chunk.length})', style: pw.TextStyle(font: fontBold, fontSize: 16)),
+          pw.Text('📅 DAILY ACTIVITY (Days ${i + 1}-${i + chunk.length})', style: pw.TextStyle(font: fontBold, fontSize: 16)),
           pw.SizedBox(height: 10),
           ...chunk.map((day) => _buildDayActivityPdf(day, font, fontBold)),
         ],
@@ -590,7 +590,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       build: (ctx) => [
-        pw.Text('SUMMARY STATISTICS', style: pw.TextStyle(font: fontBold, fontSize: 16)),
+        pw.Text('📈 SUMMARY STATISTICS', style: pw.TextStyle(font: fontBold, fontSize: 16)),
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,

@@ -391,17 +391,17 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     String prizeText;
     String prizeIcon;
     if (prizeLevel == 1) {
-      prizeText = '1st Prize Winner!';
-      prizeIcon = '1st';
+      prizeText = '🥇 1st Prize Winner!';
+      prizeIcon = '🏆🥇';
     } else if (prizeLevel == 2) {
-      prizeText = '2nd Prize Winner!';
-      prizeIcon = '2nd';
+      prizeText = '🥈 2nd Prize Winner!';
+      prizeIcon = '🥈';
     } else if (prizeLevel == 3) {
-      prizeText = '3rd Prize Winner!';
-      prizeIcon = '3rd';
+      prizeText = '🥉 3rd Prize Winner!';
+      prizeIcon = '🥉';
     } else {
-      prizeText = 'Winner!';
-      prizeIcon = '*';
+      prizeText = '🎉 Winner!';
+      prizeIcon = '🪔';
     }
 
     showDialog(
@@ -842,7 +842,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           ),
         if (_isRevealed)
           Text(
-            'Winner Revealed!',
+            '🎉 Winner Revealed!',
             style: TextStyle(color: AppTheme.goldPrimary, fontSize: 14, fontWeight: FontWeight.bold),
           ),
         const SizedBox(height: 10),

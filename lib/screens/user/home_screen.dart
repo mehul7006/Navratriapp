@@ -237,11 +237,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         Row(
           children: [
             if (activeBookings.isNotEmpty)
-              _buildActivityChip(Icons.self_improvement, '${activeBookings.length} Aarti', Colors.orange),
+              _buildActivityChip(Icons.self_improvement, '🪔 ${activeBookings.length} Aarti', Colors.orange),
             if (activeOrders.isNotEmpty)
-              _buildActivityChip(Icons.restaurant, '${activeOrders.length} Food', Colors.blue),
+              _buildActivityChip(Icons.restaurant, '🍽 ${activeOrders.length} Food', Colors.blue),
             if (_myGifts.isNotEmpty)
-              _buildActivityChip(Icons.card_giftcard, '${_myGifts.length} Gifts', Colors.purple),
+              _buildActivityChip(Icons.card_giftcard, '🎁 ${_myGifts.length} Gifts', Colors.purple),
           ],
         ),
       ],

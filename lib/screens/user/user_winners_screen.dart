@@ -153,7 +153,7 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  ['', '1st', '2nd', '3rd'][winner['prize_level'] as int] + ' Prize',
+                  ['', '🏆🥇 1st', '🥈 2nd', '🥉 3rd'][winner['prize_level'] as int] + ' Prize',
                   style: const TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold),
                 ),
               ),

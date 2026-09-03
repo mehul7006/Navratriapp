@@ -108,7 +108,7 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.celebration, size: 48, color: Colors.white24),
+                              const Text('🎉', style: TextStyle(fontSize: 48)),
                               const SizedBox(height: 12),
                               Text(AppLocalizations.t('no_shoutouts'), style: const TextStyle(color: Colors.white38, fontSize: 16)),
                               Text(AppLocalizations.t('be_first_congratulate'), style: const TextStyle(color: Colors.white24, fontSize: 12)),

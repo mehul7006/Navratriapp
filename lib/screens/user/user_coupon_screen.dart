@@ -359,7 +359,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                   d['prize_level'] != null
                 ).firstOrNull;
                 if (draw == null) return const SizedBox.shrink();
-                final labels = ['', '[1st Prize]', '[2nd Prize]', '[3rd Prize]'];
+                final labels = ['', '🏆🥇 1st Prize', '🥈 2nd Prize', '🥉 3rd Prize'];
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

@@ -103,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final prizeLevel = w['prize_level'];
         final name = w['user_name']?.toString() ?? '';
         final house = w['house_number']?.toString() ?? '';
-        final labels = ['', '[1st]', '[2nd]', '[3rd]'];
+        final labels = ['', '🏆🥇 1st', '🥈 2nd', '🥉 3rd'];
         final label = prizeLevel != null ? labels[prizeLevel as int] ?? '' : '';
         if (name.isNotEmpty) parts.add('$label: $name (House $house)');
       }
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final place = w['place']?.toString() ?? '';
       final name = w['name']?.toString() ?? '';
       final gift = w['gift_name']?.toString() ?? '';
-      if (name.isNotEmpty) parts.add('$place Prize: $name - $gift');
+      if (name.isNotEmpty) parts.add('🏆 $place Prize: $name - $gift');
     }
 
     // Snack orders
@@ -124,18 +124,18 @@ class _LoginScreenState extends State<LoginScreen> {
       final buyer = s['buyer_name']?.toString() ?? '';
       final snack = s['snack_name']?.toString() ?? '';
       final qty = s['quantity'] ?? 1;
-      if (buyer.isNotEmpty) parts.add('Snack: $buyer ordered $snack x$qty');
+      if (buyer.isNotEmpty) parts.add('🍽 Snack: $buyer ordered $snack x$qty');
     }
 
     // Sponsors
     final sponsors = _dailyInfo!['sponsors'] as List? ?? [];
     for (final s in sponsors) {
       if (s['company_name']?.toString().isNotEmpty == true) {
-        parts.add('Sponsored by: ${s['company_name']}');
+        parts.add('🤝 Sponsored by: ${s['company_name']}');
       }
     }
 
-    if (parts.length <= 1) parts.add('Welcome to Nishitpark Society Mahotsav!');
+    if (parts.length <= 1) parts.add('🪔 Welcome to Nishitpark Society Mahotsav!');
     return parts.join('  ★  ');
   }
 
