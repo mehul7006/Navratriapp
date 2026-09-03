@@ -58,11 +58,16 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
         (m['house_number']?.toString().toLowerCase().contains(search) ?? false)
       ).toList();
     }
-    if (_sortBy == 'name') {
-      list.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
-    } else if (_sortBy == 'house') {
-      list.sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
-    }
+    list.sort((a, b) {
+      final aType = a['member_type'] ?? 'sub';
+      final bType = b['member_type'] ?? 'sub';
+      if (aType == 'main' && bType != 'main') return -1;
+      if (aType != 'main' && bType == 'main') return 1;
+      if (_sortBy == 'house') {
+        return (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString());
+      }
+      return (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString());
+    });
     _filteredMembers = list;
   }
 
@@ -70,6 +75,12 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
+      appBar: AppBar(
+        title: Text(AppLocalizations.t('garba_participation'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppTheme.purpleDeep,
+        foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+      ),
       body: Column(
         children: [
           _buildHeader(),
@@ -250,7 +261,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                        child: const Text('PAID', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                        child: const Text('OWNER', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
                       ),
                   ],
                 ),
