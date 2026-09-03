@@ -116,7 +116,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House', 'Name', 'Amount']),
+              _tableHeader(['#', 'House', 'Owner Name', 'Amount']),
               ...sortedPayments.asMap().entries.map((entry) {
                 final p = entry.value;
                 final status = (p['payment_status'] ?? '').toString();
@@ -125,7 +125,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 return _tableRow([
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
-                  '${p['name'] ?? ''}',
+                  '${p['owner_name'] ?? ''}',
                   '₹${amount.toStringAsFixed(0)}',
                 ]);
               }),
@@ -522,7 +522,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['#', 'House', 'Name', 'Amount (₹)'],
+          headers: ['#', 'House', 'Owner Name', 'Amount (₹)'],
           data: _buildIncomeTableRows(),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -624,7 +624,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       rows.add([
         '${idx++}',
         '${p['house_number'] ?? ''}',
-        '${p['name'] ?? ''}',
+        '${p['owner_name'] ?? ''}',
         '₹${_parseAmount(p['total_amount']).toStringAsFixed(0)}',
       ]);
     }

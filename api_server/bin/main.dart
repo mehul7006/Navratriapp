@@ -2637,12 +2637,15 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
   try {
     final conn = await db;
     final results = await conn.execute(Sql.named('''
-      SELECT house_number, payer_name, SUM(amount) as total_amount,
-             payment_method, payment_status, COUNT(*) as payment_count
-      FROM fund_collections
-      WHERE is_deleted IS NOT TRUE
-      GROUP BY house_number, payer_name, payment_method, payment_status
-      ORDER BY house_number ASC
+      SELECT u.house_number, u.name as owner_name, 
+             COALESCE(SUM(fc.amount), 0) as total_amount,
+             MAX(fc.payment_method) as payment_method,
+             'paid' as payment_status, COUNT(fc.id) as payment_count
+      FROM users u
+      INNER JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
+      WHERE u.member_type = 'main'
+      GROUP BY u.id, u.house_number, u.name
+      ORDER BY u.house_number ASC
     '''));
     final total = await conn.execute(Sql.named(
         "SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
