@@ -103,31 +103,44 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(
-        title: Text(_getTabTitle(), style: const TextStyle(color: AppTheme.goldPrimary)),
-        backgroundColor: AppTheme.purpleDeep,
-        foregroundColor: AppTheme.goldPrimary,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        automaticallyImplyLeading: false,
-        actions: [
-          const LanguageToggle(),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadStats,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              authProvider.logout();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-        ],
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedIndex != 0) {
+          setState(() { _selectedIndex = 0; });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.purpleDark,
+        appBar: AppBar(
+          title: Text(_getTabTitle(), style: const TextStyle(color: AppTheme.goldPrimary)),
+          backgroundColor: AppTheme.purpleDeep,
+          foregroundColor: AppTheme.goldPrimary,
+          iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+          leading: _selectedIndex != 0
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () { setState(() { _selectedIndex = 0; }); },
+                )
+              : null,
+          actions: [
+            const LanguageToggle(),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadStats,
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () {
+                authProvider.logout();
+                Navigator.pushReplacementNamed(context, '/login');
+              },
+            ),
+          ],
+        ),
+        body: _buildBody(),
+        bottomNavigationBar: _buildBottomNav(),
       ),
-      body: _buildBody(),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
