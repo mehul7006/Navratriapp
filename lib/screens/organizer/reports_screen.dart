@@ -116,17 +116,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House', 'Owner Name', 'Amount']),
+              _tableHeader(['#', 'House', 'Owner Name', 'Amount', 'Status']),
               ...sortedPayments.asMap().entries.map((entry) {
                 final p = entry.value;
                 final status = (p['payment_status'] ?? '').toString();
-                if (status != 'paid') return const SizedBox.shrink();
                 final amount = _parseAmount(p['total_amount']);
                 return _tableRow([
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
                   '${p['owner_name'] ?? ''}',
-                  '₹${amount.toStringAsFixed(0)}',
+                  amount > 0 ? '₹${amount.toStringAsFixed(0)}' : '-',
+                  status == 'paid' ? 'Paid' : 'Pending',
                 ]);
               }),
               _divider(),
@@ -522,7 +522,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['#', 'House', 'Owner Name', 'Amount (₹)'],
+          headers: ['#', 'House', 'Owner Name', 'Amount (₹)', 'Status'],
           data: _buildIncomeTableRows(),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -620,12 +620,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     int idx = 1;
     for (final p in sortedPayments) {
       final status = (p['payment_status'] ?? '').toString();
-      if (status != 'paid') continue;
+      final amount = _parseAmount(p['total_amount']);
       rows.add([
         '${idx++}',
         '${p['house_number'] ?? ''}',
         '${p['owner_name'] ?? ''}',
-        '₹${_parseAmount(p['total_amount']).toStringAsFixed(0)}',
+        amount > 0 ? '₹${amount.toStringAsFixed(0)}' : '-',
+        status == 'paid' ? 'Paid' : 'Pending',
       ]);
     }
     return rows;

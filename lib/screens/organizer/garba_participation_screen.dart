@@ -400,6 +400,12 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
               controller: houseController,
               style: const TextStyle(color: Colors.white),
               textCapitalization: TextCapitalization.characters,
+              onChanged: (v) {
+                final upper = v.toUpperCase();
+                if (v != upper) {
+                  houseController.value = houseController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
+                }
+              },
               decoration: InputDecoration(
                 labelText: 'House Number',
                 labelStyle: const TextStyle(color: Colors.white70),

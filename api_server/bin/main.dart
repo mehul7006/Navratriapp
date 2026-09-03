@@ -2640,10 +2640,11 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
       SELECT u.house_number, u.name as owner_name, 
              COALESCE(SUM(fc.amount), 0) as total_amount,
              MAX(fc.payment_method) as payment_method,
-             'paid' as payment_status, COUNT(fc.id) as payment_count
+             CASE WHEN SUM(fc.amount) > 0 THEN 'paid' ELSE 'pending' END as payment_status,
+             COUNT(fc.id) as payment_count
       FROM users u
-      INNER JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
-      WHERE u.member_type = 'main'
+      LEFT JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
+      WHERE u.member_type = 'main' AND u.user_type != 'organizer'
       GROUP BY u.id, u.house_number, u.name
       ORDER BY u.house_number ASC
     '''));

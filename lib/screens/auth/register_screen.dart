@@ -112,6 +112,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: 'House Number *',
                     hint: 'e.g., A-402, B-101, C-303',
                     icon: Icons.home,
+                    textCapitalization: TextCapitalization.characters,
+                    onChanged: (v) {
+                      final upper = v.toUpperCase();
+                      if (v != upper) {
+                        _houseController.value = _houseController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
@@ -190,11 +197,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      textCapitalization: textCapitalization,
+      onChanged: onChanged,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,

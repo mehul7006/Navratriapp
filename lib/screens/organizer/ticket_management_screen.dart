@@ -777,7 +777,11 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                             : null,
                   ),
                   onChanged: (v) {
-                    houseNumber = v.toUpperCase();
+                    final upper = v.toUpperCase();
+                    if (v != upper) {
+                      houseController.value = houseController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
+                    }
+                    houseNumber = upper;
                     if (v.length >= 2) {
                       setDialogState(() => isSearching = true);
                       DatabaseHelper.getMembersByHouse(houseNumber).then((result) {

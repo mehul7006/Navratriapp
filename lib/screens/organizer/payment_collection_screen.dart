@@ -645,9 +645,13 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
   void dispose() { _houseController.dispose(); _nameController.dispose(); _amountController.dispose(); super.dispose(); }
 
   Future<void> _loadHouseMembers(String house) async {
-    if (house.isEmpty) { setState(() { _houseMembers = []; _showMembers = false; }); return; }
+    final upperHouse = house.toUpperCase();
+    if (house.isNotEmpty && upperHouse != house) {
+      _houseController.value = _houseController.value.copyWith(text: upperHouse, selection: TextSelection.collapsed(offset: upperHouse.length));
+    }
+    if (upperHouse.isEmpty) { setState(() { _houseMembers = []; _showMembers = false; }); return; }
     try {
-      final members = await DatabaseHelper.getMembersByHouse(house);
+      final members = await DatabaseHelper.getMembersByHouse(upperHouse);
       setState(() { _houseMembers = members; _showMembers = members.isNotEmpty; });
     } catch (e) { setState(() { _houseMembers = []; _showMembers = false; }); }
   }

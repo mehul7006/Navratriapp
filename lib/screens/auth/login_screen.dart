@@ -373,7 +373,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 8),
             _buildUserTypeSelector(),
             const SizedBox(height: 20),
-            _buildTextField(controller: _userIdController, label: _userIdLabel, hint: _loginHint, icon: _selectedUserType == 'organizer' ? Icons.person : Icons.home),
+            _buildTextField(controller: _userIdController, label: _userIdLabel, hint: _loginHint, icon: _selectedUserType == 'organizer' ? Icons.person : Icons.home, textCapitalization: TextCapitalization.characters, onChanged: (v) { final upper = v.toUpperCase(); if (v != upper) { _userIdController.value = _userIdController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length)); } }),
             const SizedBox(height: 16),
             _buildTextField(
               controller: _passwordController,
@@ -456,11 +456,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required String hint, required IconData icon, TextInputType keyboardType = TextInputType.text, bool obscureText = false, Widget? suffixIcon}) {
+  Widget _buildTextField({required TextEditingController controller, required String label, required String hint, required IconData icon, TextInputType keyboardType = TextInputType.text, bool obscureText = false, Widget? suffixIcon, TextCapitalization textCapitalization = TextCapitalization.none, ValueChanged<String>? onChanged}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      textCapitalization: textCapitalization,
+      onChanged: onChanged,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
