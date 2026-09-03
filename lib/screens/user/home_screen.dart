@@ -82,6 +82,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         title: Text(AppLocalizations.t('navratri_2026_short'), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         elevation: 0,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),

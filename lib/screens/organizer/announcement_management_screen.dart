@@ -34,6 +34,7 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
         title: Text(AppLocalizations.t('announcements')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

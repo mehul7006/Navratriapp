@@ -37,6 +37,7 @@ class _GarbaMemberDetailScreenState extends State<GarbaMemberDetailScreen> {
         title: Text(widget.memberName, style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))

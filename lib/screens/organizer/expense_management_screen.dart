@@ -99,6 +99,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         title: Text(isDeletedTab ? 'Deleted Expenses' : AppLocalizations.t('expenses')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           if (!isDeletedTab) ...[
             IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),

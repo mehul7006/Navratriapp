@@ -69,7 +69,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(title: Text(AppLocalizations.t('snack_counter')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary),
+      appBar: AppBar(title: Text(AppLocalizations.t('snack_counter')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary, iconTheme: const IconThemeData(color: AppTheme.goldPrimary)),
       body: Column(
         children: [
           _buildDaySelector(),

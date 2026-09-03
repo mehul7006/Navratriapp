@@ -66,6 +66,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
         title: Text(AppLocalizations.t('draw_history')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],

@@ -117,6 +117,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
         title: Text(AppLocalizations.t('broadcasts')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadBroadcasts),
         ],

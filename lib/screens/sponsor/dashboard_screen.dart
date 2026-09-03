@@ -54,6 +54,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
         title: Text(AppLocalizations.t('sponsor_dashboard')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           IconButton(icon: const Icon(Icons.refresh, color: AppTheme.goldPrimary), onPressed: _loadData),
           IconButton(

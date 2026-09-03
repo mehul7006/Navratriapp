@@ -97,6 +97,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
         title: const Text('Register Member'),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

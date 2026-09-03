@@ -99,6 +99,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
         title: Text(_selectedFilter == 'deleted' ? 'Deleted Payments' : 'Payment Collection'),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           if (_selectedFilter != 'deleted') ...[
             IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),

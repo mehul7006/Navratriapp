@@ -68,7 +68,7 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(title: Text(AppLocalizations.t('book_aarti_slot')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary),
+      appBar: AppBar(title: Text(AppLocalizations.t('book_aarti_slot')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary, iconTheme: const IconThemeData(color: AppTheme.goldPrimary)),
       body: Column(
         children: [
           _buildDaySelector(),

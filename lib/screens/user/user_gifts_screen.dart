@@ -73,6 +73,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
         title: Text(AppLocalizations.t('my_gifts')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadGifts),
         ],

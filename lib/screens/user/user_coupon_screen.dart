@@ -73,6 +73,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
         title: Text(AppLocalizations.t('my_coupons')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

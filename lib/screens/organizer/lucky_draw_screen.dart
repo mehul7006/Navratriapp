@@ -458,6 +458,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
         title: Text(AppLocalizations.t('lucky_draw')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
