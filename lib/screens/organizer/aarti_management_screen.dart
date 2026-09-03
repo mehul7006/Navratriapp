@@ -34,6 +34,12 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
+      appBar: AppBar(
+        title: Text(AppLocalizations.t('aarti_bookings'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppTheme.purpleDeep,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           _buildDaySelector(),

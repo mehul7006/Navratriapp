@@ -52,6 +52,12 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
+      appBar: AppBar(
+        title: Text(AppLocalizations.t('manage_members'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppTheme.purpleDeep,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           _buildHeader(),

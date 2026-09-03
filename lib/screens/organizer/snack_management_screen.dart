@@ -33,6 +33,12 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
+      appBar: AppBar(
+        title: Text(AppLocalizations.t('snack_orders'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: AppTheme.purpleDeep,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           _buildTabBar(),
