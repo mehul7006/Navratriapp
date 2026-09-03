@@ -13,67 +13,77 @@ class GarbaParticipationScreen extends StatefulWidget {
 
 class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
   List<Map<String, dynamic>> _houses = [];
-  List<Map<String, dynamic>> _members = [];
-  String? _selectedHouse;
+  List<Map<String, dynamic>> _allMembers = [];
+  List<Map<String, dynamic>> _filteredMembers = [];
+  String _selectedHouse = 'all';
+  String _sortBy = 'name';
+  final _searchController = TextEditingController();
   bool _isLoading = true;
-  bool _isLoadingMembers = false;
 
   @override
   void initState() {
     super.initState();
-    _loadHouses();
+    _loadData();
   }
 
-  Future<void> _loadHouses() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
       _houses = await DatabaseHelper.getGarbaHouses();
-      if (_houses.isNotEmpty && _selectedHouse == null) {
-        _selectedHouse = _houses[0]['house_number'];
-        _loadMembers();
+      _allMembers = [];
+      for (final house in _houses) {
+        final members = await DatabaseHelper.getGarbaMembersByHouse(house['house_number']);
+        _allMembers.addAll(members);
       }
+      _applyFilters();
     } catch (e) {}
     setState(() => _isLoading = false);
   }
 
-  Future<void> _loadMembers() async {
-    if (_selectedHouse == null) return;
-    setState(() => _isLoadingMembers = true);
-    try {
-      _members = await DatabaseHelper.getGarbaMembersByHouse(_selectedHouse!);
-    } catch (e) {}
-    setState(() => _isLoadingMembers = false);
+  void _applyFilters() {
+    var list = List<Map<String, dynamic>>.from(_allMembers);
+    if (_selectedHouse != 'all') {
+      list = list.where((m) => m['house_number'] == _selectedHouse).toList();
+    }
+    final search = _searchController.text.toLowerCase();
+    if (search.isNotEmpty) {
+      list = list.where((m) =>
+        (m['name']?.toString().toLowerCase().contains(search) ?? false) ||
+        (m['house_number']?.toString().toLowerCase().contains(search) ?? false)
+      ).toList();
+    }
+    if (_sortBy == 'name') {
+      list.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
+    } else if (_sortBy == 'house') {
+      list.sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
+    }
+    _filteredMembers = list;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.purpleDark,
-      appBar: AppBar(
-        title: Text(AppLocalizations.t('garba_participation'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: AppTheme.purpleDeep,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () { _loadHouses(); _loadMembers(); },
+      body: Column(
+        children: [
+          _buildHeader(),
+          _buildHouseFilterChips(),
+          _buildSortRow(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                : _filteredMembers.isEmpty
+                    ? const Center(child: Text('No members found', style: TextStyle(color: AppTheme.textMuted)))
+                    : _buildMembersList(),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-          : Column(
-              children: [
-                _buildHouseTabs(),
-                Expanded(
-                  child: _isLoadingMembers
-                      ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-                      : _members.isEmpty
-                          ? const Center(child: Text('No members found', style: TextStyle(color: AppTheme.textMuted)))
-                          : _buildMembersList(),
-                ),
-              ],
-            ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.goldPrimary,
         onPressed: _showAddMemberDialog,
@@ -82,76 +92,122 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
     );
   }
 
-  Widget _buildHouseTabs() {
+  Widget _buildHeader() {
     return Container(
-      height: 60,
-      color: AppTheme.purpleDeep.withValues(alpha: 0.3),
-      child: ListView.builder(
+      padding: const EdgeInsets.all(12),
+      color: AppTheme.purpleCard,
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: Colors.white),
+        onChanged: (_) => setState(() => _applyFilters()),
+        decoration: InputDecoration(
+          hintText: 'Search name or house...',
+          hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5)),
+          prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary),
+          filled: true,
+          fillColor: AppTheme.purpleDark.withOpacity(0.5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHouseFilterChips() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        itemCount: _houses.length,
-        itemBuilder: (context, index) {
-          final house = _houses[index];
-          final houseNumber = house['house_number'] ?? '';
-          final memberCount = house['member_count'] ?? 0;
-          final isSelected = _selectedHouse == houseNumber;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _selectedHouse = houseNumber);
-                _loadMembers();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'House $houseNumber',
-                      style: TextStyle(
-                        color: isSelected ? AppTheme.purpleDark : AppTheme.goldPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      '$memberCount members',
-                      style: TextStyle(
-                        color: isSelected ? AppTheme.purpleDark.withOpacity(0.7) : AppTheme.textMuted,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+        child: Row(
+          children: [
+            _buildFilterChip('All', 'all'),
+            const SizedBox(width: 6),
+            ..._houses.map((h) {
+              final houseNumber = h['house_number'] ?? '';
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _buildFilterChip(houseNumber, houseNumber),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _selectedHouse == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedHouse = value;
+          _applyFilters();
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+      ),
+    );
+  }
+
+  Widget _buildSortRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          _buildSortChip('Sort by Name', 'name'),
+          const SizedBox(width: 8),
+          _buildSortChip('Sort by House', 'house'),
+          const Spacer(),
+          Text('${_filteredMembers.length} members', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortChip(String label, String value) {
+    final isSelected = _sortBy == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _sortBy = value;
+          _applyFilters();
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.goldPrimary.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? AppTheme.goldPrimary : Colors.white24),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 11, color: isSelected ? AppTheme.goldPrimary : AppTheme.textMuted)),
       ),
     );
   }
 
   Widget _buildMembersList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _members.length,
-      itemBuilder: (context, index) {
-        final member = _members[index];
-        return _buildMemberCard(member);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: AppTheme.goldPrimary,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _filteredMembers.length,
+        itemBuilder: (context, index) => _buildMemberCard(_filteredMembers[index]),
+      ),
     );
   }
 
   Widget _buildMemberCard(Map<String, dynamic> member) {
     final name = member['name'] ?? '';
+    final houseNumber = member['house_number'] ?? '';
     final memberType = member['member_type'] ?? 'sub';
     final totalTickets = member['total_tickets'] ?? 0;
     final winningTickets = member['winning_tickets'] ?? 0;
@@ -163,72 +219,75 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
     else if (lastPrizeLevel == 2) prizeText = '🥈 2nd';
     else if (lastPrizeLevel == 3) prizeText = '🥉 3rd';
 
-    return Card(
-      color: AppTheme.cardBg,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.2)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: memberType == 'main' ? AppTheme.goldPrimary : Colors.blue,
-          child: Text(
-            name.substring(0, 1).toUpperCase(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-        title: Row(
-          children: [
-            Expanded(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: AppTheme.hubItemDecoration,
+      child: Row(
+        children: [
+          Container(
+            width: 50, height: 50,
+            decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
+            child: Center(
               child: Text(
-                name,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  decoration: isActive ? null : TextDecoration.lineThrough,
-                ),
+                houseNumber.toString().substring(0, houseNumber.toString().length > 3 ? 3 : houseNumber.toString().length),
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
+                textAlign: TextAlign.center,
               ),
             ),
-            if (memberType == 'main')
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.goldPrimary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, decoration: isActive ? null : TextDecoration.lineThrough)),
+                    ),
+                    if (memberType == 'main')
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                        child: const Text('PAID', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                      ),
+                  ],
                 ),
-                child: const Text('PAID', style: TextStyle(fontSize: 8, color: AppTheme.goldPrimary, fontWeight: FontWeight.bold)),
-              ),
-          ],
-        ),
-        subtitle: Row(
-          children: [
-            Icon(Icons.confirmation_number, size: 12, color: Colors.white54),
-            const SizedBox(width: 4),
-            Text('$totalTickets tickets', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            if (winningTickets > 0) ...[
-              const SizedBox(width: 8),
-              Icon(Icons.emoji_events, size: 12, color: Colors.amber),
-              const SizedBox(width: 4),
-              Text('$winningTickets wins', style: const TextStyle(color: Colors.amber, fontSize: 11)),
+                const SizedBox(height: 2),
+                Text(houseNumber, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.confirmation_number, size: 12, color: Colors.white54),
+                    const SizedBox(width: 4),
+                    Text('$totalTickets tickets', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                    if (winningTickets > 0) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.emoji_events, size: 12, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text('$winningTickets wins', style: const TextStyle(color: Colors.amber, fontSize: 11)),
+                    ],
+                    if (prizeText.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(prizeText, style: const TextStyle(fontSize: 11)),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppTheme.goldPrimary),
+            color: AppTheme.purpleCard,
+            onSelected: (value) => _handleMemberAction(value, member),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'view', child: Text('View Details', style: TextStyle(color: Colors.white))),
+              const PopupMenuItem(value: 'move', child: Text('Move to House', style: TextStyle(color: Colors.white))),
+              const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
             ],
-            if (prizeText.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Text(prizeText, style: const TextStyle(fontSize: 11)),
-            ],
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.white54, size: 20),
-          onSelected: (value) => _handleMemberAction(value, member),
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'view', child: Text('View Details')),
-            const PopupMenuItem(value: 'move', child: Text('Move to House')),
-            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
-          ],
-        ),
-        onTap: () => _viewMemberDetails(member),
+          ),
+        ],
       ),
     );
   }
@@ -253,7 +312,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
   }
 
   void _showMoveDialog(Map<String, dynamic> member) {
-    String targetHouse = _selectedHouse ?? '';
+    String targetHouse = member['house_number'] ?? '';
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -271,7 +330,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
               decoration: const InputDecoration(labelText: 'House Number', labelStyle: TextStyle(color: Colors.white70)),
               items: _houses.map((h) => DropdownMenuItem<String>(
                 value: h['house_number'],
-                child: Text('House ${h['house_number']}'),
+                child: Text('${h['house_number']}'),
               )).toList(),
               onChanged: (v) => targetHouse = v ?? '',
             ),
@@ -283,8 +342,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await DatabaseHelper.moveGarbaMember(member['id'], targetHouse);
-              _loadHouses();
-              _loadMembers();
+              _loadData();
             },
             child: const Text('Move'),
           ),
@@ -307,8 +365,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await DatabaseHelper.deleteGarbaMember(member['id']);
-              _loadHouses();
-              _loadMembers();
+              _loadData();
             },
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
@@ -319,6 +376,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
 
   void _showAddMemberDialog() {
     final nameController = TextEditingController();
+    final houseController = TextEditingController(text: _selectedHouse != 'all' ? _selectedHouse : '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -327,11 +385,22 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Adding to House ${_selectedHouse ?? ""}', style: const TextStyle(color: Colors.white70)),
+            TextField(
+              controller: houseController,
+              style: const TextStyle(color: Colors.white),
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'House Number',
+                labelStyle: const TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.white38)),
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: nameController,
               style: const TextStyle(color: Colors.white),
+              textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: 'Member Name',
                 labelStyle: const TextStyle(color: Colors.white70),
@@ -345,14 +414,12 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.trim().isEmpty) return;
+              final name = nameController.text.trim();
+              final house = houseController.text.trim().toUpperCase();
+              if (name.isEmpty || house.isEmpty) return;
               Navigator.pop(ctx);
-              await DatabaseHelper.addGarbaMember(
-                name: nameController.text.trim(),
-                houseNumber: _selectedHouse ?? '',
-              );
-              _loadHouses();
-              _loadMembers();
+              await DatabaseHelper.addGarbaMember(name: name, houseNumber: house);
+              _loadData();
             },
             child: const Text('Add'),
           ),

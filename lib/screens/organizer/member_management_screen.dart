@@ -390,7 +390,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
     setState(() => _isLoading = true);
     try {
       await DatabaseHelper.registerUser(
-        houseNumber: _houseController.text.trim(),
+        houseNumber: _houseController.text.trim().toUpperCase(),
         name: _nameController.text.trim(),
         mobileNumber: _mobileController.text.trim(),
         userType: _userType,
@@ -423,7 +423,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
                 Expanded(child: RadioListTile<String>(title: Text(AppLocalizations.t('sponsor'), style: const TextStyle(color: Colors.white, fontSize: 12)), value: 'sponsor', groupValue: _userType, onChanged: (v) => setState(() => _userType = v!), activeColor: AppTheme.goldPrimary, contentPadding: EdgeInsets.zero)),
               ],
             ),
-            _buildField(controller: _houseController, label: AppLocalizations.t('house_number'), icon: Icons.home),
+            _buildField(controller: _houseController, label: AppLocalizations.t('house_number'), icon: Icons.home, textCapitalization: TextCapitalization.characters),
             const SizedBox(height: 12),
             _buildField(controller: _nameController, label: AppLocalizations.t('full_name'), icon: Icons.person),
             const SizedBox(height: 12),
@@ -441,9 +441,10 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
     );
   }
 
-  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none}) {
     return TextFormField(
       controller: controller, keyboardType: keyboardType, style: const TextStyle(color: Colors.white),
+      textCapitalization: textCapitalization,
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon, color: AppTheme.goldPrimary),
         labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,
