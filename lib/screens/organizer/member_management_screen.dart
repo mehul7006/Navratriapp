@@ -217,7 +217,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                         child: Text(isActive ? AppLocalizations.t('active') : AppLocalizations.t('inactive'), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isActive ? Colors.green : Colors.red)),
                       ),
                       const SizedBox(width: 6),
-                      Text('₹${(member['total_paid'] ?? 0).toStringAsFixed(0)}', style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
+                      Text('₹${(double.tryParse(member['total_paid'].toString()) ?? 0).toStringAsFixed(0)}', style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
                     ],
                   ),
               ],
