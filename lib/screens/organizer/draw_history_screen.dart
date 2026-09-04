@@ -35,10 +35,14 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredHistory {
+    final confirmedOrCancelled = _history.where((t) {
+      final status = (t['status'] ?? '').toString();
+      return status == 'confirmed' || status == 'cancelled';
+    }).toList();
     if (_selectedDay > 0) {
-      return _history.where((t) => t['day_number'] == _selectedDay).toList();
+      return confirmedOrCancelled.where((t) => t['day_number'] == _selectedDay).toList();
     }
-    return _history;
+    return confirmedOrCancelled;
   }
 
   Map<int, List<Map<String, dynamic>>> get _groupedByDay {
