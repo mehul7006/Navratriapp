@@ -16,7 +16,7 @@ class BackgroundScaffold extends StatelessWidget {
     this.bottomNavigationBar,
     this.floatingActionButton,
     this.drawer,
-    this.backgroundColor = const Color(0x800C0117),
+    this.backgroundColor = const Color(0xA60C0117),
     this.resizeToAvoidBottomInset = true,
   });
 
@@ -65,7 +65,7 @@ class BackgroundBody extends StatelessWidget {
   const BackgroundBody({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.45,
+    this.overlayOpacity = 0.55,
   });
 
   @override
