@@ -324,40 +324,83 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
 
   void _showMoveDialog(Map<String, dynamic> member) {
     String targetHouse = member['house_number'] ?? '';
+    String searchQuery = '';
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: Text('Move ${member['name']}', style: const TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Move to house:', style: TextStyle(color: Colors.white70)),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: targetHouse.isNotEmpty ? targetHouse : null,
-              dropdownColor: AppTheme.purpleDeep,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'House Number', labelStyle: TextStyle(color: Colors.white70)),
-              items: _houses.map((h) => DropdownMenuItem<String>(
-                value: h['house_number'],
-                child: Text('${h['house_number']}'),
-              )).toList(),
-              onChanged: (v) => targetHouse = v ?? '',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final filtered = _houses.where((h) {
+            final house = (h['house_number'] ?? '').toString().toLowerCase();
+            return house.contains(searchQuery.toLowerCase());
+          }).toList();
+          return AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: Text('Move ${member['name']}', style: const TextStyle(color: Colors.white)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Move to house:', style: TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (v) => setDialogState(() => searchQuery = v),
+                    decoration: InputDecoration(
+                      hintText: 'Search house...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                      filled: true,
+                      fillColor: AppTheme.purpleDark,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 250),
+                    child: filtered.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('No houses found', style: TextStyle(color: Colors.white38)),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: filtered.length,
+                            itemBuilder: (ctx, index) {
+                              final h = filtered[index];
+                              final house = h['house_number'] ?? '';
+                              final isSelected = house == targetHouse;
+                              return ListTile(
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                tileColor: isSelected ? AppTheme.goldPrimary.withOpacity(0.2) : null,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                leading: Icon(Icons.home, size: 18, color: isSelected ? AppTheme.goldPrimary : Colors.white54),
+                                title: Text(house, style: TextStyle(color: isSelected ? AppTheme.goldPrimary : Colors.white, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                                trailing: isSelected ? const Icon(Icons.check, color: AppTheme.goldPrimary, size: 18) : null,
+                                onTap: () => setDialogState(() => targetHouse = house),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await DatabaseHelper.moveGarbaMember(member['id'], targetHouse);
-              _loadData();
-            },
-            child: const Text('Move'),
-          ),
-        ],
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+              ElevatedButton(
+                onPressed: targetHouse.isNotEmpty ? () {
+                  Navigator.pop(ctx);
+                  DatabaseHelper.moveGarbaMember(member['id'], targetHouse).then((_) => _loadData());
+                } : null,
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary),
+                child: const Text('Move', style: TextStyle(color: AppTheme.purpleDark)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
