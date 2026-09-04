@@ -109,6 +109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (payments.isEmpty) return _emptyCard(AppLocalizations.t('no_payment_data'));
 
     final sortedPayments = List<Map<String, dynamic>>.from(payments)
+      ..removeWhere((p) => _parseAmount(p['total_amount']) <= 0)
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
 
     return Column(
@@ -614,6 +615,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<List<String>> _buildIncomeTableRows() {
     final payments = _paymentReport?['payments'] as List? ?? [];
     final sortedPayments = List<Map<String, dynamic>>.from(payments)
+      ..removeWhere((p) => _parseAmount(p['total_amount']) <= 0)
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
     final rows = <List<String>>[];
     int idx = 1;
