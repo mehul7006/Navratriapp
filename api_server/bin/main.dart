@@ -1876,14 +1876,15 @@ Future<Response> _getDrawHistory(Request request) async {
   try {
     final conn = await db;
     final results = await conn.execute(Sql.named('''
-      SELECT dt.ticket_code, dt.day_number, dt.is_winner, dt.is_assigned,
+      SELECT dd.id, dd.ticket_code, dd.day_number, dd.prize_level, dd.status,
+             dd.cancelled_reason, dd.drawn_at, dd.draw_number,
              u.name as user_name, u.house_number,
              nd.goddess_name, nd.date as event_date
-      FROM draw_tickets dt
-      LEFT JOIN users u ON dt.user_id = u.id
-      LEFT JOIN navratri_days nd ON dt.day_number = nd.day_number
-      WHERE dt.is_winner = TRUE OR dt.is_assigned = TRUE
-      ORDER BY dt.day_number DESC, dt.ticket_code
+      FROM daily_draws dd
+      LEFT JOIN users u ON dd.winner_id = u.id
+      LEFT JOIN navratri_days nd ON dd.day_number = nd.day_number
+      WHERE dd.prize_level IS NOT NULL OR dd.status = 'cancelled'
+      ORDER BY dd.day_number DESC, dd.drawn_at DESC
     '''));
     return _jsonResponse(_parseResults(results));
   } catch (e) {
