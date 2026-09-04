@@ -116,17 +116,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House', 'Owner Name', 'Amount', 'Status']),
+              _tableHeader(['#', 'House', 'Owner Name', 'Amount']),
               ...sortedPayments.asMap().entries.map((entry) {
                 final p = entry.value;
-                final status = (p['payment_status'] ?? '').toString();
                 final amount = _parseAmount(p['total_amount']);
                 return _tableRow([
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
                   '${p['owner_name'] ?? ''}',
-                  amount > 0 ? '₹${amount.toStringAsFixed(0)}' : '-',
-                  status == 'paid' ? 'Paid' : 'Pending',
+                  '₹${amount.toStringAsFixed(0)}',
                 ]);
               }),
               _divider(),
@@ -522,7 +520,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['#', 'House', 'Owner Name', 'Amount (₹)', 'Status'],
+          headers: ['#', 'House', 'Owner Name', 'Amount (₹)'],
           data: _buildIncomeTableRows(),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -619,14 +617,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final rows = <List<String>>[];
     int idx = 1;
     for (final p in sortedPayments) {
-      final status = (p['payment_status'] ?? '').toString();
       final amount = _parseAmount(p['total_amount']);
       rows.add([
         '${idx++}',
         '${p['house_number'] ?? ''}',
         '${p['owner_name'] ?? ''}',
-        amount > 0 ? '₹${amount.toStringAsFixed(0)}' : '-',
-        status == 'paid' ? 'Paid' : 'Pending',
+        '₹${amount.toStringAsFixed(0)}',
       ]);
     }
     return rows;

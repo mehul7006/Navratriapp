@@ -2643,12 +2643,13 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
       SELECT u.house_number, u.name as owner_name, 
              COALESCE(SUM(fc.amount), 0) as total_amount,
              MAX(fc.payment_method) as payment_method,
-             CASE WHEN SUM(fc.amount) > 0 THEN 'paid' ELSE 'pending' END as payment_status,
+             'paid' as payment_status,
              COUNT(fc.id) as payment_count
       FROM users u
-      LEFT JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
+      INNER JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
       WHERE u.member_type = 'main' AND u.user_type != 'organizer'
       GROUP BY u.id, u.house_number, u.name
+      HAVING COALESCE(SUM(fc.amount), 0) > 0
       ORDER BY u.house_number ASC
     '''));
     final total = await conn.execute(Sql.named(
