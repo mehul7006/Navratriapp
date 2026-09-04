@@ -184,9 +184,9 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 7),
           decoration: BoxDecoration(
-            color: sel ? AppTheme.goldPrimary : Colors.transparent,
+            color: sel ? AppTheme.goldPrimary : AppTheme.cardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+            border: Border.all(color: sel ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.7)),
           ),
           child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sel ? AppTheme.purpleDark : AppTheme.textMuted)),
         ),
@@ -715,7 +715,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                           color: Colors.transparent,
                           child: ListTile(
                             dense: true,
-                            leading: CircleAvatar(backgroundColor: AppTheme.goldPrimary, radius: 12, child: Text((m['name'] ?? '')[0].toString().toUpperCase(), style: const TextStyle(fontSize: 10, color: AppTheme.purpleDark))),
+                            leading: CircleAvatar(backgroundColor: AppTheme.goldPrimary, radius: 12, child: Text((m['name'] ?? '?').toString().isNotEmpty ? (m['name'] ?? '?')[0].toString().toUpperCase() : '?', style: const TextStyle(fontSize: 10, color: AppTheme.purpleDark))),
                             title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 12)),
                             onTap: () => _selectMember(m),
                           ),

@@ -1025,10 +1025,12 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
         ),
       ),
     ).then((_) {
-      ticketController.dispose();
-      nameController.dispose();
-      mobileController.dispose();
-      houseController.dispose();
+      if (mounted) {
+        ticketController.dispose();
+        nameController.dispose();
+        mobileController.dispose();
+        houseController.dispose();
+      }
     });
   }
 }

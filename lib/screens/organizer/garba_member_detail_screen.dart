@@ -74,7 +74,7 @@ class _GarbaMemberDetailScreenState extends State<GarbaMemberDetailScreen> {
               radius: 30,
               backgroundColor: AppTheme.goldPrimary,
               child: Text(
-                (user['name'] ?? '?').substring(0, 1).toUpperCase(),
+                (user['name'] ?? '?').toString().isNotEmpty ? (user['name'] ?? '?')[0].toString().toUpperCase() : '?',
                 style: const TextStyle(color: AppTheme.purpleDark, fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
