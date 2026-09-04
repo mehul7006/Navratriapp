@@ -308,7 +308,14 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _field(houseController, AppLocalizations.t('house_number')),
+              _field(houseController, AppLocalizations.t('house_number'),
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (v) {
+                  final upper = v.toUpperCase();
+                  if (v != upper) {
+                    houseController.value = houseController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
+                  }
+                }),
               _field(nameController, AppLocalizations.t('contact_name')),
               _field(mobileController, AppLocalizations.t('mobile_number'), inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)], maxLength: 10),
               _field(companyController, AppLocalizations.t('company_name')),
@@ -389,7 +396,7 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
     );
   }
 
-  Widget _field(TextEditingController controller, String label, {bool isNumber = false, List<TextInputFormatter>? inputFormatters, int? maxLength}) {
+  Widget _field(TextEditingController controller, String label, {bool isNumber = false, List<TextInputFormatter>? inputFormatters, int? maxLength, TextCapitalization textCapitalization = TextCapitalization.none, ValueChanged<String>? onChanged}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
@@ -397,6 +404,8 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
         keyboardType: isNumber ? TextInputType.number : (inputFormatters != null ? TextInputType.phone : TextInputType.text),
         inputFormatters: inputFormatters,
         maxLength: maxLength,
+        textCapitalization: textCapitalization,
+        onChanged: onChanged,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           counterText: '',

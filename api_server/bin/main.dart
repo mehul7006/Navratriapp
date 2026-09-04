@@ -93,6 +93,9 @@ Future<Connection> get db async {
     // Member type column - main = paid member, sub = garba participant
     await _db!.execute(
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS member_type VARCHAR DEFAULT 'main'");
+    // Fix existing users that have NULL member_type - set to 'main'
+    await _db!.execute(
+        "UPDATE users SET member_type = 'main' WHERE member_type IS NULL AND user_type != 'organizer'");
     // Gift assignments status column
     await _db!.execute(
         "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
