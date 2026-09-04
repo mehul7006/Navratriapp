@@ -186,7 +186,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
           decoration: BoxDecoration(
             color: sel ? AppTheme.goldPrimary : AppTheme.cardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: sel ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.7)),
+            border: Border.all(color: sel ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.9)),
           ),
           child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sel ? AppTheme.purpleDark : AppTheme.textMuted)),
         ),
