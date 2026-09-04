@@ -16,7 +16,7 @@ class BackgroundScaffold extends StatelessWidget {
     this.bottomNavigationBar,
     this.floatingActionButton,
     this.drawer,
-    this.backgroundColor = const Color(0xCC0C0117),
+    this.backgroundColor = const Color(0x800C0117),
     this.resizeToAvoidBottomInset = true,
   });
 
@@ -34,7 +34,7 @@ class BackgroundScaffold extends StatelessWidget {
         children: [
           // Background image
           Image.asset(
-            'assets/images/BGIMAGE_DARK.jpg',
+            'assets/images/BGIMAGE.jpg',
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(
@@ -65,7 +65,7 @@ class BackgroundBody extends StatelessWidget {
   const BackgroundBody({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.75,
+    this.overlayOpacity = 0.45,
   });
 
   @override
