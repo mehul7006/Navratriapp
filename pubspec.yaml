@@ -35,6 +35,7 @@ flutter:
     - assets/images/BGIMAGE.png
     - assets/images/BGIMAGE.jpg
     - assets/images/BGIMAGE_DARK.jpg
+    - assets/images/LOGIN_BG.jpg
     - assets/l10n/en.json
     - assets/l10n/hi.json
     - assets/l10n/gu.json

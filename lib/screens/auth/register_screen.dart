@@ -67,6 +67,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
+      backgroundImage: 'assets/images/LOGIN_BG.jpg',
       appBar: AppBar(
         title: const Text('New User Registration'),
         backgroundColor: AppTheme.purpleDeep,

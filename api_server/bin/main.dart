@@ -2642,15 +2642,14 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
     final conn = await db;
     final results = await conn.execute(Sql.named('''
       SELECT u.house_number, u.name as owner_name, 
-             COALESCE(SUM(fc.amount), 0) as total_amount,
-             MAX(fc.payment_method) as payment_method,
-             'paid' as payment_status,
-             COUNT(fc.id) as payment_count
+             COALESCE(SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END), 0) as total_amount,
+             MAX(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.payment_method ELSE NULL END) as payment_method,
+             CASE WHEN SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END) > 0 THEN 'paid' ELSE 'unpaid' END as payment_status,
+             COUNT(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.id END) as payment_count
       FROM users u
-      INNER JOIN fund_collections fc ON fc.user_id = u.id AND fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
-      WHERE u.member_type = 'main' AND u.user_type != 'organizer'
+      LEFT JOIN fund_collections fc ON fc.user_id = u.id
+      WHERE u.member_type = 'main' AND u.user_type != 'organizer' AND u.is_active = TRUE
       GROUP BY u.id, u.house_number, u.name
-      HAVING COALESCE(SUM(fc.amount), 0) > 0
       ORDER BY u.house_number ASC
     '''));
     final total = await conn.execute(Sql.named(

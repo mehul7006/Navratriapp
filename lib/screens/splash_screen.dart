@@ -60,6 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
+      backgroundImage: 'assets/images/LOGIN_BG.jpg',
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {

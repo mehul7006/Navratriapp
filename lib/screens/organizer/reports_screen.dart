@@ -111,7 +111,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (payments.isEmpty) return _emptyCard(AppLocalizations.t('no_payment_data'));
 
     final sortedPayments = List<Map<String, dynamic>>.from(payments)
-      ..removeWhere((p) => _parseAmount(p['total_amount']) <= 0)
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
 
     return Column(
@@ -123,12 +122,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ...sortedPayments.asMap().entries.map((entry) {
                 final p = entry.value;
                 final amount = _parseAmount(p['total_amount']);
+                final status = (p['payment_status'] ?? 'unpaid').toString();
+                final isPaid = status == 'paid';
                 return _tableRow([
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
                   '${p['owner_name'] ?? ''}',
                   '₹${amount.toStringAsFixed(0)}',
-                  'Paid',
+                  isPaid ? 'Paid' : 'Unpaid',
                 ]);
               }),
               _divider(),
@@ -617,18 +618,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<List<String>> _buildIncomeTableRows() {
     final payments = _paymentReport?['payments'] as List? ?? [];
     final sortedPayments = List<Map<String, dynamic>>.from(payments)
-      ..removeWhere((p) => _parseAmount(p['total_amount']) <= 0)
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
     final rows = <List<String>>[];
     int idx = 1;
     for (final p in sortedPayments) {
       final amount = _parseAmount(p['total_amount']);
+      final status = (p['payment_status'] ?? 'unpaid').toString();
+      final isPaid = status == 'paid';
       rows.add([
         '${idx++}',
         '${p['house_number'] ?? ''}',
         '${p['owner_name'] ?? ''}',
         '₹${amount.toStringAsFixed(0)}',
-        'Paid',
+        isPaid ? 'Paid' : 'Unpaid',
       ]);
     }
     return rows;

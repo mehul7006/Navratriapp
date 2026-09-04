@@ -8,6 +8,7 @@ class BackgroundScaffold extends StatelessWidget {
   final Widget? drawer;
   final Color backgroundColor;
   final bool resizeToAvoidBottomInset;
+  final String? backgroundImage;
 
   const BackgroundScaffold({
     super.key,
@@ -18,6 +19,7 @@ class BackgroundScaffold extends StatelessWidget {
     this.drawer,
     this.backgroundColor = const Color(0xA60C0117),
     this.resizeToAvoidBottomInset = true,
+    this.backgroundImage,
   });
 
   @override
@@ -34,7 +36,7 @@ class BackgroundScaffold extends StatelessWidget {
         children: [
           // Background image
           Image.asset(
-            'assets/images/BGIMAGE.jpg',
+            backgroundImage ?? 'assets/images/BGIMAGE.jpg',
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(
@@ -61,11 +63,13 @@ class BackgroundScaffold extends StatelessWidget {
 class BackgroundBody extends StatelessWidget {
   final Widget child;
   final double overlayOpacity;
+  final String? backgroundImage;
 
   const BackgroundBody({
     super.key,
     required this.child,
     this.overlayOpacity = 0.55,
+    this.backgroundImage,
   });
 
   @override
@@ -75,7 +79,7 @@ class BackgroundBody extends StatelessWidget {
       children: [
         // Background image
         Image.asset(
-          'assets/images/BGIMAGE_DARK.jpg',
+          backgroundImage ?? 'assets/images/BGIMAGE.jpg',
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return Container(

@@ -225,6 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
+      backgroundImage: 'assets/images/LOGIN_BG.jpg',
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(

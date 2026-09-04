@@ -615,7 +615,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   }
 
   void _showGenerateDialog() {
-    int selectedDay = 1;
+    int selectedDay = _selectedDay > 0 ? _selectedDay : 1;
     int count = 50;
     showDialog(
       context: context,
