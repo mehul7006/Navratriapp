@@ -1883,7 +1883,8 @@ Future<Response> _getDrawHistory(Request request) async {
       FROM daily_draws dd
       LEFT JOIN users u ON dd.winner_id = u.id
       LEFT JOIN navratri_days nd ON dd.day_number = nd.day_number
-      WHERE dd.prize_level IS NOT NULL OR dd.status = 'cancelled'
+      WHERE (dd.prize_level IS NOT NULL OR dd.status = 'cancelled')
+        AND nd.is_completed = TRUE
       ORDER BY dd.day_number DESC, dd.drawn_at DESC
     '''));
     return _jsonResponse(_parseResults(results));
