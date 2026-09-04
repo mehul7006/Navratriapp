@@ -120,13 +120,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ...sortedPayments.asMap().entries.map((entry) {
                 final p = entry.value;
                 final amount = _parseAmount(p['total_amount']);
-                final status = (p['payment_status'] ?? 'paid').toString();
                 return _tableRow([
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
                   '${p['owner_name'] ?? ''}',
                   '₹${amount.toStringAsFixed(0)}',
-                  status == 'paid' ? 'Paid' : 'Pending',
+                  'Paid',
                 ]);
               }),
               _divider(),
@@ -620,13 +619,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     int idx = 1;
     for (final p in sortedPayments) {
       final amount = _parseAmount(p['total_amount']);
-      final status = (p['payment_status'] ?? 'paid').toString();
       rows.add([
         '${idx++}',
         '${p['house_number'] ?? ''}',
         '${p['owner_name'] ?? ''}',
         '₹${amount.toStringAsFixed(0)}',
-        status == 'paid' ? 'Paid' : 'Pending',
+        'Paid',
       ]);
     }
     return rows;
