@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserGiftsScreen extends StatefulWidget {
   const UserGiftsScreen({super.key});
@@ -67,8 +68,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('my_gifts')),
         backgroundColor: AppTheme.purpleDeep,
@@ -78,7 +78,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadGifts),
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
           _buildDaySelector(),
           _buildTabBar(),

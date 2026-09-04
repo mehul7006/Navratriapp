@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class GiftManagementScreen extends StatefulWidget {
   const GiftManagementScreen({super.key});
@@ -32,29 +33,31 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Column(
-          children: [
-            _buildDaySelector(),
-            _buildTabBar(),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _showAssignments ? _buildAssignmentsList() : _buildGiftsList(),
-            ),
-          ],
-        ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            backgroundColor: AppTheme.goldPrimary,
-            onPressed: () => _showAddGiftDialog(),
-            child: const Icon(Icons.add, color: AppTheme.purpleDark),
+    return BackgroundBody(
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              _buildDaySelector(),
+              _buildTabBar(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _showAssignments ? _buildAssignmentsList() : _buildGiftsList(),
+              ),
+            ],
           ),
-        ),
-      ],
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              backgroundColor: AppTheme.goldPrimary,
+              onPressed: () => _showAddGiftDialog(),
+              child: const Icon(Icons.add, color: AppTheme.purpleDark),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

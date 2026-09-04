@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class SponsorDashboardScreen extends StatefulWidget {
   const SponsorDashboardScreen({super.key});
@@ -48,8 +49,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('sponsor_dashboard')),
         backgroundColor: AppTheme.purpleDeep,
@@ -60,13 +60,29 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              authProvider.logout();
-              Navigator.pushReplacementNamed(context, '/login');
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(AppLocalizations.t('logout')),
+                  content: Text(AppLocalizations.t('are_you_sure_logout')),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        authProvider.logout();
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      child: Text(AppLocalizations.t('logout')),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),

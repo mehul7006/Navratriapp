@@ -21,6 +21,7 @@ import 'dj_console_screen.dart';
 import 'garba_participation_screen.dart';
 import '../../widgets/language_toggle.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class OrganizerDashboardScreen extends StatefulWidget {
   const OrganizerDashboardScreen({super.key});
@@ -110,8 +111,7 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
           setState(() { _selectedIndex = 0; });
         }
       },
-      child: Scaffold(
-        backgroundColor: AppTheme.purpleDark,
+      child: BackgroundScaffold(
         appBar: AppBar(
           title: Text(_getTabTitle(), style: const TextStyle(color: AppTheme.goldPrimary)),
           backgroundColor: AppTheme.purpleDeep,
@@ -138,7 +138,7 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
             ),
           ],
         ),
-        body: _buildBody(),
+        child: _buildBody(),
         bottomNavigationBar: _buildBottomNav(),
       ),
     );

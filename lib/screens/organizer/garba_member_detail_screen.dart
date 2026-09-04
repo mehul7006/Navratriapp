@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class GarbaMemberDetailScreen extends StatefulWidget {
   final int memberId;
@@ -31,15 +32,14 @@ class _GarbaMemberDetailScreenState extends State<GarbaMemberDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(widget.memberName, style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : _details == null
               ? const Center(child: Text('No data found', style: TextStyle(color: AppTheme.textMuted)))

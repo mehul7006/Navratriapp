@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class DayManagementScreen extends StatefulWidget {
   const DayManagementScreen({super.key});
@@ -44,8 +45,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('day_schedule'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -54,7 +54,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
           _buildDayTabs(),
           Expanded(

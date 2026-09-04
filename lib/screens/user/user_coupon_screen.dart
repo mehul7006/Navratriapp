@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserCouponScreen extends StatefulWidget {
   final String houseNumber;
@@ -34,7 +35,12 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
     _days = await DatabaseHelper.getNavratriDays();
     final activeDay = await DatabaseHelper.getCurrentActiveDay();
     if (activeDay != null) _selectedDay = activeDay;
-    _loadTickets();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    await _loadTickets();
   }
 
   bool _isDayCompleted(int dayNumber) {
@@ -67,17 +73,18 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('my_coupons')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: Column(
               children: [
                 // User Info Card
                 _buildUserInfoCard(),
@@ -102,6 +109,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                       : _buildTicketsList(),
                 ),
               ],
+            ),
             ),
     );
   }
@@ -360,6 +368,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                 ).firstOrNull;
                 if (draw == null) return const SizedBox.shrink();
                 final labels = ['', '🏆🥇 1st Prize', '🥈 2nd Prize', '🥉 3rd Prize'];
+                final prizeIndex = draw['prize_level'] as int? ?? 0;
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -367,7 +376,10 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                     color: Colors.amber.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(labels[draw['prize_level']] ?? '', style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    (prizeIndex > 0 && prizeIndex < labels.length) ? labels[prizeIndex] : '',
+                    style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
                 );
               },
             ),
@@ -391,7 +403,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                         const Icon(Icons.qr_code, size: 40, color: AppTheme.purpleDark),
                         const SizedBox(height: 4),
                         Text(
-                          ticket['ticket_code']?.toString().substring(0, 8) ?? '',
+                           (() { final code = ticket['ticket_code']?.toString() ?? ''; return code.length > 8 ? code.substring(0, 8) : code; })(),
                           style: const TextStyle(fontSize: 7, color: AppTheme.purpleDark),
                         ),
                       ],

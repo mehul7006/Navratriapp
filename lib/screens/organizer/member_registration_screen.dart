@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class MemberRegistrationScreen extends StatefulWidget {
   const MemberRegistrationScreen({super.key});
@@ -91,15 +92,14 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: const Text('Register Member'),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
-      body: SingleChildScrollView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

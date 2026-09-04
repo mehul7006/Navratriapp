@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserSongRequestScreen extends StatefulWidget {
   const UserSongRequestScreen({super.key});
@@ -121,8 +122,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('song_requests'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -131,7 +131,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : Column(
               children: [

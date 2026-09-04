@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserScheduleScreen extends StatefulWidget {
   const UserScheduleScreen({super.key});
@@ -39,14 +40,13 @@ class _UserScheduleScreenState extends State<UserScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('festival_schedule'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
+      child: Column(
         children: [
           _buildDaySelector(),
           _buildDayInfo(),

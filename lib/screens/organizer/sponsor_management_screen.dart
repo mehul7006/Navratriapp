@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class SponsorManagementScreen extends StatefulWidget {
   const SponsorManagementScreen({super.key});
@@ -39,7 +40,6 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
         title: Text(AppLocalizations.t('sponsors'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -48,11 +48,13 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-          : _sponsors.isEmpty
-              ? _buildEmptyState()
-              : _buildSponsorList(),
+      body: BackgroundBody(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+            : _sponsors.isEmpty
+                ? _buildEmptyState()
+                : _buildSponsorList(),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.goldPrimary,
         onPressed: _showAddSponsorDialog,

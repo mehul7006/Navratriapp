@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserShoutoutWallScreen extends StatefulWidget {
   const UserShoutoutWallScreen({super.key});
@@ -86,8 +87,7 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('shoutout_wall'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -96,7 +96,7 @@ class _UserShoutoutWallScreenState extends State<UserShoutoutWallScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : Column(
               children: [

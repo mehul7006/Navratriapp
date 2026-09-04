@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class GatePassScreen extends StatelessWidget {
   final String holderName;
@@ -10,8 +11,8 @@ class GatePassScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
+    return BackgroundScaffold(
+      child: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),

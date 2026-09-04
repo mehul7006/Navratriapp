@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
 import 'garba_member_detail_screen.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class GarbaParticipationScreen extends StatefulWidget {
   const GarbaParticipationScreen({super.key});
@@ -74,26 +75,27 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
         title: Text(AppLocalizations.t('garba_participation'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildHouseFilterChips(),
-          _buildSortRow(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-                : _filteredMembers.isEmpty
-                    ? const Center(child: Text('No members found', style: TextStyle(color: AppTheme.textMuted)))
-                    : _buildMembersList(),
-          ),
-        ],
+      body: BackgroundBody(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildHouseFilterChips(),
+            _buildSortRow(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                  : _filteredMembers.isEmpty
+                      ? const Center(child: Text('No members found', style: TextStyle(color: AppTheme.textMuted)))
+                      : _buildMembersList(),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.goldPrimary,

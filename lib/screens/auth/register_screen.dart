@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/background_scaffold.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -65,14 +66,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: const Text('New User Registration'),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
       ),
-      body: Center(
+      child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Container(

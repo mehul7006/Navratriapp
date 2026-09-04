@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class DrawHistoryScreen extends StatefulWidget {
   const DrawHistoryScreen({super.key});
@@ -60,8 +61,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
     final totalWinners = _filteredHistory.where((t) => t['prize_level'] != null).length;
     final totalCancelled = _filteredHistory.where((t) => t['status'] == 'cancelled').length;
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('draw_history'), style: const TextStyle(color: AppTheme.goldPrimary)),
         backgroundColor: AppTheme.purpleDeep,
@@ -71,7 +71,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
           _buildDaySelector(),
           _buildStatsBar(totalWinners, totalCancelled),

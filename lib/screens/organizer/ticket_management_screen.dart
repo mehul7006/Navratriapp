@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class TicketManagementScreen extends StatefulWidget {
   const TicketManagementScreen({super.key});
@@ -166,7 +167,6 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
         title: Text(_isMultiSelectMode ? '${_selectedTicketIds.length} Selected' : AppLocalizations.t('draw_tickets'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -199,19 +199,21 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
           ],
         ],
       ),
-      body: Column(
-        children: [
-          _buildDaySelector(),
-          _buildFilterChips(),
-          _buildStats(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-                : _tickets.isEmpty
-                    ? _buildEmptyState()
-                    : _buildTicketList(),
-          ),
-        ],
+      body: BackgroundBody(
+        child: Column(
+          children: [
+            _buildDaySelector(),
+            _buildFilterChips(),
+            _buildStats(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                  : _tickets.isEmpty
+                      ? _buildEmptyState()
+                      : _buildTicketList(),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,

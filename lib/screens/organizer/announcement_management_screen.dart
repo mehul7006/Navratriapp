@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class AnnouncementManagementScreen extends StatefulWidget {
   const AnnouncementManagementScreen({super.key});
@@ -29,22 +30,23 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
         title: Text(AppLocalizations.t('announcements')),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _announcements.isEmpty
-              ? Center(child: Text(AppLocalizations.t('no_announcements'), style: const TextStyle(color: AppTheme.textMuted)))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _announcements.length,
-                  itemBuilder: (context, index) => _buildAnnouncementCard(_announcements[index]),
-                ),
+      body: BackgroundBody(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _announcements.isEmpty
+                ? Center(child: Text(AppLocalizations.t('no_announcements'), style: const TextStyle(color: AppTheme.textMuted)))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _announcements.length,
+                    itemBuilder: (context, index) => _buildAnnouncementCard(_announcements[index]),
+                  ),
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.goldPrimary,
         onPressed: () => _showAddAnnouncementDialog(),

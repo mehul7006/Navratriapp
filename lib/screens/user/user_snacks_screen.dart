@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserSnacksScreen extends StatefulWidget {
   const UserSnacksScreen({super.key});
@@ -67,10 +68,9 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(title: Text(AppLocalizations.t('snack_counter')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary, iconTheme: const IconThemeData(color: AppTheme.goldPrimary)),
-      body: Column(
+      child: Column(
         children: [
           _buildDaySelector(),
           _buildTabBar(),

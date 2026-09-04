@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -51,7 +52,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
         title: Text(AppLocalizations.t('reports_analytics_title'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -61,34 +61,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle('1. Income Report (by House)'),
-                    _buildIncomeByHouse(),
-                    const SizedBox(height: 16),
-                    _sectionTitle('2. Expense Report (by Date)'),
-                    _buildExpensesByDate(),
-                    const SizedBox(height: 16),
-                    _sectionTitle('3. Balance Sheet'),
-                    _buildBalanceSheet(),
-                    const SizedBox(height: 16),
-                    _sectionTitle('4. Daily Activity (Day 1-9)'),
-                    _buildDailyActivity(),
-                    const SizedBox(height: 16),
-                    _sectionTitle('5. Charts'),
-                    _buildCharts(),
-                  ],
+      body: BackgroundBody(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+            : RefreshIndicator(
+                onRefresh: _loadData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle('1. Income Report (by House)'),
+                      _buildIncomeByHouse(),
+                      const SizedBox(height: 16),
+                      _sectionTitle('2. Expense Report (by Date)'),
+                      _buildExpensesByDate(),
+                      const SizedBox(height: 16),
+                      _sectionTitle('3. Balance Sheet'),
+                      _buildBalanceSheet(),
+                      const SizedBox(height: 16),
+                      _sectionTitle('4. Daily Activity (Day 1-9)'),
+                      _buildDailyActivity(),
+                      const SizedBox(height: 16),
+                      _sectionTitle('5. Charts'),
+                      _buildCharts(),
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

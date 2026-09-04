@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserPaymentHistoryScreen extends StatefulWidget {
   const UserPaymentHistoryScreen({super.key});
@@ -35,8 +36,7 @@ class _UserPaymentHistoryScreenState extends State<UserPaymentHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('my_payments'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -45,7 +45,7 @@ class _UserPaymentHistoryScreenState extends State<UserPaymentHistoryScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadPayments),
         ],
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : _payments.isEmpty
               ? Center(child: Text(AppLocalizations.t('no_payments_found'), style: const TextStyle(color: AppTheme.textMuted)))

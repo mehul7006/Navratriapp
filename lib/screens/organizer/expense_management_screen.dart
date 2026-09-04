@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class ExpenseManagementScreen extends StatefulWidget {
   const ExpenseManagementScreen({super.key});
@@ -93,8 +94,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       else totalSponsor += amt;
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(isDeletedTab ? 'Deleted Expenses' : AppLocalizations.t('expenses')),
         backgroundColor: AppTheme.purpleDeep,
@@ -108,7 +108,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           ],
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
           _buildTabToggle(),
           if (!isDeletedTab) _buildSearchBar(),

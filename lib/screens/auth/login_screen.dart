@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/locale_provider.dart';
+import '../../widgets/background_scaffold.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -223,29 +224,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildLogo(),
-                  const SizedBox(height: 24),
-                    Text(AppLocalizations.t('navratri_2026'), style: TextStyle(fontFamily: 'Cinzel', fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.goldPrimary, letterSpacing: 2)),
-                  const SizedBox(height: 4),
-                    Text(AppLocalizations.t('nishitpark_society'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.5)),
-                  const SizedBox(height: 16),
-                  _buildMarquee(),
-                  const SizedBox(height: 24),
-                  _buildPrizeWinners(),
-                  const SizedBox(height: 24),
-                  _buildLoginForm(),
-                ],
-              ),
+    return BackgroundScaffold(
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildLogo(),
+                const SizedBox(height: 24),
+                  Text(AppLocalizations.t('navratri_2026'), style: TextStyle(fontFamily: 'Cinzel', fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.goldPrimary, letterSpacing: 2)),
+                const SizedBox(height: 4),
+                  Text(AppLocalizations.t('nishitpark_society'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.5)),
+                const SizedBox(height: 16),
+                _buildMarquee(),
+                const SizedBox(height: 24),
+                _buildPrizeWinners(),
+                const SizedBox(height: 24),
+                _buildLoginForm(),
+              ],
             ),
           ),
         ),

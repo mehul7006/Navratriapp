@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserWinnersScreen extends StatefulWidget {
   const UserWinnersScreen({super.key});
@@ -39,8 +40,7 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('draw_winners'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -49,17 +49,20 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadData),
         ],
       ),
-      body: Column(
-        children: [
-          _buildDayFilter(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-                : _winners.isEmpty
-                    ? _buildEmptyState()
-                    : _buildWinnersList(),
-          ),
-        ],
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        child: Column(
+          children: [
+            _buildDayFilter(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                  : _winners.isEmpty
+                      ? _buildEmptyState()
+                      : _buildWinnersList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -153,7 +156,7 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  ['', '🏆🥇 1st', '🥈 2nd', '🥉 3rd'][winner['prize_level'] as int] + ' Prize',
+                  (() { final p = winner['prize_level']; final labels = ['', '🏆🥇 1st', '🥈 2nd', '🥉 3rd']; return (p != null && p >= 1 && p <= 3) ? labels[p as int] : '$p'; })() + ' Prize',
                   style: const TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold),
                 ),
               ),

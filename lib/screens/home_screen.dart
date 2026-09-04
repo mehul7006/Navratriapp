@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../widgets/countdown_timer.dart';
 import '../widgets/feature_card.dart';
 import 'gate_pass_screen.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,8 +13,8 @@ class HomeScreen extends StatelessWidget {
     // Target date: Navratri 2026 start (example: October 15, 2026)
     final navratriStart = DateTime(2026, 10, 15, 19, 30, 0);
 
-    return Scaffold(
-      body: Container(
+    return BackgroundScaffold(
+      child: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),

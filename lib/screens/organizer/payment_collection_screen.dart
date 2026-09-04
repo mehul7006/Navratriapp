@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class PaymentCollectionScreen extends StatefulWidget {
   const PaymentCollectionScreen({super.key});
@@ -93,8 +94,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       else if (p['payment_status'] == 'pending') totalPending += amt;
     }
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(_selectedFilter == 'deleted' ? 'Deleted Payments' : 'Payment Collection'),
         backgroundColor: AppTheme.purpleDeep,
@@ -108,7 +108,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
           ],
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
           if (_selectedFilter != 'deleted') _buildSearchBar(),
           _buildFilterChips(),

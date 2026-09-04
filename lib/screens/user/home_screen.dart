@@ -15,6 +15,7 @@ import 'user_winners_screen.dart';
 import 'user_payment_history_screen.dart';
 import 'user_song_request_screen.dart';
 import 'user_shoutout_wall_screen.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -76,8 +77,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('navratri_2026_short'), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.purpleDeep,
@@ -89,13 +89,32 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              authProvider.logout();
-              Navigator.pushReplacementNamed(context, '/login');
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        authProvider.logout();
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
       ),
-      body: RefreshIndicator(
+      child: RefreshIndicator(
         onRefresh: _loadData,
         color: AppTheme.goldPrimary,
         backgroundColor: AppTheme.purpleDark,
@@ -112,8 +131,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               _buildMyBookingsSummary(),
               const SizedBox(height: 16),
               _buildQuickActions(context, user),
-              const SizedBox(height: 16),
-              _buildStatsRow(),
               const SizedBox(height: 16),
               if (_announcements.isNotEmpty) ...[
                 _buildSectionTitle(AppLocalizations.t('announcements')),
@@ -328,37 +345,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   child: Text(badge, style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        _buildMiniStat(AppLocalizations.t('aarti'), '${_stats['bookings']}', Icons.self_improvement, Colors.orange),
-        const SizedBox(width: 8),
-        _buildMiniStat(AppLocalizations.t('orders'), '${_stats['orders']}', Icons.restaurant, Colors.blue),
-        const SizedBox(width: 8),
-        _buildMiniStat(AppLocalizations.t('gifts'), '${_stats['gifts']}', Icons.card_giftcard, Colors.purple),
-        const SizedBox(width: 8),
-        _buildMiniStat(AppLocalizations.t('tickets'), '${_myBookings.length}', Icons.confirmation_number, Colors.amber),
-      ],
-    );
-  }
-
-  Widget _buildMiniStat(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: AppTheme.hubItemDecoration,
-        child: Column(
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 9, color: AppTheme.textMuted)),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
+import '../widgets/background_scaffold.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -58,116 +59,107 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF3D0B5E), Color(0xFF150024)],
-            begin: Alignment.center,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Glowing Circle
-                      Container(
-                        width: 130,
-                        height: 130,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.goldPrimary,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.goldPrimary.withOpacity(0.6),
-                              blurRadius: 35,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                          color: AppTheme.purpleCard.withOpacity(0.7),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(colors: [AppTheme.goldPrimary, AppTheme.goldDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.self_improvement, size: 48, color: AppTheme.purpleDark),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Title
-                      const Text(
-                        'NAVRATRI 2026',
-                        style: TextStyle(
-                          fontFamily: 'Cinzel',
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
+    return BackgroundScaffold(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Glowing Circle
+                    Container(
+                      width: 130,
+                      height: 130,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
                           color: AppTheme.goldPrimary,
-                          letterSpacing: 2,
+                          width: 3,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.goldPrimary.withOpacity(0.6),
+                            blurRadius: 35,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                        color: AppTheme.purpleCard.withOpacity(0.7),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'NISHITPARK SOCIETY',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Raas-Rang Mahotsav',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      // Loading Indicator
-                      SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppTheme.goldPrimary,
+                      child: Center(
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(colors: [AppTheme.goldPrimary, AppTheme.goldDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.self_improvement, size: 48, color: AppTheme.purpleDark),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Connecting to Ground Live Feed...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.cyanAccent,
+                    ),
+                    const SizedBox(height: 24),
+                    // Title
+                    const Text(
+                      'NAVRATRI 2026',
+                      style: TextStyle(
+                        fontFamily: 'Cinzel',
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.goldPrimary,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'NISHITPARK SOCIETY',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Raas-Rang Mahotsav',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    // Loading Indicator
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.goldPrimary,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Connecting to Ground Live Feed...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.cyanAccent,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

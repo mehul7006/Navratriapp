@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class LuckyDrawScreen extends StatefulWidget {
   const LuckyDrawScreen({super.key});
@@ -452,8 +453,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('lucky_draw')),
         backgroundColor: AppTheme.purpleDeep,
@@ -466,7 +466,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           ),
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
           _buildDaySelector(),
           Expanded(

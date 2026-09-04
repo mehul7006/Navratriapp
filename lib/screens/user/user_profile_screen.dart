@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -42,8 +43,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
 
-    return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
+    return BackgroundScaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.t('my_profile'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -63,7 +63,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [

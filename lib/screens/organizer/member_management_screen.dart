@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class MemberManagementScreen extends StatefulWidget {
   const MemberManagementScreen({super.key});
@@ -50,32 +51,34 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Column(
-          children: [
-            _buildHeader(),
-            _buildFilterBar(),
-            _buildSortRow(),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredMembers.isEmpty
-                      ? Center(child: Text(AppLocalizations.t('no_members_found'), style: const TextStyle(color: AppTheme.textMuted)))
-                      : _buildMembersList(),
-            ),
-          ],
-        ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            backgroundColor: AppTheme.goldPrimary,
-            onPressed: () => _showAddMemberDialog(),
-            child: const Icon(Icons.person_add, color: AppTheme.purpleDark),
+    return BackgroundBody(
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              _buildHeader(),
+              _buildFilterBar(),
+              _buildSortRow(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _filteredMembers.isEmpty
+                        ? Center(child: Text(AppLocalizations.t('no_members_found'), style: const TextStyle(color: AppTheme.textMuted)))
+                        : _buildMembersList(),
+              ),
+            ],
           ),
-        ),
-      ],
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              backgroundColor: AppTheme.goldPrimary,
+              onPressed: () => _showAddMemberDialog(),
+              child: const Icon(Icons.person_add, color: AppTheme.purpleDark),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

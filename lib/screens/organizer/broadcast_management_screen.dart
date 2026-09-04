@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class BroadcastManagementScreen extends StatefulWidget {
   const BroadcastManagementScreen({super.key});
@@ -112,7 +113,6 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.purpleDark,
       appBar: AppBar(
         title: Text(AppLocalizations.t('broadcasts')),
         backgroundColor: AppTheme.purpleDeep,
@@ -127,81 +127,83 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
         onPressed: _showCreateDialog,
         child: const Icon(Icons.add, color: Colors.black),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-          : _broadcasts.isEmpty
-              ? Center(child: Text(AppLocalizations.t('no_broadcasts'), style: const TextStyle(color: AppTheme.textMuted)))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _broadcasts.length,
-                  itemBuilder: (context, index) {
-                    final b = _broadcasts[index];
-                    final priority = b['priority'] ?? 'normal';
-                    final Color priorityColor;
-                    switch (priority) {
-                      case 'urgent': priorityColor = Colors.red; break;
-                      case 'high': priorityColor = Colors.orange; break;
-                      case 'normal': priorityColor = Colors.blue; break;
-                      default: priorityColor = Colors.grey; break;
-                    }
-                    String dateStr = '';
-                    try {
-                      dateStr = DateFormat('dd MMM yyyy HH:mm').format(DateTime.parse(b['created_at'] ?? ''));
-                    } catch (_) {}
+      body: BackgroundBody(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+            : _broadcasts.isEmpty
+                ? Center(child: Text(AppLocalizations.t('no_broadcasts'), style: const TextStyle(color: AppTheme.textMuted)))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _broadcasts.length,
+                    itemBuilder: (context, index) {
+                      final b = _broadcasts[index];
+                      final priority = b['priority'] ?? 'normal';
+                      final Color priorityColor;
+                      switch (priority) {
+                        case 'urgent': priorityColor = Colors.red; break;
+                        case 'high': priorityColor = Colors.orange; break;
+                        case 'normal': priorityColor = Colors.blue; break;
+                        default: priorityColor = Colors.grey; break;
+                      }
+                      String dateStr = '';
+                      try {
+                        dateStr = DateFormat('dd MMM yyyy HH:mm').format(DateTime.parse(b['created_at'] ?? ''));
+                      } catch (_) {}
 
-                    return Card(
-                      color: AppTheme.cardBg,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: priorityColor,
-                          child: const Icon(Icons.broadcast_on_home, color: Colors.white, size: 18),
-                        ),
-                        title: Text(b['title'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(b['message'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: priorityColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                                  child: Text(priority.toUpperCase(), style: TextStyle(color: priorityColor, fontSize: 9, fontWeight: FontWeight.bold)),
-                                ),
-                                if (dateStr.isNotEmpty) ...[
-                                  const SizedBox(width: 8),
-                                  Text(dateStr, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: Text(AppLocalizations.t('delete_broadcast')),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
-                                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red))),
+                      return Card(
+                        color: AppTheme.cardBg,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: priorityColor,
+                            child: const Icon(Icons.broadcast_on_home, color: Colors.white, size: 18),
+                          ),
+                          title: Text(b['title'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(b['message'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: priorityColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                                    child: Text(priority.toUpperCase(), style: TextStyle(color: priorityColor, fontSize: 9, fontWeight: FontWeight.bold)),
+                                  ),
+                                  if (dateStr.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Text(dateStr, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+                                  ],
                                 ],
                               ),
-                            );
-                            if (confirm == true) {
-                              await DatabaseHelper.deleteBroadcast(b['id']);
-                              _loadBroadcasts();
-                            }
-                          },
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: Text(AppLocalizations.t('delete_broadcast')),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('cancel'))),
+                                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('delete'), style: const TextStyle(color: Colors.red))),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                await DatabaseHelper.deleteBroadcast(b['id']);
+                                _loadBroadcasts();
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+      ),
     );
   }
 }
