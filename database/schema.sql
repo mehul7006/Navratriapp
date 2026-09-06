@@ -398,6 +398,7 @@ CREATE TABLE IF NOT EXISTS gift_assignments (
     day_number INTEGER,
     assigned_by INTEGER REFERENCES users(id),
     notes TEXT,
+    status VARCHAR(20) DEFAULT 'assigned',
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -705,15 +705,18 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                       itemCount: filteredMembers.length,
                       itemBuilder: (ctx, i) {
                         final m = filteredMembers[i];
-                        return ListTile(
-                          dense: true,
-                          title: Text('${m['house_number']}', style: const TextStyle(color: Colors.white, fontSize: 13)),
-                          subtitle: Text('${m['name']}', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-                          onTap: () {
-                            houseNumberController.text = (m['house_number'] ?? '').toString().toUpperCase();
-                            distributorController.text = (m['name'] ?? '').toString();
-                            setModalState(() => filteredMembers = []);
-                          },
+                        return Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            dense: true,
+                            title: Text('${m['house_number']}', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                            subtitle: Text('${m['name']}', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                            onTap: () {
+                              houseNumberController.text = (m['house_number'] ?? '').toString().toUpperCase();
+                              distributorController.text = (m['name'] ?? '').toString();
+                              setModalState(() => filteredMembers = []);
+                            },
+                          ),
                         );
                       },
                     ),

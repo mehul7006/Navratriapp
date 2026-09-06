@@ -1381,18 +1381,22 @@ Future<Response> _assignGift(Request request) async {
     if (!await _isDayBookable(conn, dayNumber)) {
       return _errorResponse('Bookings are closed for Day $dayNumber', status: 403);
     }
+    final userId = body['user_id'];
+    final giftId = body['gift_id'];
+    final status = body['status'] ?? 'assigned';
     final results = await conn.execute(
       Sql.named('''
-        INSERT INTO gift_assignments (gift_id, user_id, house_number, day_number, assigned_by, notes)
-        VALUES (@gift, @user, @house, @day, @by, @notes) RETURNING id
+        INSERT INTO gift_assignments (gift_id, user_id, house_number, day_number, assigned_by, notes, status)
+        VALUES (@gift, @user, @house, @day, @by, @notes, @status) RETURNING id
       '''),
       parameters: {
-        'gift': body['gift_id'],
-        'user': body['user_id'],
+        'gift': giftId == 0 ? null : giftId,
+        'user': userId == 0 ? null : userId,
         'house': body['house_number'],
         'day': body['day_number'],
-        'by': body['assigned_by'],
+        'by': body['assigned_by'] == 0 ? null : body['assigned_by'],
         'notes': body['notes'],
+        'status': status,
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
