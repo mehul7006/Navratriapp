@@ -1,30 +1,82 @@
 @echo off
-title Navratri App - Full Stack
+title Navratri 2026 - Full Stack
+color 0A
+cls
+
 echo ============================================
-echo   Navratri 2026 - Starting Full Stack
+echo    NAVRATRI 2026 - NISHPARK SOCIETY APP
 echo ============================================
 echo.
 
-echo [1/2] Starting API Server on port 8080...
-start "Navratri API Server" cmd /c "cd /d E:\Navratri App\navratri_app\api_server && E:\flutter\bin\dart.bat run bin\main.dart"
+set "PROJECT_DIR=%~dp0navratri_app"
+set "FLUTTER_PATH=E:\flutter"
+set "PATH=%FLUTTER_PATH%\bin;%PATH%"
 
-echo [2/2] Waiting 3s for API server...
-timeout /t 3 /nobreak >nul
-
-echo [3/3] Building Flutter Web (release mode)...
-echo        First run: ~60s build, then instant on refresh
-echo        Subsequent runs: ~3-5s startup
-echo.
-start "Navratri Flutter Web" cmd /c "cd /d E:\Navratri App\navratri_app && E:\flutter\bin\flutter.bat run -d chrome --web-port=9001 --web-hostname=localhost --release"
-
-echo.
 echo ============================================
-echo   API Server:  http://localhost:8080
-echo   Flutter App: http://localhost:9001
+echo  [CLEANUP] Stopping all previous servers...
 echo ============================================
-echo.
-echo Press any key to stop both servers...
-pause >nul
+
+:: Kill all dart and flutter processes
+taskkill /F /IM dart.exe >nul 2>nul
+taskkill /F /IM flutter.exe >nul 2>nul
+
+:: Kill processes on all used ports
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8888 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8889 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :9001 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+
+:: Kill named windows
 taskkill /FI "WindowTitle eq Navratri API Server" /T /F >nul 2>&1
 taskkill /FI "WindowTitle eq Navratri Flutter Web" /T /F >nul 2>&1
-echo Servers stopped.
+
+echo [OK] All previous servers stopped!
+echo.
+
+:: Wait for ports to be free
+timeout /t 2 /nobreak >nul
+
+echo ============================================
+echo  [START] Starting fresh servers...
+echo ============================================
+
+echo [1/4] Starting API Server on port 8080...
+cd /d "%PROJECT_DIR%\api_server"
+start /B cmd /c "dart run bin\main.dart > "%~dp0api_server.log" 2>&1"
+cd /d "%PROJECT_DIR%"
+
+echo [2/4] Waiting 8s for API server to start...
+timeout /t 8 /nobreak >nul
+
+echo [3/4] Checking API server...
+curl -s http://localhost:8080/api/announcements >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [OK] API server is running!
+) else (
+    echo [WARNING] API server may not be ready yet. Check api_server.log
+)
+
+echo [4/4] Starting Flutter Web on port 9001...
+echo.
+echo ============================================
+echo.
+echo   API Server:  http://localhost:8080
+echo   Flutter App: http://localhost:9001
+echo.
+echo   Press Ctrl+C to stop both servers.
+echo.
+echo ============================================
+echo.
+
+flutter run -d chrome --web-port=9001 --web-hostname=localhost
+
+echo.
+echo ============================================
+echo  [STOP] Stopping servers...
+echo ============================================
+taskkill /F /IM dart.exe >nul 2>nul
+taskkill /F /IM flutter.exe >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :9001 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+echo  All servers stopped!
+echo ============================================
