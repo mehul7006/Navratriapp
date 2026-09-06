@@ -392,8 +392,8 @@ CREATE INDEX idx_gifts_type ON gifts(gift_type);
 -- ============================================
 CREATE TABLE IF NOT EXISTS gift_assignments (
     id SERIAL PRIMARY KEY,
-    gift_id INTEGER NOT NULL REFERENCES gifts(id),
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    gift_id INTEGER REFERENCES gifts(id),
+    user_id INTEGER REFERENCES users(id),
     house_number VARCHAR(50) NOT NULL,
     day_number INTEGER,
     assigned_by INTEGER REFERENCES users(id),

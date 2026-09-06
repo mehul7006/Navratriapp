@@ -615,8 +615,6 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildField(controller: distributorController, label: 'Distributor Name', icon: Icons.person),
-                const SizedBox(height: 12),
                 _buildField(controller: houseNumberController, label: 'House Number (e.g. A-402)', icon: Icons.home, textCapitalization: TextCapitalization.characters, onChanged: (val) {
                   final upper = val.toUpperCase();
                   if (val != upper) houseNumberController.value = houseNumberController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
@@ -652,6 +650,8 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 12),
+                _buildField(controller: distributorController, label: 'Distributor Name', icon: Icons.person),
                 const SizedBox(height: 12),
                 _buildField(controller: giftNameController, label: 'Gift Name (optional)', icon: Icons.card_giftcard),
                 const SizedBox(height: 12),
