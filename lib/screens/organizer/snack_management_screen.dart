@@ -470,7 +470,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () async {
-                    await DatabaseHelper.rejectSnackOrder(dist['id']);
+                    await DatabaseHelper.updateSnackOrderStatus(dist['id'], 'rejected');
                     await _deleteExpenseIfNeeded(dist);
                     _loadData();
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Distribution cancelled for $distributorName'), backgroundColor: Colors.red));
@@ -519,7 +519,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildActionBtn('REJECT', Icons.close, Colors.red, () async {
-                    await DatabaseHelper.rejectSnackOrder(dist['id']);
+                    await DatabaseHelper.updateSnackOrderStatus(dist['id'], 'rejected');
                     _loadData();
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Distribution rejected for $distributorName'), backgroundColor: Colors.red));
                   }),

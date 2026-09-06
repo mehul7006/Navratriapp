@@ -471,7 +471,7 @@ class DatabaseHelper {
     return _get('/api/gift-assignments', queryParams: params.isNotEmpty ? params : null);
   }
 
-  static Future<int> assignGift({required int giftId, required int userId, required String houseNumber, int? dayNumber, int? assignedBy, String? notes}) async {
+  static Future<int> assignGift({required int giftId, required int userId, required String houseNumber, int? dayNumber, int? assignedBy, String? notes, String? status}) async {
     final result = await _post('/api/gift-assignments', {
       'gift_id': giftId,
       'user_id': userId,
@@ -479,6 +479,7 @@ class DatabaseHelper {
       'day_number': dayNumber,
       'assigned_by': assignedBy,
       'notes': notes,
+      'status': status,
     });
     return result?['id'] ?? 0;
   }
@@ -489,6 +490,10 @@ class DatabaseHelper {
 
   static Future<void> cancelGiftAssignment(int assignmentId) async {
     await _put('/api/gift-assignments/$assignmentId/cancel', {});
+  }
+
+  static Future<void> updateGiftAssignmentStatus(int assignmentId, String status) async {
+    await _put('/api/gift-assignments/$assignmentId/status', {'status': status});
   }
 
   // ========== ANNOUNCEMENTS ==========
