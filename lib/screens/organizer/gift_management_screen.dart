@@ -713,10 +713,10 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                     notes += giftNameController.text.trim().isNotEmpty
                         ? '${distributorController.text.trim()} - ${giftNameController.text.trim()}'
                         : distributorController.text.trim();
-                    if (isOrganizerDistribution && expenseAmountController.text.isNotEmpty) {
+                    if (isOrganizerDistribution) {
                       final amt = double.tryParse(expenseAmountController.text) ?? 0;
-                      if (amt > 0) notes += '|ORG_EXPENSE:$amt:Gifts';
-                    } else if (!isOrganizerDistribution) {
+                      notes += '|ORG_EXPENSE:$amt:Gifts';
+                    } else {
                       notes += '|SPONSOR_EXPENSE:0:${distributorController.text.trim()}';
                     }
                     final gifts = await DatabaseHelper.getGifts(dayNumber: formDay);

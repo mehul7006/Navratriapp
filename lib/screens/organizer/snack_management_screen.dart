@@ -782,10 +782,10 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                     notes += snackNameController.text.trim().isNotEmpty
                         ? '${distributorController.text.trim()} - ${snackNameController.text.trim()}'
                         : distributorController.text.trim();
-                    if (isOrganizerDistribution && expenseAmountController.text.isNotEmpty) {
+                    if (isOrganizerDistribution) {
                       final amt = double.tryParse(expenseAmountController.text) ?? 0;
-                      if (amt > 0) notes += '|ORG_EXPENSE:$amt:Snacks';
-                    } else if (!isOrganizerDistribution) {
+                      notes += '|ORG_EXPENSE:$amt:Snacks';
+                    } else {
                       notes += '|SPONSOR_EXPENSE:0:${distributorController.text.trim()}';
                     }
                     final snacks = await DatabaseHelper.getSnacks();
