@@ -94,49 +94,63 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       else totalSponsor += amt;
     }
 
-    return BackgroundScaffold(
-      appBar: AppBar(
-        title: Text(isDeletedTab ? 'Deleted Expenses' : AppLocalizations.t('expenses')),
-        backgroundColor: AppTheme.purpleDeep,
-        foregroundColor: AppTheme.goldPrimary,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        actions: [
-          if (!isDeletedTab) ...[
-            IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),
-            IconButton(icon: const Icon(Icons.date_range), onPressed: _showDateRangeDialog),
-            IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddExpenseDialog()),
-          ],
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildTabToggle(),
-          if (!isDeletedTab) _buildSearchBar(),
-          if (!isDeletedTab) _buildFilterRow(),
-          if (!isDeletedTab) _buildStatsRow(totalOrg, totalSponsor),
-          if (isDeletedTab)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.red.withOpacity(0.3))),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.delete, color: Colors.red, size: 16),
-                  const SizedBox(width: 6),
-                  Text('${_deletedExpenses.length} deleted expenses', style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-                : filtered.isEmpty
-                    ? Center(child: Text(isDeletedTab ? 'No deleted expenses' : AppLocalizations.t('no_expenses_recorded'), style: const TextStyle(color: AppTheme.textMuted)))
-                    : _buildExpensesList(filtered),
+    return Stack(
+      children: [
+        BackgroundScaffold(
+          appBar: AppBar(
+            title: Text(isDeletedTab ? 'Deleted Expenses' : AppLocalizations.t('expenses')),
+            backgroundColor: AppTheme.purpleDeep,
+            foregroundColor: AppTheme.goldPrimary,
+            iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+            actions: [
+              if (!isDeletedTab) ...[
+                IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),
+                IconButton(icon: const Icon(Icons.date_range), onPressed: _showDateRangeDialog),
+                IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddExpenseDialog()),
+              ],
+            ],
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              _buildTabToggle(),
+              if (!isDeletedTab) _buildSearchBar(),
+              if (!isDeletedTab) _buildFilterRow(),
+              if (!isDeletedTab) _buildStatsRow(totalOrg, totalSponsor),
+              if (isDeletedTab)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.red.withOpacity(0.3))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.delete, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      Text('${_deletedExpenses.length} deleted expenses', style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                    : filtered.isEmpty
+                        ? Center(child: Text(isDeletedTab ? 'No deleted expenses' : AppLocalizations.t('no_expenses_recorded'), style: const TextStyle(color: AppTheme.textMuted)))
+                        : _buildExpensesList(filtered),
+              ),
+            ],
+          ),
+        ),
+        if (!isDeletedTab)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              backgroundColor: AppTheme.goldPrimary,
+              onPressed: () => _showAddExpenseDialog(),
+              child: const Icon(Icons.add, color: AppTheme.purpleDark),
+            ),
+          ),
+      ],
     );
   }
 

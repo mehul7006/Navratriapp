@@ -94,48 +94,62 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       else if (p['payment_status'] == 'pending') totalPending += amt;
     }
 
-    return BackgroundScaffold(
-      appBar: AppBar(
-        title: Text(_selectedFilter == 'deleted' ? 'Deleted Payments' : 'Payment Collection'),
-        backgroundColor: AppTheme.purpleDeep,
-        foregroundColor: AppTheme.goldPrimary,
-        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
-        actions: [
-          if (_selectedFilter != 'deleted') ...[
-            IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),
-            IconButton(icon: const Icon(Icons.date_range), onPressed: _showDateRangeDialog),
-            IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddPaymentDialog()),
-          ],
-        ],
-      ),
-      child: Column(
-        children: [
-          if (_selectedFilter != 'deleted') _buildSearchBar(),
-          _buildFilterChips(),
-          if (_selectedFilter != 'deleted') _buildStatsRow(totalPaid, totalPending, _filteredPayments.length),
-          if (_selectedFilter == 'deleted')
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.red.withOpacity(0.3))),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.delete, color: Colors.red, size: 16),
-                  const SizedBox(width: 6),
-                  Text('${_deletedPayments.length} deleted payments', style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
-                : filtered.isEmpty
-                    ? Center(child: Text(_selectedFilter == 'deleted' ? 'No deleted payments' : AppLocalizations.t('no_payments_found'), style: const TextStyle(color: AppTheme.textMuted)))
-                    : _buildPaymentsList(filtered),
+    return Stack(
+      children: [
+        BackgroundScaffold(
+          appBar: AppBar(
+            title: Text(_selectedFilter == 'deleted' ? 'Deleted Payments' : 'Payment Collection'),
+            backgroundColor: AppTheme.purpleDeep,
+            foregroundColor: AppTheme.goldPrimary,
+            iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+            actions: [
+              if (_selectedFilter != 'deleted') ...[
+                IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),
+                IconButton(icon: const Icon(Icons.date_range), onPressed: _showDateRangeDialog),
+                IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddPaymentDialog()),
+              ],
+            ],
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              if (_selectedFilter != 'deleted') _buildSearchBar(),
+              _buildFilterChips(),
+              if (_selectedFilter != 'deleted') _buildStatsRow(totalPaid, totalPending, _filteredPayments.length),
+              if (_selectedFilter == 'deleted')
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.red.withOpacity(0.3))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.delete, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      Text('${_deletedPayments.length} deleted payments', style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
+                    : filtered.isEmpty
+                        ? Center(child: Text(_selectedFilter == 'deleted' ? 'No deleted payments' : AppLocalizations.t('no_payments_found'), style: const TextStyle(color: AppTheme.textMuted)))
+                        : _buildPaymentsList(filtered),
+              ),
+            ],
+          ),
+        ),
+        if (_selectedFilter != 'deleted')
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              backgroundColor: AppTheme.goldPrimary,
+              onPressed: () => _showAddPaymentDialog(),
+              child: const Icon(Icons.add, color: AppTheme.purpleDark),
+            ),
+          ),
+      ],
     );
   }
 
