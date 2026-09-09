@@ -1184,8 +1184,8 @@ Future<Response> _getSnackOrders(Request request) async {
     var sql = '''
       SELECT so.*, u.name as user_name, s.name as snack_name
       FROM snack_orders so
-      JOIN users u ON so.user_id = u.id
-      JOIN snacks s ON so.snack_id = s.id
+      LEFT JOIN users u ON so.user_id = u.id
+      LEFT JOIN snacks s ON so.snack_id = s.id
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
@@ -1357,8 +1357,8 @@ Future<Response> _getGiftAssignments(Request request) async {
     var sql = '''
       SELECT ga.*, g.name as gift_name, u.name as user_name
       FROM gift_assignments ga
-      JOIN gifts g ON ga.gift_id = g.id
-      JOIN users u ON ga.user_id = u.id
+      LEFT JOIN gifts g ON ga.gift_id = g.id
+      LEFT JOIN users u ON ga.user_id = u.id
     ''';
     final params = <String, dynamic>{};
     if (day != null) {
