@@ -188,6 +188,7 @@ final router = Router()
   ..get('/api/gift-assignments', _getGiftAssignments)
   ..post('/api/gift-assignments', _assignGift)
   ..put('/api/gift-assignments/<id>/cancel', _cancelGiftAssignment)
+  ..put('/api/gift-assignments/<id>/status', _updateGiftAssignmentStatus)
   ..get('/api/gifts/my/<house>', _getMyGifts)
   ..get('/api/announcements', _getAnnouncements)
   ..post('/api/announcements', _createAnnouncement)
@@ -2048,6 +2049,20 @@ Future<Response> _cancelGiftAssignment(Request request, String id) async {
       Sql.named(
           "UPDATE gift_assignments SET status = 'cancelled' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _updateGiftAssignmentStatus(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    await conn.execute(
+      Sql.named('UPDATE gift_assignments SET status = @status WHERE id = @id'),
+      parameters: {'status': body['status'], 'id': int.parse(id)},
     );
     return _jsonResponse({'ok': true});
   } catch (e) {
