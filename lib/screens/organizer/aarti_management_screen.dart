@@ -286,7 +286,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 const SizedBox(height: 8),
                 Text('Day $_selectedDay', style: TextStyle(fontSize: 14, color: AppTheme.goldPrimary)),
                 const SizedBox(height: 16),
-                _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home),
+                _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home, textCapitalization: TextCapitalization.characters),
                 const SizedBox(height: 4),
                 if (isSearching)
                   const Padding(
@@ -385,9 +385,9 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     });
   }
 
-  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none}) {
     return TextFormField(
-      controller: controller, keyboardType: keyboardType, style: const TextStyle(color: Colors.white),
+      controller: controller, keyboardType: keyboardType, textCapitalization: textCapitalization, style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon, color: AppTheme.goldPrimary),
         labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,
