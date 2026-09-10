@@ -320,9 +320,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildPrizeWinners() {
-    if (_dailyInfo == null) return const SizedBox(height: 100);
+    if (_dailyInfo == null) return const SizedBox(height: 200);
     final yesterdayWinners = _dailyInfo!['yesterday_prize_winners'] as List? ?? [];
-    if (yesterdayWinners.isEmpty) return const SizedBox(height: 100);
+    if (yesterdayWinners.isEmpty) return const SizedBox(height: 200);
 
     String ordinal(int n) {
       if (n >= 11 && n <= 13) return '${n}th';
@@ -335,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppTheme.goldPrimary.withOpacity(0.1), AppTheme.purpleCard.withOpacity(0.5)]),
         borderRadius: BorderRadius.circular(16),
@@ -343,26 +343,26 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       child: Column(
         children: [
-          Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
-          const SizedBox(height: 8),
+          Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          const SizedBox(height: 12),
           ...yesterdayWinners.map((w) {
             final prizeLevel = w['prize_level'];
             final name = w['user_name']?.toString() ?? '';
             final house = w['house_number']?.toString() ?? '';
             final label = prizeLevel != null ? '${ordinal(prizeLevel as int)} Winner' : 'Winner';
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  Icon(Icons.emoji_events, color: AppTheme.goldPrimary, size: 12),
-                  const SizedBox(width: 4),
+                  Icon(Icons.emoji_events, color: AppTheme.goldPrimary, size: 20),
+                  const SizedBox(width: 6),
                   Expanded(
-                    child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                    child: Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
                   ),
                   Expanded(
-                    child: Text(name, style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                    child: Text(name, style: const TextStyle(fontSize: 18, color: Colors.white70), overflow: TextOverflow.ellipsis),
                   ),
-                  Text('H$house', style: TextStyle(fontSize: 10, color: AppTheme.goldPrimary)),
+                  Text('H$house', style: TextStyle(fontSize: 16, color: AppTheme.goldPrimary)),
                 ],
               ),
             );
@@ -373,14 +373,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildTodayBookings() {
-    if (_dailyInfo == null) return const SizedBox(height: 100);
+    if (_dailyInfo == null) return const SizedBox(height: 200);
     final aartiBookings = _dailyInfo!['aarti_bookings'] as List? ?? [];
     final snackOrders = _dailyInfo!['snack_orders'] as List? ?? [];
     final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
-    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox(height: 100);
+    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox(height: 200);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppTheme.purpleCard.withOpacity(0.6), AppTheme.purpleDeep.withOpacity(0.8)]),
         borderRadius: BorderRadius.circular(16),
@@ -389,57 +389,57 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Today\'s Bookings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
-          const SizedBox(height: 8),
+          Text('Today\'s Bookings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          const SizedBox(height: 12),
           if (aartiBookings.isNotEmpty) ...[
             Row(children: [
-              Icon(Icons.wb_sunny, color: AppTheme.goldPrimary, size: 12),
-              const SizedBox(width: 4),
-              Text('Aarti:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+              Icon(Icons.wb_sunny, color: AppTheme.goldPrimary, size: 20),
+              const SizedBox(width: 6),
+              Text('Aarti:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             ...aartiBookings.take(3).map((a) {
               final name = a['name']?.toString() ?? '';
               final house = a['house_number']?.toString() ?? '';
               final slot = a['slot_label']?.toString() ?? a['slot_time']?.toString() ?? '';
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-                child: Text('$name (H$house) - $slot', style: const TextStyle(fontSize: 10, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
+                child: Text('$name (H$house) - $slot', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
           ],
           if (snackOrders.isNotEmpty) ...[
             Row(children: [
-              Icon(Icons.restaurant, color: AppTheme.goldPrimary, size: 12),
-              const SizedBox(width: 4),
-              Text('Snacks:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+              Icon(Icons.restaurant, color: AppTheme.goldPrimary, size: 20),
+              const SizedBox(width: 6),
+              Text('Snacks:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             ...snackOrders.take(3).map((s) {
               final buyer = s['buyer_name']?.toString() ?? '';
               final snack = s['snack_name']?.toString() ?? '';
               final qty = s['quantity'] ?? 1;
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-                child: Text('$buyer - $snack x$qty', style: const TextStyle(fontSize: 10, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
+                child: Text('$buyer - $snack x$qty', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
           ],
           if (giftAssignments.isNotEmpty) ...[
             Row(children: [
-              Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 12),
-              const SizedBox(width: 4),
-              Text('Gifts:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+              Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 20),
+              const SizedBox(width: 6),
+              Text('Gifts:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             ...giftAssignments.take(3).map((g) {
               final donor = g['donor_name']?.toString() ?? '';
               final gift = g['gift_name']?.toString() ?? '';
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
-                child: Text('$donor - $gift', style: const TextStyle(fontSize: 10, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
+                child: Text('$donor - $gift', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
           ],
