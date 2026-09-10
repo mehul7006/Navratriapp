@@ -331,7 +331,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                   height: 40,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: 9,
+                    itemCount: 10,
                     itemBuilder: (ctx, index) {
                       final day = index + 1;
                       final isFormSelected = formDay == day;
