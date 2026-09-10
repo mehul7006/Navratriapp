@@ -233,6 +233,25 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),
                 child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
               ),
+              if (showActions && status == 'approved') ...[
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () async {
+                    await DatabaseHelper.cancelAartiBooking(booking['id']);
+                    _loadData();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange),
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), shape: BoxShape.circle, border: Border.all(color: Colors.orange)),
+                    child: const Icon(Icons.close, color: Colors.orange, size: 16),
+                  ),
+                ),
+              ],
             ],
           ),
           if (showActions && status == 'pending') ...[
@@ -273,26 +292,6 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                   ),
                 ),
               ],
-            ),
-          ],
-          if (showActions && status == 'approved') ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  await DatabaseHelper.cancelAartiBooking(booking['id']);
-                  _loadData();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.cancel, size: 16),
-                label: const Text('Cancel Booking', style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10)),
-              ),
             ),
           ],
         ],
