@@ -306,7 +306,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 const SizedBox(height: 4),
                 Text('Day $_selectedDay', style: TextStyle(fontSize: 14, color: AppTheme.goldPrimary)),
                 const SizedBox(height: 16),
-                _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home, textCapitalization: TextCapitalization.characters),
+                _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home, textCapitalization: TextCapitalization.characters, autoCapitalize: true),
                 const SizedBox(height: 4),
                 if (isSearching)
                   const Padding(
@@ -405,9 +405,10 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     });
   }
 
-  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none}) {
+  Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, TextCapitalization textCapitalization = TextCapitalization.none, bool autoCapitalize = false}) {
     return TextFormField(
       controller: controller, keyboardType: keyboardType, textCapitalization: textCapitalization, style: const TextStyle(color: Colors.white),
+      onChanged: autoCapitalize ? (v) { final upper = v.toUpperCase(); if (v != upper) { controller.value = controller.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length)); } } : null,
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon, color: AppTheme.goldPrimary),
         labelStyle: const TextStyle(color: AppTheme.textMuted), filled: true,
