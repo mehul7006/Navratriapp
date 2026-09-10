@@ -835,6 +835,12 @@ class DatabaseHelper {
     return (data is Map ? (data['count'] ?? 0) : 0) as int;
   }
 
+  static Future<Map<String, dynamic>> getNextBadge(int dayNumber) async {
+    final response = await http.get(Uri.parse('$_apiBase/api/daily-draws/next-badge/$dayNumber')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return {'next_badge': null, 'max_winners': 3};
+    return jsonDecode(response.body);
+  }
+
   static Future<List<Map<String, dynamic>>> getDailyDrawHistory({int? dayNumber}) async {
     final params = dayNumber != null ? '?day=$dayNumber' : '';
     return _get('/api/daily-draws/history$params');

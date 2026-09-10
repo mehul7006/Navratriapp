@@ -226,6 +226,7 @@ final router = Router()
   ..post('/api/daily-draws/disqualify', _disqualifyDraw)
   ..post('/api/daily-draws/create', _createDraw)
   ..post('/api/daily-draws/cancel', _cancelDraw)
+  ..get('/api/daily-draws/next-badge/<day>', _getNextBadge)
   ..get('/api/daily-info', _getDailyInfo)
   ..put('/api/navratri-days/<day>/start', _startDay)
   ..put('/api/navratri-days/<day>/end', _endDay)
@@ -2290,6 +2291,18 @@ Future<Response> _getDrawTicketsForDay(Request request, String day) async {
       parameters: {'day': int.parse(day)},
     );
     return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getNextBadge(Request request, String day) async {
+  try {
+    final conn = await db;
+    final dayNumber = int.parse(day);
+    final maxWinners = await _getMaxWinners(conn, dayNumber);
+    final badge = await _findAvailableBadge(conn, dayNumber, maxWinners);
+    return _jsonResponse({'next_badge': badge, 'max_winners': maxWinners});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

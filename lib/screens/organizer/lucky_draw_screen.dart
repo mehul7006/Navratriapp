@@ -33,6 +33,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   int? _cancelledPrizeLevel;
   int _confirmedCount = 0;
   int _maxWinners = 3;
+  int? _nextBadge;
   int _shakeOffset = 0;
   Timer? _shakeTimer;
   late ConfettiController _confettiController;
@@ -101,10 +102,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       final daysFuture = DatabaseHelper.getNavratriDays();
       final ticketsFuture = DatabaseHelper.getDrawTicketsForDay(_selectedDay);
       final countFuture = DatabaseHelper.getConfirmedWinnerCount(_selectedDay);
+      final badgeFuture = DatabaseHelper.getNextBadge(_selectedDay);
 
       final days = await daysFuture;
       final tickets = await ticketsFuture;
       final count = await countFuture;
+      final badgeData = await badgeFuture;
 
       if (mounted) {
         setState(() {
@@ -112,6 +115,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           _potTickets = tickets;
           _confirmedCount = count;
           _maxWinners = _getDayMaxWinners(_selectedDay);
+          _nextBadge = badgeData['next_badge'] as int?;
           _isLoading = false;
         });
       }
@@ -629,8 +633,48 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     final completed = _isDayCompleted(_selectedDay);
     final ticketCount = _potTickets.length;
 
+    String ordinal(int n) {
+      if (n >= 11 && n <= 13) return '${n}th';
+      switch (n % 10) {
+        case 1: return '${n}st';
+        case 2: return '${n}nd';
+        case 3: return '${n}rd';
+        default: return '${n}th';
+      }
+    }
+
     return Column(
       children: [
+        // Next badge indicator above the jar
+        if (bookable && !completed && _potTickets.isNotEmpty && !_isMaxWinnersReached && _nextBadge != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [AppTheme.goldPrimary.withOpacity(0.3), AppTheme.purpleCard]),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.6), width: 1.5),
+              boxShadow: [
+                BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.2), blurRadius: 8, spreadRadius: 1),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.workspace_premium, color: AppTheme.goldPrimary, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Drawing for ${ordinal(_nextBadge!)} Winner',
+                  style: const TextStyle(
+                    color: AppTheme.goldPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
         // Pot with tickets
         GestureDetector(
           onTap: (bookable && !_isMaxWinnersReached) ? _drawTicket : null,
@@ -963,7 +1007,32 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
           ),
           if (_assignedPrizeLevel == null && _currentDrawId != null && !_isProcessing) ...[
-            const SizedBox(height: 12),
+            if (_nextBadge != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.goldPrimary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                ),
+                child: Text(
+                  (() {
+                    String ordinal(int n) {
+                      if (n >= 11 && n <= 13) return '${n}th';
+                      switch (n % 10) {
+                        case 1: return '${n}st';
+                        case 2: return '${n}nd';
+                        case 3: return '${n}rd';
+                        default: return '${n}th';
+                      }
+                    }
+                    return 'This ticket is for ${ordinal(_nextBadge!)} Winner badge';
+                  })(),
+                  style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             ElevatedButton.icon(
               onPressed: _showAvailabilityDialog,
               icon: const Icon(Icons.person_search, color: Colors.white),
