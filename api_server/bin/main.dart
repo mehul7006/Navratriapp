@@ -2596,7 +2596,14 @@ Future<Response> _getDailyInfo(Request request) async {
       '''),
     );
 
-    // Yesterday's prize winners
+    // Yesterday's prize winners (from last completed day)
+    int yesterdayDay = dayNumber > 1 ? dayNumber - 1 : 1;
+    final lastCompleted = await conn.execute(
+      Sql.named("SELECT day_number FROM navratri_days WHERE is_completed = TRUE ORDER BY day_number DESC LIMIT 1"),
+    );
+    if (lastCompleted.isNotEmpty) {
+      yesterdayDay = lastCompleted.first.toColumnMap()['day_number'] as int;
+    }
     final yesterdayWinners = await conn.execute(
       Sql.named('''
         SELECT dd.*, u.name as user_name, nd.goddess_name
@@ -2606,7 +2613,7 @@ Future<Response> _getDailyInfo(Request request) async {
         WHERE dd.status = 'confirmed' AND dd.day_number = @yesterdayDay
         ORDER BY dd.prize_level DESC
       '''),
-      parameters: {'yesterdayDay': dayNumber > 1 ? dayNumber - 1 : 1},
+      parameters: {'yesterdayDay': yesterdayDay},
     );
 
     return _jsonResponse({
@@ -2617,6 +2624,7 @@ Future<Response> _getDailyInfo(Request request) async {
       'snack_orders': _parseResults(snackOrders),
       'sponsors': _parseResults(sponsors),
       'yesterday_prize_winners': _parseResults(yesterdayWinners),
+      'yesterday_day': yesterdayDay,
     });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);

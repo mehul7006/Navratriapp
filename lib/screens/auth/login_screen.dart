@@ -323,6 +323,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_dailyInfo == null) return const SizedBox(height: 200);
     final yesterdayWinners = _dailyInfo!['yesterday_prize_winners'] as List? ?? [];
     if (yesterdayWinners.isEmpty) return const SizedBox(height: 200);
+    final winnerDay = _dailyInfo!['yesterday_day'] ?? 0;
 
     String ordinal(int n) {
       if (n >= 11 && n <= 13) return '${n}th';
@@ -343,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       child: Column(
         children: [
-          Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          Text('Day $winnerDay Winners', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
           const SizedBox(height: 12),
           ...yesterdayWinners.map((w) {
             final prizeLevel = w['prize_level'];
