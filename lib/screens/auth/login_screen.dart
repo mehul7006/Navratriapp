@@ -247,9 +247,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 4),
                   Text(AppLocalizations.t('nishitpark_society'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.5)),
                 const SizedBox(height: 16),
-                _buildMarquee(),
-                const SizedBox(height: 24),
                 _buildPrizeWinners(),
+                const SizedBox(height: 12),
+                _buildTodayBookings(),
+                const SizedBox(height: 12),
+                _buildMarquee(),
                 const SizedBox(height: 24),
                 _buildLoginForm(),
               ],
@@ -314,19 +316,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildPrizeWinners() {
     if (_dailyInfo == null) return const SizedBox.shrink();
-    final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
-    if (giftAssignments.isEmpty) return const SizedBox.shrink();
+    final yesterdayWinners = _dailyInfo!['yesterday_prize_winners'] as List? ?? [];
+    if (yesterdayWinners.isEmpty) return const SizedBox.shrink();
 
-    final places = [AppLocalizations.t('first_prize'), AppLocalizations.t('second_prize'), AppLocalizations.t('third_prize')];
-    final winners = <Map<String, dynamic>>[];
-    for (int i = 0; i < giftAssignments.length && i < 3; i++) {
-      winners.add({
-        'place': places[i],
-        'name': giftAssignments[i]['donor_name']?.toString() ?? giftAssignments[i]['name']?.toString() ?? '',
-        'gift': giftAssignments[i]['gift_name']?.toString() ?? '',
-      });
+    String ordinal(int n) {
+      if (n >= 11 && n <= 13) return '${n}th';
+      switch (n % 10) {
+        case 1: return '${n}st';
+        case 2: return '${n}nd';
+        case 3: return '${n}rd';
+        default: return '${n}th';
+      }
     }
-    if (winners.isEmpty) return const SizedBox.shrink();
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 400),
@@ -340,22 +341,105 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
           const SizedBox(height: 8),
-          ...winners.map((w) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(w['place'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
-                ),
-                Expanded(
-                  child: Text(w['name'], style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis),
-                ),
-                Expanded(
-                  child: Text(w['gift'], style: const TextStyle(fontSize: 11, color: AppTheme.goldPrimary), overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
-          )),
+          ...yesterdayWinners.map((w) {
+            final prizeLevel = w['prize_level'];
+            final name = w['user_name']?.toString() ?? '';
+            final house = w['house_number']?.toString() ?? '';
+            final label = prizeLevel != null ? '${ordinal(prizeLevel as int)} Winner' : 'Winner';
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  Icon(Icons.emoji_events, color: AppTheme.goldPrimary, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
+                  Expanded(
+                    child: Text(name, style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                  ),
+                  Text('House $house', style: TextStyle(fontSize: 11, color: AppTheme.goldPrimary)),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayBookings() {
+    if (_dailyInfo == null) return const SizedBox.shrink();
+    final aartiBookings = _dailyInfo!['aarti_bookings'] as List? ?? [];
+    final snackOrders = _dailyInfo!['snack_orders'] as List? ?? [];
+    final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
+    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [AppTheme.purpleCard.withOpacity(0.6), AppTheme.purpleDeep.withOpacity(0.8)]),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Today\'s Bookings', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          const SizedBox(height: 8),
+          if (aartiBookings.isNotEmpty) ...[
+            Row(children: [
+              Icon(Icons.wb_sunny, color: AppTheme.goldPrimary, size: 14),
+              const SizedBox(width: 6),
+              Text('Aarti:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+            ]),
+            const SizedBox(height: 4),
+            ...aartiBookings.take(3).map((a) {
+              final name = a['name']?.toString() ?? '';
+              final house = a['house_number']?.toString() ?? '';
+              final slot = a['slot_label']?.toString() ?? a['slot_time']?.toString() ?? '';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 20),
+                child: Text('$name ($house) - $slot', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+              );
+            }),
+            const SizedBox(height: 6),
+          ],
+          if (snackOrders.isNotEmpty) ...[
+            Row(children: [
+              Icon(Icons.restaurant, color: AppTheme.goldPrimary, size: 14),
+              const SizedBox(width: 6),
+              Text('Snacks:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+            ]),
+            const SizedBox(height: 4),
+            ...snackOrders.take(3).map((s) {
+              final buyer = s['buyer_name']?.toString() ?? '';
+              final snack = s['snack_name']?.toString() ?? '';
+              final qty = s['quantity'] ?? 1;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 20),
+                child: Text('$buyer - $snack x$qty', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+              );
+            }),
+            const SizedBox(height: 6),
+          ],
+          if (giftAssignments.isNotEmpty) ...[
+            Row(children: [
+              Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 14),
+              const SizedBox(width: 6),
+              Text('Gifts:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+            ]),
+            const SizedBox(height: 4),
+            ...giftAssignments.take(3).map((g) {
+              final donor = g['donor_name']?.toString() ?? '';
+              final gift = g['gift_name']?.toString() ?? '';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 20),
+                child: Text('$donor - $gift', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+              );
+            }),
+          ],
         ],
       ),
     );
