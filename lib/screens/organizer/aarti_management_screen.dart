@@ -188,7 +188,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _confirmedBookings.length,
-      itemBuilder: (context, index) => _buildBookingCard(_confirmedBookings[index]),
+      itemBuilder: (context, index) => _buildBookingCard(_confirmedBookings[index], showActions: true),
     );
   }
 
@@ -275,6 +275,26 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               ],
             ),
           ],
+          if (showActions && status == 'approved') ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await DatabaseHelper.cancelAartiBooking(booking['id']);
+                  _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.cancel, size: 16),
+                label: const Text('Cancel Booking', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10)),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -283,6 +303,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   void _showAddBookingDialog() {
     final houseController = TextEditingController();
     final nameController = TextEditingController();
+    int formDay = _selectedDay;
     List<Map<String, dynamic>> members = [];
     bool isSearching = false;
     void Function(VoidCallback)? sheetSetState;
@@ -303,8 +324,33 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Book Aarti Slot', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-                const SizedBox(height: 4),
-                Text('Day $_selectedDay', style: TextStyle(fontSize: 14, color: AppTheme.goldPrimary)),
+                const SizedBox(height: 16),
+                Text('Select Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+                const SizedBox(height: 8),
+                Container(
+                  height: 40,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: 9,
+                    itemBuilder: (ctx, index) {
+                      final day = index + 1;
+                      final isFormSelected = formDay == day;
+                      return GestureDetector(
+                        onTap: () => setSheetState(() => formDay = day),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                          ),
+                          child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home, textCapitalization: TextCapitalization.characters, autoCapitalize: true),
                 const SizedBox(height: 4),
@@ -359,14 +405,14 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                       await DatabaseHelper.bookAartiSlot(
                         userId: userId,
                         houseNumber: houseController.text.trim().toUpperCase(),
-                        dayNumber: _selectedDay,
+                        dayNumber: formDay,
                         slotId: 0,
                       );
                       if (ctx.mounted) Navigator.pop(ctx);
                       _loadData();
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Booking created successfully'), backgroundColor: Colors.green),
+                          SnackBar(content: Text('Booking created for Day $formDay'), backgroundColor: Colors.green),
                         );
                       }
                     } catch (e) {
