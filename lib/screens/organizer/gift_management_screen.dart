@@ -33,7 +33,7 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
     setState(() => _isLoading = true);
     _days = await DatabaseHelper.getNavratriDays();
     _allDistributions = await DatabaseHelper.getGiftAssignments();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<Map<String, dynamic>> get _filteredDistributions {

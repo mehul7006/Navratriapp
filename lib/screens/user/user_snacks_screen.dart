@@ -63,7 +63,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
     final authProvider = context.read<AuthProvider>();
     _snacks = await DatabaseHelper.getSnacks();
     _myOrders = await DatabaseHelper.getMySnackOrders(authProvider.houseNumber ?? '');
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override

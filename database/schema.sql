@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS navratri_days (
     event_schedule TEXT,
     is_active BOOLEAN DEFAULT FALSE,
     is_completed BOOLEAN DEFAULT FALSE,
+    max_winners INT DEFAULT 3,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

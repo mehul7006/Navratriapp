@@ -63,7 +63,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
     final authProvider = context.read<AuthProvider>();
     _myGifts = await DatabaseHelper.getMyGifts(authProvider.houseNumber ?? '');
     _availableGifts = await DatabaseHelper.getGifts(dayNumber: _selectedDay);
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override

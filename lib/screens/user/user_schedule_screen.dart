@@ -34,7 +34,7 @@ class _UserScheduleScreenState extends State<UserScheduleScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

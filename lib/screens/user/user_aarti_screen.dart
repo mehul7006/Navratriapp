@@ -62,7 +62,7 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     final authProvider = context.read<AuthProvider>();
     _slots = await DatabaseHelper.getAartiSlots(_selectedDay);
     _myBookings = await DatabaseHelper.getMyAartiBookings(authProvider.houseNumber ?? '');
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override

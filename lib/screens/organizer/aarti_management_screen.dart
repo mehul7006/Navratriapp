@@ -28,7 +28,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     setState(() => _isLoading = true);
     _slots = await DatabaseHelper.getAartiSlots(_selectedDay);
     _bookings = await DatabaseHelper.getAartiBookings(dayNumber: _selectedDay);
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -52,7 +52,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
             bottom: 16,
             child: FloatingActionButton(
               backgroundColor: AppTheme.goldPrimary,
-              onPressed: () => _showAddSlotDialog(),
+              onPressed: () => _showAddBookingDialog(),
               child: const Icon(Icons.add, color: AppTheme.purpleDark),
             ),
           ),
@@ -260,48 +260,129 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     );
   }
 
-  void _showAddSlotDialog() {
-    final timeController = TextEditingController();
-    final labelController = TextEditingController();
-    final maxController = TextEditingController(text: '5');
+  void _showAddBookingDialog() {
+    final houseController = TextEditingController();
+    final nameController = TextEditingController();
+    List<Map<String, dynamic>> members = [];
+    bool isSearching = false;
+    void Function(VoidCallback)? sheetSetState;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppTheme.purpleCard,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(AppLocalizations.t('add_aarti_slot'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-            const SizedBox(height: 16),
-            _buildField(controller: timeController, label: AppLocalizations.t('time_hint'), icon: Icons.access_time),
-            const SizedBox(height: 12),
-            _buildField(controller: labelController, label: AppLocalizations.t('slot_label'), icon: Icons.label),
-            const SizedBox(height: 12),
-            _buildField(controller: maxController, label: AppLocalizations.t('max_participants'), icon: Icons.people, keyboardType: TextInputType.number),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                if (timeController.text.isEmpty || labelController.text.isEmpty) return;
-                await DatabaseHelper.addAartiSlot(
-                  dayNumber: _selectedDay, slotTime: timeController.text.trim(),
-                  slotLabel: labelController.text.trim(), maxParticipants: int.tryParse(maxController.text) ?? 5,
-                );
-                Navigator.pop(ctx);
-                _loadData();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-              child: Text(AppLocalizations.t('add_slot'), style: TextStyle(fontWeight: FontWeight.bold)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          sheetSetState = setSheetState;
+          return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Book Aarti Slot', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                const SizedBox(height: 8),
+                Text('Day $_selectedDay', style: TextStyle(fontSize: 14, color: AppTheme.goldPrimary)),
+                const SizedBox(height: 16),
+                _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home),
+                const SizedBox(height: 4),
+                if (isSearching)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Text('Searching...', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
+                  ),
+                if (members.isNotEmpty)
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleDark,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: members.length,
+                      itemBuilder: (ctx, i) {
+                        final m = members[i];
+                        return ListTile(
+                          dense: true,
+                          title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                          subtitle: Text(m['house_number'] ?? '', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                          onTap: () {
+                            setSheetState(() {
+                              nameController.text = m['name'] ?? '';
+                              houseController.text = m['house_number'] ?? '';
+                              members = [];
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                _buildField(controller: nameController, label: 'Name', icon: Icons.person),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (houseController.text.isEmpty || nameController.text.isEmpty) return;
+                    try {
+                      final users = await DatabaseHelper.getMembersByHouse(houseController.text.trim().toUpperCase());
+                      int userId = 0;
+                      for (final u in users) {
+                        if ((u['name'] ?? '').toString().toLowerCase() == nameController.text.trim().toLowerCase()) {
+                          userId = u['id'] as int;
+                          break;
+                        }
+                      }
+                      await DatabaseHelper.bookAartiSlot(
+                        userId: userId,
+                        houseNumber: houseController.text.trim().toUpperCase(),
+                        dayNumber: _selectedDay,
+                        slotId: 0,
+                      );
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _loadData();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Booking created successfully'), backgroundColor: Colors.green),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: const Text('BOOK SLOT', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        );
+        },
       ),
     );
+
+    houseController.addListener(() async {
+      final text = houseController.text.trim();
+      if (text.length < 2) {
+        sheetSetState?.call(() { members = []; isSearching = false; });
+        return;
+      }
+      sheetSetState?.call(() => isSearching = true);
+      try {
+        final results = await DatabaseHelper.getMembersByHouse(text);
+        sheetSetState?.call(() { members = results; isSearching = false; });
+      } catch (_) {
+        sheetSetState?.call(() => isSearching = false);
+      }
+    });
   }
 
   Widget _buildField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text}) {

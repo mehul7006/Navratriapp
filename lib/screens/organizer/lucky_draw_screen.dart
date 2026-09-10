@@ -31,6 +31,8 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   bool _isRedrawing = false;
   String? _cancelledReason;
   int? _cancelledPrizeLevel;
+  int _confirmedCount = 0;
+  int _maxWinners = 3;
   int _shakeOffset = 0;
   Timer? _shakeTimer;
   late ConfettiController _confettiController;
@@ -54,6 +56,15 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     final activeDay = await DatabaseHelper.getCurrentActiveDay();
     if (activeDay != null) _selectedDay = activeDay;
     _loadTickets();
+  }
+
+  int _getDayMaxWinners(int dayNumber) {
+    final day = _days.firstWhere(
+      (d) => d['day_number'] == dayNumber,
+      orElse: () => {},
+    );
+    if (day.isEmpty) return 3;
+    return (day['max_winners'] ?? 3) as int;
   }
 
   bool _isDayCompleted(int dayNumber) {
@@ -87,15 +98,30 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       _isRevealed = false;
     });
     try {
-      final tickets = await DatabaseHelper.getDrawTicketsForDay(_selectedDay);
+      final daysFuture = DatabaseHelper.getNavratriDays();
+      final ticketsFuture = DatabaseHelper.getDrawTicketsForDay(_selectedDay);
+      final countFuture = DatabaseHelper.getConfirmedWinnerCount(_selectedDay);
+
+      final days = await daysFuture;
+      final tickets = await ticketsFuture;
+      final count = await countFuture;
+
       if (mounted) {
         setState(() {
+          _days = days;
           _potTickets = tickets;
+          _confirmedCount = count;
+          _maxWinners = _getDayMaxWinners(_selectedDay);
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Load error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -112,8 +138,10 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     });
   }
 
+  bool get _isMaxWinnersReached => _confirmedCount >= _maxWinners;
+
   Future<void> _drawTicket() async {
-    if (_isDrawing || _potTickets.isEmpty || !_isDayBookable(_selectedDay)) return;
+    if (_isDrawing || _potTickets.isEmpty || !_isDayBookable(_selectedDay) || _isMaxWinnersReached) return;
 
     setState(() => _isDrawing = true);
     _startShake();
@@ -213,6 +241,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       if (mounted) {
         setState(() {
           _assignedPrizeLevel = result['prize_level'];
+          _confirmedCount++;
           _isProcessing = false;
         });
         _loadTickets();
@@ -460,6 +489,44 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: DropdownButton<int>(
+              value: _maxWinners,
+              dropdownColor: AppTheme.purpleDeep,
+              style: const TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+              underline: const SizedBox(),
+              icon: const Icon(Icons.arrow_drop_down, color: AppTheme.goldPrimary, size: 18),
+              isDense: true,
+              items: List.generate(15, (i) => i + 1).map((n) {
+                return DropdownMenuItem(
+                  value: n,
+                  child: Text('$n Winner${n != 1 ? 's' : ''}'),
+                );
+              }).toList(),
+              onChanged: (val) async {
+                if (val == null || val == _maxWinners) return;
+                try {
+                  await DatabaseHelper.updateMaxWinners(_selectedDay, val);
+                  setState(() => _maxWinners = val);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Max winners set to $val for Day $_selectedDay'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to update: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadTickets,
@@ -562,7 +629,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       children: [
         // Pot with tickets
         GestureDetector(
-          onTap: bookable ? _drawTicket : null,
+          onTap: (bookable && !_isMaxWinnersReached) ? _drawTicket : null,
           child: Transform.translate(
             offset: Offset(_shakeOffset.toDouble(), 0),
             child: Container(
@@ -752,10 +819,30 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             ),
           ),
         const SizedBox(height: 8),
-        if (bookable && _potTickets.isNotEmpty && !_isDrawing)
+        if (bookable && _potTickets.isNotEmpty && !_isDrawing && !_isMaxWinnersReached)
           Text(
             'Tap the pot to draw a ticket',
             style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+          ),
+                if (_isMaxWinnersReached)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withOpacity(0.5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber, color: Colors.orange, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Max winners ($_maxWinners) reached. Cancel a winner from history to draw again.',
+                  style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
         if (_isDrawing)
           const Text(
@@ -1233,6 +1320,9 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     
     try {
       await DatabaseHelper.cancelDraw(drawId: draw['id'], reason: reason);
+      if (mounted && _confirmedCount > 0) {
+        setState(() => _confirmedCount--);
+      }
       _loadTickets();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

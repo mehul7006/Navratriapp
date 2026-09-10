@@ -24,7 +24,7 @@ class _AnnouncementManagementScreenState extends State<AnnouncementManagementScr
   Future<void> _loadAnnouncements() async {
     setState(() => _isLoading = true);
     _announcements = await DatabaseHelper.getAnnouncements();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override

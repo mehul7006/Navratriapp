@@ -40,7 +40,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

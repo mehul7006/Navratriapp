@@ -52,7 +52,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
 
       if (existingResult.isNotEmpty) {
         _showError('House number already registered!');
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
         return;
       }
 
@@ -74,7 +74,7 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     } catch (e) {
       _showError('Error: ${e.toString()}');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

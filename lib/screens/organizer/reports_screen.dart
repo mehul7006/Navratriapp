@@ -45,7 +45,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

@@ -35,7 +35,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       final deleted = await DatabaseHelper.getDeletedPayments();
       setState(() { _payments = payments; _deletedPayments = deleted; _isLoading = false; });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -699,7 +699,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'pending' ? 'Payment recorded (Pay Later)' : AppLocalizations.t('payment_added')), backgroundColor: Colors.green));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent));
-    } finally { setState(() => _isLoading = false); }
+    } finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   @override

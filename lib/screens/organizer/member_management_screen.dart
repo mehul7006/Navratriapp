@@ -28,7 +28,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   Future<void> _loadMembers() async {
     setState(() => _isLoading = true);
     _members = await DatabaseHelper.getAllMembers();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<Map<String, dynamic>> get _filteredMembers {
@@ -428,7 +428,7 @@ class _AddMemberSheetState extends State<_AddMemberSheet> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

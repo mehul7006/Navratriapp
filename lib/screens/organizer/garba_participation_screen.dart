@@ -44,7 +44,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
       }
       _applyFilters();
     } catch (e) {}
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   void _applyFilters() {

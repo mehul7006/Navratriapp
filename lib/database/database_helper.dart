@@ -829,6 +829,13 @@ class DatabaseHelper {
     return _get('/api/daily-draws/tickets/$dayNumber');
   }
 
+  static Future<int> getConfirmedWinnerCount(int dayNumber) async {
+    final response = await http.get(Uri.parse('$_apiBase/api/daily-draws/confirmed-count/$dayNumber')).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return 0;
+    final data = jsonDecode(response.body);
+    return (data is Map ? (data['count'] ?? 0) : 0) as int;
+  }
+
   static Future<List<Map<String, dynamic>>> getDailyDrawHistory({int? dayNumber}) async {
     final params = dayNumber != null ? '?day=$dayNumber' : '';
     return _get('/api/daily-draws/history$params');
@@ -850,6 +857,10 @@ class DatabaseHelper {
 
   static Future<void> endDay(int dayNumber) async {
     await _put('/api/navratri-days/$dayNumber/end', {});
+  }
+
+  static Future<void> updateMaxWinners(int dayNumber, int maxWinners) async {
+    await _put('/api/navratri-days/$dayNumber', {'max_winners': maxWinners});
   }
 
   static Future<void> reopenDay(int dayNumber) async {

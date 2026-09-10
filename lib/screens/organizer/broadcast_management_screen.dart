@@ -28,7 +28,7 @@ class _BroadcastManagementScreenState extends State<BroadcastManagementScreen> {
       final broadcasts = await DatabaseHelper.getBroadcasts();
       setState(() { _broadcasts = broadcasts; _isLoading = false; });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

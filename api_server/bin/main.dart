@@ -99,6 +99,9 @@ Future<Connection> get db async {
     // Gift assignments status column
     await _db!.execute(
         "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
+    // Max winners per day for lucky draw
+    await _db!.execute(
+        "ALTER TABLE navratri_days ADD COLUMN IF NOT EXISTS max_winners INT DEFAULT 3");
     // Allow multiple members per house - drop unique constraint with CASCADE
     try {
       await _db!.execute(
@@ -217,6 +220,7 @@ final router = Router()
   ..post('/api/daily-draws/spin', _spinDraw)
   ..get('/api/daily-draws/history', _getDailyDrawHistory)
   ..get('/api/daily-draws/count', _getDailyDrawCount)
+  ..get('/api/daily-draws/confirmed-count/<day>', _getConfirmedWinnerCount)
   ..get('/api/daily-draws/tickets/<day>', _getDrawTicketsForDay)
   ..post('/api/daily-draws/confirm', _confirmDraw)
   ..post('/api/daily-draws/disqualify', _disqualifyDraw)
@@ -1064,7 +1068,7 @@ Future<Response> _bookAartiSlot(Request request) async {
         'userId': body['user_id'],
         'house': body['house_number'],
         'day': body['day_number'],
-        'slot': body['slot_id'],
+        'slot': body['slot_id'] == 0 ? null : body['slot_id'],
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -1652,6 +1656,10 @@ Future<Response> _updateNavratriDay(Request request, String day) async {
     if (body.containsKey('is_completed')) {
       updates.add('is_completed = @completed');
       params['completed'] = body['is_completed'];
+    }
+    if (body.containsKey('max_winners')) {
+      updates.add('max_winners = @maxWinners');
+      params['maxWinners'] = body['max_winners'];
     }
     if (updates.isEmpty) return _errorResponse('No fields to update');
     await conn.execute(
@@ -2250,6 +2258,20 @@ Future<Response> _getDailyDrawCount(Request request) async {
   }
 }
 
+Future<Response> _getConfirmedWinnerCount(Request request, String day) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named(
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND status = 'confirmed'"),
+      parameters: {'day': int.parse(day)},
+    );
+    return _jsonResponse({'count': results.first.toColumnMap()['cnt'] ?? 0});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
 Future<Response> _getDrawTicketsForDay(Request request, String day) async {
   try {
     final conn = await db;
@@ -2262,7 +2284,8 @@ Future<Response> _getDrawTicketsForDay(Request request, String day) async {
         AND dt.user_id NOT IN (
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
-          AND drawn_at > NOW() - INTERVAL '3 days'
+          AND status = 'confirmed'
+          AND day_number = @day
         )
         ORDER BY dt.id
       '''),
@@ -2326,23 +2349,22 @@ Future<Response> _confirmDraw(Request request) async {
     final drawId = body['draw_id'] as int;
     final dayNumber = body['day_number'] as int;
 
-    // Count existing confirmed prize winners for this day to determine prize level
-    final countResult = await conn.execute(
+    // Find which prize levels (1,2,3) are already taken by confirmed draws
+    final takenResult = await conn.execute(
       Sql.named(
-          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND status = 'confirmed' AND prize_level IS NOT NULL"),
+          "SELECT prize_level FROM daily_draws WHERE day_number = @day AND status = 'confirmed' AND prize_level IS NOT NULL"),
       parameters: {'day': dayNumber},
     );
-    final confirmedCount = countResult.first.toColumnMap()['cnt'] ?? 0;
+    final takenLevels = takenResult.rows.map((r) => r.toColumnMap()['prize_level'] as int).toSet();
 
-    int prizeLevel;
-    if (confirmedCount == 0) {
-      prizeLevel = 3; // First available = 3rd prize
-    } else if (confirmedCount == 1) {
-      prizeLevel = 2; // Second available = 2nd prize
-    } else if (confirmedCount == 2) {
-      prizeLevel = 1; // Third available = 1st prize
-    } else {
-      prizeLevel = 0; // No more prizes, just a general winner
+    // Assign the lowest available prize level (3rd→2nd→1st order)
+    int prizeLevel = 0;
+    if (!takenLevels.contains(3)) {
+      prizeLevel = 3;
+    } else if (!takenLevels.contains(2)) {
+      prizeLevel = 2;
+    } else if (!takenLevels.contains(1)) {
+      prizeLevel = 1;
     }
 
     // Update the daily_draws record

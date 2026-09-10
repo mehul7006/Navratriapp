@@ -40,7 +40,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         _categories = cats.map((row) => Map<String, dynamic>.from(row)).toList();
         _isLoading = false;
       });
-    } catch (e) { setState(() => _isLoading = false); }
+    } catch (e) { if (mounted) setState(() => _isLoading = false); }
   }
 
   List<Map<String, dynamic>> get _filteredExpenses {
@@ -690,7 +690,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('expense_added')), backgroundColor: Colors.green));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.redAccent));
-    } finally { setState(() => _isLoading = false); }
+    } finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   @override

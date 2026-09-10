@@ -27,7 +27,7 @@ class _GarbaMemberDetailScreenState extends State<GarbaMemberDetailScreen> {
     try {
       _details = await DatabaseHelper.getGarbaMemberDetails(widget.memberId);
     } catch (e) {}
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
