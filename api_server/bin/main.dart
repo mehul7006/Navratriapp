@@ -2543,11 +2543,15 @@ Future<Response> _getDailyInfo(Request request) async {
     // Aarti bookings with user names (approved or pending)
     final aartiBookings = await conn.execute(
       Sql.named('''
-        SELECT ab.house_number, u.name, a.slot_time, a.slot_label, ab.status
+        SELECT ab.house_number, 
+               COALESCE(u.name, SPLIT_PART(SPLIT_PART(ab.notes, '|', 1), '] ', 2)) as name, 
+               COALESCE(a.slot_time, '') as slot_time, 
+               COALESCE(a.slot_label, '') as slot_label, 
+               ab.status
         FROM aarti_bookings ab
-        JOIN users u ON ab.user_id = u.id
-        JOIN aarti_slots a ON ab.slot_id = a.id
-        WHERE ab.day_number = @day
+        LEFT JOIN users u ON ab.user_id = u.id
+        LEFT JOIN aarti_slots a ON ab.slot_id = a.id
+        WHERE ab.day_number = @day AND ab.status IN ('approved', 'pending')
         ORDER BY a.slot_time
       '''),
       parameters: {'day': dayNumber},
@@ -2556,11 +2560,13 @@ Future<Response> _getDailyInfo(Request request) async {
     // Gift assignments with donor names
     final giftAssignments = await conn.execute(
       Sql.named('''
-        SELECT g.name as gift_name, u.name as donor_name, u.house_number, ga.status
+        SELECT COALESCE(g.name, 'Gift') as gift_name, 
+               COALESCE(u.name, SPLIT_PART(SPLIT_PART(ga.notes, '|', 1), '] ', 2)) as donor_name, 
+               ga.house_number, ga.status
         FROM gift_assignments ga
-        JOIN gifts g ON ga.gift_id = g.id
-        JOIN users u ON ga.user_id = u.id
-        WHERE ga.day_number = @day
+        LEFT JOIN gifts g ON ga.gift_id = g.id
+        LEFT JOIN users u ON ga.user_id = u.id
+        WHERE ga.day_number = @day AND ga.status IN ('approved', 'pending')
       '''),
       parameters: {'day': dayNumber},
     );
@@ -2568,11 +2574,13 @@ Future<Response> _getDailyInfo(Request request) async {
     // Snack orders with buyer names
     final snackOrders = await conn.execute(
       Sql.named('''
-        SELECT s.name as snack_name, u.name as buyer_name, u.house_number, so.quantity, so.status
+        SELECT COALESCE(s.name, 'Snack') as snack_name, 
+               COALESCE(u.name, SPLIT_PART(SPLIT_PART(so.notes, '|', 1), '] ', 2)) as buyer_name, 
+               so.house_number, so.quantity, so.status
         FROM snack_orders so
-        JOIN users u ON so.user_id = u.id
-        JOIN snacks s ON so.snack_id = s.id
-        WHERE so.day_number = @day
+        LEFT JOIN users u ON so.user_id = u.id
+        LEFT JOIN snacks s ON so.snack_id = s.id
+        WHERE so.day_number = @day AND so.status IN ('approved', 'pending')
       '''),
       parameters: {'day': dayNumber},
     );
