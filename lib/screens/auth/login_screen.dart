@@ -250,11 +250,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildMarquee(),
                 const SizedBox(height: 20),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(child: _buildPrizeWinners()),
                     const SizedBox(width: 12),
-                    Expanded(flex: 2, child: _buildLoginForm()),
+                    Expanded(child: _buildLoginForm()),
                     const SizedBox(width: 12),
                     Expanded(child: _buildTodayBookings()),
                   ],
@@ -335,7 +335,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppTheme.goldPrimary.withOpacity(0.1), AppTheme.purpleCard.withOpacity(0.5)]),
@@ -344,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       child: Column(
         children: [
-          Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          Text(AppLocalizations.t('todays_prize_winners'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
           const SizedBox(height: 8),
           ...yesterdayWinners.map((w) {
             final prizeLevel = w['prize_level'];
@@ -355,15 +354,15 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 children: [
-                  Icon(Icons.emoji_events, color: AppTheme.goldPrimary, size: 14),
-                  const SizedBox(width: 6),
+                  Icon(Icons.emoji_events, color: AppTheme.goldPrimary, size: 12),
+                  const SizedBox(width: 4),
                   Expanded(
-                    child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                    child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
                   ),
                   Expanded(
-                    child: Text(name, style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                    child: Text(name, style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                   ),
-                  Text('House $house', style: TextStyle(fontSize: 11, color: AppTheme.goldPrimary)),
+                  Text('H$house', style: TextStyle(fontSize: 10, color: AppTheme.goldPrimary)),
                 ],
               ),
             );
@@ -381,7 +380,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppTheme.purpleCard.withOpacity(0.6), AppTheme.purpleDeep.withOpacity(0.8)]),
@@ -391,13 +389,13 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Today\'s Bookings', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
+          Text('Today\'s Bookings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.goldPrimary, letterSpacing: 1)),
           const SizedBox(height: 8),
           if (aartiBookings.isNotEmpty) ...[
             Row(children: [
-              Icon(Icons.wb_sunny, color: AppTheme.goldPrimary, size: 14),
-              const SizedBox(width: 6),
-              Text('Aarti:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+              Icon(Icons.wb_sunny, color: AppTheme.goldPrimary, size: 12),
+              const SizedBox(width: 4),
+              Text('Aarti:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
             const SizedBox(height: 4),
             ...aartiBookings.take(3).map((a) {
@@ -405,17 +403,17 @@ class _LoginScreenState extends State<LoginScreen> {
               final house = a['house_number']?.toString() ?? '';
               final slot = a['slot_label']?.toString() ?? a['slot_time']?.toString() ?? '';
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 20),
-                child: Text('$name ($house) - $slot', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+                child: Text('$name (H$house) - $slot', style: const TextStyle(fontSize: 10, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
             const SizedBox(height: 6),
           ],
           if (snackOrders.isNotEmpty) ...[
             Row(children: [
-              Icon(Icons.restaurant, color: AppTheme.goldPrimary, size: 14),
-              const SizedBox(width: 6),
-              Text('Snacks:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+              Icon(Icons.restaurant, color: AppTheme.goldPrimary, size: 12),
+              const SizedBox(width: 4),
+              Text('Snacks:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
             const SizedBox(height: 4),
             ...snackOrders.take(3).map((s) {
@@ -423,25 +421,25 @@ class _LoginScreenState extends State<LoginScreen> {
               final snack = s['snack_name']?.toString() ?? '';
               final qty = s['quantity'] ?? 1;
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 20),
-                child: Text('$buyer - $snack x$qty', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+                child: Text('$buyer - $snack x$qty', style: const TextStyle(fontSize: 10, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
             const SizedBox(height: 6),
           ],
           if (giftAssignments.isNotEmpty) ...[
             Row(children: [
-              Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 14),
-              const SizedBox(width: 6),
-              Text('Gifts:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+              Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 12),
+              const SizedBox(width: 4),
+              Text('Gifts:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
             const SizedBox(height: 4),
             ...giftAssignments.take(3).map((g) {
               final donor = g['donor_name']?.toString() ?? '';
               final gift = g['gift_name']?.toString() ?? '';
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 20),
-                child: Text('$donor - $gift', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+                child: Text('$donor - $gift', style: const TextStyle(fontSize: 10, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
           ],
@@ -465,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(AppLocalizations.t('login_as'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
+            Text(AppLocalizations.t('login_as'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
             const SizedBox(height: 8),
             _buildUserTypeSelector(),
             const SizedBox(height: 20),
