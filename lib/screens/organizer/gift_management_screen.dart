@@ -797,8 +797,8 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
     final giftName = info[1];
     final dayNum = dist['day_number'] ?? 0;
     final tagLabel = isOrg ? '[Organizer]' : '[Sponsor]';
-    final itemName = '$tagLabel ${houseNum.isNotEmpty ? '($houseNum) ' : ''}$distName${giftName.isNotEmpty ? ' - $giftName' : ''}';
-    final noteText = 'Day $dayNum${giftName.isNotEmpty ? ' - $giftName' : ''}';
+    final itemName = '$tagLabel Gift: ${giftName.isNotEmpty ? giftName : "Day $dayNum"} - $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
+    final noteText = 'Day $dayNum - ${giftName.isNotEmpty ? giftName : "Gift"} donated by $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
     try {
       if (!isOrg) {
         try {

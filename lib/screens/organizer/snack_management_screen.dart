@@ -594,8 +594,8 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
     final snackName = info[1];
     final dayNum = dist['day_number'] ?? 0;
     final tagLabel = isOrg ? '[Organizer]' : '[Sponsor]';
-    final itemName = '$tagLabel ${houseNum.isNotEmpty ? '($houseNum) ' : ''}$distName${snackName.isNotEmpty ? ' - $snackName' : ''}';
-    final noteText = 'Day $dayNum${snackName.isNotEmpty ? ' - $snackName' : ''}';
+    final itemName = '$tagLabel Snack: ${snackName.isNotEmpty ? snackName : "Day $dayNum"} - $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
+    final noteText = 'Day $dayNum - ${snackName.isNotEmpty ? snackName : "Snack"} distributed to $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
     try {
       if (!isOrg) {
         try {
