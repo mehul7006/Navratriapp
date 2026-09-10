@@ -362,28 +362,31 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                   Container(
                     constraints: const BoxConstraints(maxHeight: 150),
                     decoration: BoxDecoration(
-                      color: AppTheme.purpleDark,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
                     ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: members.length,
-                      itemBuilder: (ctx, i) {
-                        final m = members[i];
-                        return ListTile(
-                          dense: true,
-                          title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)),
-                          subtitle: Text(m['house_number'] ?? '', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                          onTap: () {
-                            setSheetState(() {
-                              nameController.text = m['name'] ?? '';
-                              houseController.text = m['house_number'] ?? '';
-                              members = [];
-                            });
-                          },
-                        );
-                      },
+                    child: Material(
+                      color: AppTheme.purpleDark,
+                      borderRadius: BorderRadius.circular(8),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: members.length,
+                        itemBuilder: (ctx, i) {
+                          final m = members[i];
+                          return ListTile(
+                            dense: true,
+                            title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            subtitle: Text(m['house_number'] ?? '', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                            onTap: () {
+                              setSheetState(() {
+                                nameController.text = m['name'] ?? '';
+                                houseController.text = m['house_number'] ?? '';
+                                members = [];
+                              });
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 const SizedBox(height: 12),
