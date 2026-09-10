@@ -70,20 +70,18 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   }
 
   Widget _buildDaySelector() {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 10,
-        itemBuilder: (context, index) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: List.generate(10, (index) {
           final day = index + 1;
           final isSelected = _selectedDay == day;
           return GestureDetector(
             onTap: () { setState(() => _selectedDay = day); _loadData(); },
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
@@ -92,7 +90,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
             ),
           );
-        },
+        }),
       ),
     );
   }
@@ -326,29 +324,25 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 const SizedBox(height: 16),
                 Text('Select Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
                 const SizedBox(height: 8),
-                Container(
-                  height: 40,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 10,
-                    itemBuilder: (ctx, index) {
-                      final day = index + 1;
-                      final isFormSelected = formDay == day;
-                      return GestureDetector(
-                        onTap: () => setSheetState(() => formDay = day),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
-                          ),
-                          child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: List.generate(10, (index) {
+                    final day = index + 1;
+                    final isFormSelected = formDay == day;
+                    return GestureDetector(
+                      onTap: () => setSheetState(() => formDay = day),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
                         ),
-                      );
-                    },
-                  ),
+                        child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+                      ),
+                    );
+                  }),
                 ),
                 const SizedBox(height: 16),
                 _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home, textCapitalization: TextCapitalization.characters, autoCapitalize: true),
