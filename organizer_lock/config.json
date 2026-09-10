@@ -1,0 +1,32 @@
+{
+  "password": "NISHIT@2026",
+  "description": "Developer lock for organizer code files. Password required before modifying any organizer file.",
+  "protected_files": [
+    "lib/screens/organizer/dashboard_screen.dart",
+    "lib/screens/organizer/aarti_management_screen.dart",
+    "lib/screens/organizer/snack_management_screen.dart",
+    "lib/screens/organizer/gift_management_screen.dart",
+    "lib/screens/organizer/member_management_screen.dart",
+    "lib/screens/organizer/member_registration_screen.dart",
+    "lib/screens/organizer/payment_collection_screen.dart",
+    "lib/screens/organizer/expense_management_screen.dart",
+    "lib/screens/organizer/announcement_management_screen.dart",
+    "lib/screens/organizer/ticket_management_screen.dart",
+    "lib/screens/organizer/day_management_screen.dart",
+    "lib/screens/organizer/sponsor_management_screen.dart",
+    "lib/screens/organizer/reports_screen.dart",
+    "lib/screens/organizer/draw_history_screen.dart",
+    "lib/screens/organizer/lucky_draw_screen.dart",
+    "lib/screens/organizer/broadcast_management_screen.dart",
+    "lib/screens/organizer/dj_console_screen.dart",
+    "lib/screens/organizer/garba_participation_screen.dart",
+    "lib/screens/organizer/garba_member_detail_screen.dart",
+    "lib/database/database_helper.dart",
+    "api_server/bin/main.dart"
+  ],
+  "rules": {
+    "before_modify": "Ask developer for password",
+    "after_modify": "Log change in organizer_lock/CHANGELOG.md with: date, file, what changed, why, impact",
+    "if_wrong_password": "Do not modify the file. Inform user that organizer files are protected."
+  }
+}
