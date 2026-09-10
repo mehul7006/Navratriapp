@@ -247,9 +247,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 4),
                   Text(AppLocalizations.t('nishitpark_society'), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.5)),
                 const SizedBox(height: 16),
-                _buildPrizeWinners(),
-                const SizedBox(height: 12),
-                _buildTodayBookings(),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _buildPrizeWinners()),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildTodayBookings()),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 _buildMarquee(),
                 const SizedBox(height: 24),
