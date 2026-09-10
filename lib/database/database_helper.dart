@@ -806,12 +806,11 @@ class DatabaseHelper {
     throw Exception('Failed to create draw: ${response.body}');
   }
 
-  static Future<Map<String, dynamic>?> spinDrawPrize({required int dayNumber, required int drawnBy, required int prizeLevel}) async {
+  static Future<Map<String, dynamic>?> spinDrawPrize({required int dayNumber, required int drawnBy}) async {
     try {
       final result = await _post('/api/daily-draws/spin-prize', {
         'day_number': dayNumber,
         'drawn_by': drawnBy,
-        'prize_level': prizeLevel,
       });
       return result;
     } catch (e) {

@@ -418,17 +418,21 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   }
 
   void _showPrizeResult(int? prizeLevel) {
+    String ordinal(int n) {
+      if (n >= 11 && n <= 13) return '${n}th';
+      switch (n % 10) {
+        case 1: return '${n}st';
+        case 2: return '${n}nd';
+        case 3: return '${n}rd';
+        default: return '${n}th';
+      }
+    }
+
     String prizeText;
     String prizeIcon;
-    if (prizeLevel == 1) {
-      prizeText = '🥇 1st Prize Winner!';
-      prizeIcon = '🏆🥇';
-    } else if (prizeLevel == 2) {
-      prizeText = '🥈 2nd Prize Winner!';
-      prizeIcon = '🥈';
-    } else if (prizeLevel == 3) {
-      prizeText = '🥉 3rd Prize Winner!';
-      prizeIcon = '🥉';
+    if (prizeLevel != null && prizeLevel > 0) {
+      prizeText = '${ordinal(prizeLevel)} Winner!';
+      prizeIcon = '🏆';
     } else {
       prizeText = '🎉 Winner!';
       prizeIcon = '🪔';
@@ -1216,8 +1220,17 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               final isDisqualified = draw['status'] == 'disqualified';
               final isCancelled = draw['status'] == 'cancelled';
               final isConfirmed = draw['status'] == 'confirmed';
+              String ordinal(int n) {
+                if (n >= 11 && n <= 13) return '${n}th';
+                switch (n % 10) {
+                  case 1: return '${n}st';
+                  case 2: return '${n}nd';
+                  case 3: return '${n}rd';
+                  default: return '${n}th';
+                }
+              }
               final prizeLabel = isPrize
-                  ? ['🥇 1st', '🥈 2nd', '🥉 3rd'][(draw['prize_level'] ?? 1) - 1]
+                  ? '${ordinal(draw['prize_level'] as int)} Winner'
                   : isDisqualified
                       ? '❌ Disqualified'
                       : isCancelled

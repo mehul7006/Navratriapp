@@ -104,8 +104,16 @@ class _LoginScreenState extends State<LoginScreen> {
         final prizeLevel = w['prize_level'];
         final name = w['user_name']?.toString() ?? '';
         final house = w['house_number']?.toString() ?? '';
-        final labels = ['', '🏆🥇 1st', '🥈 2nd', '🥉 3rd'];
-        final label = prizeLevel != null ? labels[prizeLevel as int] ?? '' : '';
+        String ordinal(int n) {
+          if (n >= 11 && n <= 13) return '${n}th';
+          switch (n % 10) {
+            case 1: return '${n}st';
+            case 2: return '${n}nd';
+            case 3: return '${n}rd';
+            default: return '${n}th';
+          }
+        }
+        final label = prizeLevel != null ? '${ordinal(prizeLevel as int)} Winner' : '';
         if (name.isNotEmpty) parts.add('$label: $name (House $house)');
       }
     }

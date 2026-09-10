@@ -367,8 +367,16 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                   d['prize_level'] != null
                 ).firstOrNull;
                 if (draw == null) return const SizedBox.shrink();
-                final labels = ['', '🏆🥇 1st Prize', '🥈 2nd Prize', '🥉 3rd Prize'];
-                final prizeIndex = draw['prize_level'] as int? ?? 0;
+                final p = draw['prize_level'] as int;
+                String ordinal(int n) {
+                  if (n >= 11 && n <= 13) return '${n}th';
+                  switch (n % 10) {
+                    case 1: return '${n}st';
+                    case 2: return '${n}nd';
+                    case 3: return '${n}rd';
+                    default: return '${n}th';
+                  }
+                }
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -377,7 +385,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    (prizeIndex > 0 && prizeIndex < labels.length) ? labels[prizeIndex] : '',
+                    '🏆 ${ordinal(p)} Winner',
                     style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 );

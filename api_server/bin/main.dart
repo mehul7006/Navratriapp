@@ -2078,7 +2078,7 @@ Future<Response> _updateGiftAssignmentStatus(Request request, String id) async {
   }
 }
 
-// ========== 3-PRIZE LUCKY DRAW ==========
+// ========== LUCKY DRAW / SPIN (with badge assignment) ==========
 
 Future<Response> _spinPrizeDraw(Request request) async {
   try {
@@ -2086,24 +2086,23 @@ Future<Response> _spinPrizeDraw(Request request) async {
     final conn = await db;
     final dayNumber = body['day_number'] as int;
     final drawnBy = body['drawn_by'] as int;
-    final prizeLevel = body['prize_level'] as int;
 
     if (!await _isDayBookable(conn, dayNumber)) {
       return _errorResponse('Lucky Draw is closed for Day $dayNumber', status: 403);
     }
 
-    if (prizeLevel < 1 || prizeLevel > 3)
-      return _errorResponse('prize_level must be 1, 2, or 3');
+    // Get max winners for this day
+    final maxWinners = await _getMaxWinners(conn, dayNumber);
 
-    // Max 3 prize draws per day (count rows where prize_level IS NOT NULL)
+    // Count confirmed draws (actual winners)
     final countResult = await conn.execute(
       Sql.named(
-          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND draw_date = CURRENT_DATE AND prize_level IS NOT NULL"),
+          "SELECT COUNT(*) as cnt FROM daily_draws WHERE day_number = @day AND status = 'confirmed'"),
       parameters: {'day': dayNumber},
     );
-    final prizeSpinsToday = countResult.first.toColumnMap()['cnt'] ?? 0;
-    if (prizeSpinsToday >= 3)
-      return _errorResponse('Maximum 3 prize draws per day reached');
+    final confirmedCount = (countResult.first.toColumnMap()['cnt'] ?? 0) as int;
+    if (confirmedCount >= maxWinners)
+      return _errorResponse('Maximum $maxWinners winners already confirmed for Day $dayNumber');
 
     // Pick random assigned ticket for this day, excluding users who won any prize in last 3 days
     final ticketResult = await conn.execute(
@@ -2128,8 +2127,8 @@ Future<Response> _spinPrizeDraw(Request request) async {
     final ticket = _parseRow(ticketResult.first);
     await conn.execute(
       Sql.named('''
-        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by, drawn_at, prize_level)
-        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy, NOW(), @prizeLevel)
+        INSERT INTO daily_draws (day_number, ticket_id, ticket_code, winner_id, house_number, draw_number, drawn_by, drawn_at)
+        VALUES (@day, @ticketId, @ticketCode, @winnerId, @house, @drawNum, @drawnBy, NOW())
       '''),
       parameters: {
         'day': dayNumber,
@@ -2137,17 +2136,16 @@ Future<Response> _spinPrizeDraw(Request request) async {
         'ticketCode': ticket['ticket_code'],
         'winnerId': ticket['user_id'],
         'house': ticket['house_number'],
-        'drawNum': prizeSpinsToday + 1,
+        'drawNum': confirmedCount + 1,
         'drawnBy': drawnBy,
-        'prizeLevel': prizeLevel,
       },
     );
 
+    // The badge will be assigned on confirm, not on spin
     return _jsonResponse({
       'ticket_code': ticket['ticket_code'],
       'user_name': ticket['user_name'],
       'house_number': ticket['house_number'],
-      'prize_level': prizeLevel,
     });
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2340,6 +2338,34 @@ Future<Response> _createDraw(Request request) async {
   }
 }
 
+// ========== BADGE HELPERS ==========
+
+Future<int> _getMaxWinners(Connection conn, int dayNumber) async {
+  final result = await conn.execute(
+    Sql.named('SELECT max_winners FROM navratri_days WHERE day_number = @day'),
+    parameters: {'day': dayNumber},
+  );
+  if (result.isEmpty) return 3;
+  return (result.first.toColumnMap()['max_winners'] ?? 3) as int;
+}
+
+/// Find the highest available badge number (max_winners down to 1) not yet assigned
+Future<int?> _findAvailableBadge(Connection conn, int dayNumber, int maxWinners) async {
+  final takenResult = await conn.execute(
+    Sql.named(
+      "SELECT prize_level FROM daily_draws WHERE day_number = @day AND status = 'confirmed' AND prize_level IS NOT NULL",
+    ),
+    parameters: {'day': dayNumber},
+  );
+  final takenBadges = takenResult.map((r) => r.toColumnMap()['prize_level'] as int).toSet();
+
+  // Find highest available badge from maxWinners down to 1
+  for (int badge = maxWinners; badge >= 1; badge--) {
+    if (!takenBadges.contains(badge)) return badge;
+  }
+  return null; // all badges taken
+}
+
 // ========== CONFIRM / DISQUALIFY DRAW ==========
 
 Future<Response> _confirmDraw(Request request) async {
@@ -2349,31 +2375,22 @@ Future<Response> _confirmDraw(Request request) async {
     final drawId = body['draw_id'] as int;
     final dayNumber = body['day_number'] as int;
 
-    // Find which prize levels (1,2,3) are already taken by confirmed draws
-    final takenResult = await conn.execute(
-      Sql.named(
-          "SELECT prize_level FROM daily_draws WHERE day_number = @day AND status = 'confirmed' AND prize_level IS NOT NULL"),
-      parameters: {'day': dayNumber},
-    );
-    final takenLevels = takenResult.rows.map((r) => r.toColumnMap()['prize_level'] as int).toSet();
+    // Get max winners for this day
+    final maxWinners = await _getMaxWinners(conn, dayNumber);
 
-    // Assign the lowest available prize level (3rd→2nd→1st order)
-    int prizeLevel = 0;
-    if (!takenLevels.contains(3)) {
-      prizeLevel = 3;
-    } else if (!takenLevels.contains(2)) {
-      prizeLevel = 2;
-    } else if (!takenLevels.contains(1)) {
-      prizeLevel = 1;
+    // Find the highest available badge number
+    final badgeNumber = await _findAvailableBadge(conn, dayNumber, maxWinners);
+    if (badgeNumber == null) {
+      return _errorResponse('Maximum $maxWinners winners already confirmed for Day $dayNumber');
     }
 
     // Update the daily_draws record
     await conn.execute(
       Sql.named('''
-        UPDATE daily_draws SET status = 'confirmed', is_available = TRUE, prize_level = @prizeLevel
+        UPDATE daily_draws SET status = 'confirmed', is_available = TRUE, prize_level = @badgeNumber
         WHERE id = @id
       '''),
-      parameters: {'id': drawId, 'prizeLevel': prizeLevel > 0 ? prizeLevel : null},
+      parameters: {'id': drawId, 'badgeNumber': badgeNumber},
     );
 
     // Also mark the ticket as winner in draw_tickets
@@ -2382,7 +2399,7 @@ Future<Response> _confirmDraw(Request request) async {
       parameters: {'id': drawId},
     );
 
-    return _jsonResponse({'ok': true, 'prize_level': prizeLevel});
+    return _jsonResponse({'ok': true, 'prize_level': badgeNumber, 'badge_number': badgeNumber});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -2409,7 +2426,7 @@ Future<Response> _disqualifyDraw(Request request) async {
     // Update the daily_draws record as disqualified
     await conn.execute(
       Sql.named('''
-        UPDATE daily_draws SET status = 'disqualified', is_available = FALSE, rescheduled_to_day = @nextDay
+        UPDATE daily_draws SET status = 'disqualified', is_available = FALSE, rescheduled_to_day = @nextDay, prize_level = NULL
         WHERE id = @id
       '''),
       parameters: {'id': drawId, 'nextDay': nextDay <= 9 ? nextDay : null},
@@ -2444,7 +2461,7 @@ Future<Response> _cancelDraw(Request request) async {
 
     // Check if draw exists and is confirmed
     final drawResult = await conn.execute(
-      Sql.named('SELECT id, status, prize_level, ticket_code FROM daily_draws WHERE id = @id'),
+      Sql.named('SELECT id, status, prize_level, ticket_code, day_number FROM daily_draws WHERE id = @id'),
       parameters: {'id': drawId},
     );
     if (drawResult.isEmpty) return _errorResponse('Draw not found');
@@ -2454,13 +2471,16 @@ Future<Response> _cancelDraw(Request request) async {
       return _errorResponse('Only confirmed draws can be cancelled');
     }
 
+    final dayNumber = drawData['day_number'] as int;
+
     // Update the daily_draws record as cancelled
     await conn.execute(
       Sql.named('''
         UPDATE daily_draws 
         SET status = 'cancelled', 
             cancelled_reason = @reason, 
-            cancelled_at = NOW()
+            cancelled_at = NOW(),
+            prize_level = NULL
         WHERE id = @id
       '''),
       parameters: {'id': drawId, 'reason': reason},
@@ -2563,7 +2583,7 @@ Future<Response> _getDailyInfo(Request request) async {
         LEFT JOIN users u ON dd.winner_id = u.id
         LEFT JOIN navratri_days nd ON dd.day_number = nd.day_number
         WHERE dd.status = 'confirmed' AND dd.day_number = @yesterdayDay
-        ORDER BY dd.prize_level ASC
+        ORDER BY dd.prize_level DESC
       '''),
       parameters: {'yesterdayDay': dayNumber > 1 ? dayNumber - 1 : 1},
     );

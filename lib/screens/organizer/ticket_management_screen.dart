@@ -424,7 +424,19 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
               const Text('CANCELLED', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11)),
             if (isWinner && !isCancelled && ticket['prize_level'] != null)
               Text(
-                (ticket['prize_level'] == 1 ? '[1st]' : ticket['prize_level'] == 2 ? '[2nd]' : '[3rd]') + ' Prize',
+                (() {
+                  final p = ticket['prize_level'] as int;
+                  String ordinal(int n) {
+                    if (n >= 11 && n <= 13) return '${n}th';
+                    switch (n % 10) {
+                      case 1: return '${n}st';
+                      case 2: return '${n}nd';
+                      case 3: return '${n}rd';
+                      default: return '${n}th';
+                    }
+                  }
+                  return '${ordinal(p)} Winner';
+                })(),
                 style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 10),
               ),
             if (isCancelled && ticket['cancelled_reason'] != null)

@@ -228,9 +228,18 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
     final isActive = member['is_active'] == true;
 
     String prizeText = '';
-    if (lastPrizeLevel == 1) prizeText = '[1st]';
-    else if (lastPrizeLevel == 2) prizeText = '[2nd]';
-    else if (lastPrizeLevel == 3) prizeText = '[3rd]';
+    if (lastPrizeLevel != null && lastPrizeLevel > 0) {
+      String ordinal(int n) {
+        if (n >= 11 && n <= 13) return '${n}th';
+        switch (n % 10) {
+          case 1: return '${n}st';
+          case 2: return '${n}nd';
+          case 3: return '${n}rd';
+          default: return '${n}th';
+        }
+      }
+      prizeText = '[${ordinal(lastPrizeLevel as int)}]';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

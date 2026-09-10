@@ -156,7 +156,19 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  (() { final p = winner['prize_level']; final labels = ['', '🏆🥇 1st', '🥈 2nd', '🥉 3rd']; return (p != null && p >= 1 && p <= 3) ? labels[p as int] : '$p'; })() + ' Prize',
+                  (() {
+                    final p = winner['prize_level'] as int;
+                    String ordinal(int n) {
+                      if (n >= 11 && n <= 13) return '${n}th';
+                      switch (n % 10) {
+                        case 1: return '${n}st';
+                        case 2: return '${n}nd';
+                        case 3: return '${n}rd';
+                        default: return '${n}th';
+                      }
+                    }
+                    return '${ordinal(p)} Winner';
+                  })(),
                   style: const TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold),
                 ),
               ),

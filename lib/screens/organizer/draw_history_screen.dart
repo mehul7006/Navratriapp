@@ -204,21 +204,23 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
     Color prizeColor;
     IconData prizeIcon;
 
+    String ordinal(int n) {
+      if (n >= 11 && n <= 13) return '${n}th';
+      switch (n % 10) {
+        case 1: return '${n}st';
+        case 2: return '${n}nd';
+        case 3: return '${n}rd';
+        default: return '${n}th';
+      }
+    }
+
     if (isCancelled) {
       prizeLabel = 'CANCELLED';
       prizeColor = Colors.red;
       prizeIcon = Icons.cancel;
-    } else if (prizeLevel == 1) {
-      prizeLabel = '1st Prize';
+    } else if (prizeLevel != null) {
+      prizeLabel = '${ordinal(prizeLevel as int)} Winner';
       prizeColor = Colors.amber;
-      prizeIcon = Icons.emoji_events;
-    } else if (prizeLevel == 2) {
-      prizeLabel = '2nd Prize';
-      prizeColor = Colors.grey;
-      prizeIcon = Icons.emoji_events;
-    } else if (prizeLevel == 3) {
-      prizeLabel = '3rd Prize';
-      prizeColor = const Color(0xFFCD7F32);
       prizeIcon = Icons.emoji_events;
     } else {
       prizeLabel = 'Winner';
