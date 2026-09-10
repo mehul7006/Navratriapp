@@ -12,11 +12,10 @@ class AartiManagementScreen extends StatefulWidget {
 }
 
 class _AartiManagementScreenState extends State<AartiManagementScreen> {
-  List<Map<String, dynamic>> _slots = [];
   List<Map<String, dynamic>> _bookings = [];
   bool _isLoading = true;
   int _selectedDay = 1;
-  bool _showBookings = false;
+  int _selectedTab = 0; // 0=Book, 1=Pending, 2=Confirmed
 
   @override
   void initState() {
@@ -26,10 +25,15 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    _slots = await DatabaseHelper.getAartiSlots(_selectedDay);
     _bookings = await DatabaseHelper.getAartiBookings(dayNumber: _selectedDay);
     if (mounted) setState(() => _isLoading = false);
   }
+
+  List<Map<String, dynamic>> get _pendingBookings =>
+      _bookings.where((b) => b['status'] == 'pending').toList();
+
+  List<Map<String, dynamic>> get _confirmedBookings =>
+      _bookings.where((b) => b['status'] == 'approved').toList();
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +47,11 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _showBookings ? _buildBookingsList() : _buildSlotsList(),
+                    : _selectedTab == 0
+                        ? _buildBookAartiTab()
+                        : _selectedTab == 1
+                            ? _buildPendingTab()
+                            : _buildConfirmedTab(),
               ),
             ],
           ),
@@ -94,107 +102,49 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _showBookings = false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: !_showBookings ? AppTheme.goldPrimary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
-                ),
-                child: Text('Slots (${_slots.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: !_showBookings ? AppTheme.purpleDark : AppTheme.textMuted)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _showBookings = true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _showBookings ? AppTheme.goldPrimary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
-                ),
-                child: Text('Bookings (${_bookings.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _showBookings ? AppTheme.purpleDark : AppTheme.textMuted)),
-              ),
-            ),
-          ),
+          _buildTab('Book Aarti', 0),
+          const SizedBox(width: 6),
+          _buildTab('Pending (${_pendingBookings.length})', 1),
+          const SizedBox(width: 6),
+          _buildTab('Confirmed (${_confirmedBookings.length})', 2),
         ],
       ),
     );
   }
 
-  Widget _buildSlotsList() {
-    if (_slots.isEmpty) return Center(child: Text(AppLocalizations.t('no_slots_day'), style: TextStyle(color: AppTheme.textMuted)));
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _slots.length,
-      itemBuilder: (context, index) => _buildSlotCard(_slots[index]),
-    );
-  }
-
-  Widget _buildSlotCard(Map<String, dynamic> slot) {
-    final maxP = slot['max_participants'] ?? 1;
-    final currentP = slot['current_participants'] ?? 0;
-    final isFull = currentP >= maxP;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: AppTheme.hubItemDecoration,
-      child: Row(
-        children: [
-          Container(
-            width: 55, height: 55,
-            decoration: BoxDecoration(
-              gradient: isFull ? null : AppTheme.goldGradient,
-              color: isFull ? AppTheme.textMuted.withOpacity(0.3) : null,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(slot['slot_time'] ?? '', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isFull ? AppTheme.textMuted : AppTheme.purpleDark)),
-                const SizedBox(height: 2),
-                Text('$currentP/$maxP', style: TextStyle(fontSize: 10, color: isFull ? AppTheme.textMuted : AppTheme.purpleDark)),
-              ],
-            ),
+  Widget _buildTab(String label, int index) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(slot['slot_label'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 4),
-                Text(isFull ? AppLocalizations.t('full') : '${maxP - currentP} spots left', style: TextStyle(fontSize: 12, color: isFull ? AppTheme.redAccent : AppTheme.cyanAccent)),
-              ],
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppTheme.goldPrimary),
-            color: AppTheme.purpleCard,
-            onSelected: (v) {
-              if (v == 'delete') {
-                DatabaseHelper.updateAartiSlot(slot['id'], isActive: false);
-                _loadData();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(value: 'delete', child: Text(AppLocalizations.t('remove'), style: TextStyle(color: AppTheme.redAccent))),
-            ],
-          ),
-        ],
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+        ),
       ),
     );
   }
 
-  Widget _buildBookingsList() {
-    if (_bookings.isEmpty) return Center(child: Text(AppLocalizations.t('no_bookings_day'), style: TextStyle(color: AppTheme.textMuted)));
+  Widget _buildBookAartiTab() {
+    if (_bookings.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.wb_sunny_outlined, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+            const SizedBox(height: 12),
+            Text('No bookings for Day $_selectedDay', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+            const SizedBox(height: 8),
+            Text('Tap + to book aarti', style: TextStyle(color: AppTheme.goldPrimary.withOpacity(0.5), fontSize: 12)),
+          ],
+        ),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: _bookings.length,
@@ -202,61 +152,131 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking) {
+  Widget _buildPendingTab() {
+    if (_pendingBookings.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.pending_actions, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+            const SizedBox(height: 12),
+            Text('No pending bookings', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemCount: _pendingBookings.length,
+      itemBuilder: (context, index) => _buildBookingCard(_pendingBookings[index], showActions: true),
+    );
+  }
+
+  Widget _buildConfirmedTab() {
+    if (_confirmedBookings.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle_outline, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+            const SizedBox(height: 12),
+            Text('No confirmed bookings', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemCount: _confirmedBookings.length,
+      itemBuilder: (context, index) => _buildBookingCard(_confirmedBookings[index]),
+    );
+  }
+
+  Widget _buildBookingCard(Map<String, dynamic> booking, {bool showActions = false}) {
     final status = booking['status'] ?? 'pending';
     final statusColor = status == 'approved' ? Colors.green : (status == 'rejected' ? Colors.red : Colors.orange);
+    final name = booking['user_name']?.toString() ?? '';
+    final house = booking['house_number']?.toString() ?? '';
+    final bookingId = booking['id']?.toString() ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: AppTheme.hubItemDecoration,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 50, height: 50,
-            decoration: const BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.all(Radius.circular(12))),
-            child: Center(
-              child: Text((booking['house_number'] ?? '').toString().substring(0, 3), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
-            ),
+          Row(
+            children: [
+              Container(
+                width: 50, height: 50,
+                decoration: const BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.all(Radius.circular(12))),
+                child: Center(
+                  child: Text(house.length >= 3 ? house.substring(0, 3) : house, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name.isNotEmpty ? name : house, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                    const SizedBox(height: 2),
+                    Text('House: $house', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    const SizedBox(height: 2),
+                    Text('Booking #$bookingId', style: TextStyle(fontSize: 11, color: AppTheme.goldPrimary.withOpacity(0.7))),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),
+                child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (showActions && status == 'pending') ...[
+            const SizedBox(height: 10),
+            Row(
               children: [
-                Text(booking['user_name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 2),
-                Text('Slot: ${booking['slot_time'] ?? ''} (${booking['slot_label'] ?? ''})', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await DatabaseHelper.updateBookingStatus(booking['id'], 'approved');
+                      _loadData();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Booking confirmed'), backgroundColor: Colors.green),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await DatabaseHelper.updateBookingStatus(booking['id'], 'rejected');
+                      _loadData();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Booking rejected'), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.redAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10)),
+                  ),
+                ),
               ],
-            ),
-          ),
-          if (status == 'pending') ...[
-            _buildActionBtn(Icons.check, Colors.green, () async {
-              await DatabaseHelper.updateBookingStatus(booking['id'], 'approved');
-              _loadData();
-            }),
-            const SizedBox(width: 4),
-            _buildActionBtn(Icons.close, AppTheme.redAccent, () async {
-              await DatabaseHelper.updateBookingStatus(booking['id'], 'rejected');
-              _loadData();
-            }),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),
-              child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
             ),
           ],
         ],
       ),
-    );
-  }
-
-  Widget _buildActionBtn(IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: color)),
-        child: Icon(icon, color: color, size: 18)),
     );
   }
 
@@ -283,7 +303,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Book Aarti Slot', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text('Day $_selectedDay', style: TextStyle(fontSize: 14, color: AppTheme.goldPrimary)),
                 const SizedBox(height: 16),
                 _buildField(controller: houseController, label: 'House Number (e.g. B437)', icon: Icons.home, textCapitalization: TextCapitalization.characters),

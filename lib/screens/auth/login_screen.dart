@@ -249,15 +249,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 _buildMarquee(),
                 const SizedBox(height: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _buildPrizeWinners()),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildLoginForm()),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildTodayBookings()),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 700) {
+                      // Mobile: stack vertically
+                      return Column(
+                        children: [
+                          _buildPrizeWinners(),
+                          const SizedBox(height: 12),
+                          _buildLoginForm(),
+                          const SizedBox(height: 12),
+                          _buildTodayBookings(),
+                        ],
+                      );
+                    } else {
+                      // Desktop: 3-column layout
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildPrizeWinners()),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildLoginForm()),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildTodayBookings()),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -399,13 +417,23 @@ class _LoginScreenState extends State<LoginScreen> {
               Text('Aarti:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
             ]),
             const SizedBox(height: 6),
-            ...aartiBookings.take(3).map((a) {
+            ...aartiBookings.take(5).map((a) {
               final name = a['name']?.toString() ?? '';
               final house = a['house_number']?.toString() ?? '';
-              final slot = a['slot_label']?.toString() ?? a['slot_time']?.toString() ?? '';
+              final status = a['status']?.toString() ?? '';
+              final bookingId = a['booking_id']?.toString() ?? '';
+              final statusIcon = status == 'approved' ? Icons.check_circle : Icons.pending;
+              final statusColor = status == 'approved' ? Colors.green : Colors.orange;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
-                child: Text('$name (H$house) - $slot', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                child: Row(
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text('$name (H$house)', style: const TextStyle(fontSize: 15, color: Colors.white70), overflow: TextOverflow.ellipsis)),
+                    Text('#$bookingId', style: TextStyle(fontSize: 12, color: AppTheme.goldPrimary.withOpacity(0.6))),
+                  ],
+                ),
               );
             }),
             const SizedBox(height: 10),

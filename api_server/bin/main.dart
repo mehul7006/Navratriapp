@@ -1009,10 +1009,9 @@ Future<Response> _getAartiBookings(Request request) async {
     final status = request.url.queryParameters['status'];
     final conn = await db;
     var sql = '''
-      SELECT ab.*, u.name as user_name, a.slot_time, a.slot_label
+      SELECT ab.*, u.name as user_name
       FROM aarti_bookings ab
-      JOIN users u ON ab.user_id = u.id
-      JOIN aarti_slots a ON ab.slot_id = a.id
+      LEFT JOIN users u ON ab.user_id = u.id
     ''';
     final conditions = <String>[];
     final params = <String, dynamic>{};
@@ -1038,11 +1037,10 @@ Future<Response> _getMyAartiBookings(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('''
-        SELECT ab.*, a.slot_time, a.slot_label
+        SELECT ab.*
         FROM aarti_bookings ab
-        JOIN aarti_slots a ON ab.slot_id = a.id
         WHERE ab.house_number = @house
-        ORDER BY ab.day_number, a.slot_time
+        ORDER BY ab.day_number, ab.created_at DESC
       '''),
       parameters: {'house': house},
     );
@@ -1062,14 +1060,14 @@ Future<Response> _bookAartiSlot(Request request) async {
     }
     final results = await conn.execute(
       Sql.named('''
-        INSERT INTO aarti_bookings (user_id, house_number, day_number, slot_id)
-        VALUES (@userId, @house, @day, @slot) RETURNING id
+        INSERT INTO aarti_bookings (user_id, house_number, day_number, slot_id, status, notes)
+        VALUES (@userId, @house, @day, NULL, 'pending', @notes) RETURNING id
       '''),
       parameters: {
         'userId': body['user_id'],
         'house': body['house_number'],
         'day': body['day_number'],
-        'slot': body['slot_id'] == 0 ? null : body['slot_id'],
+        'notes': '[${body['house_number']}] ${body['name'] ?? ''}|day:$dayNumber|booked_by:organizer',
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -2543,16 +2541,13 @@ Future<Response> _getDailyInfo(Request request) async {
     // Aarti bookings with user names (approved or pending)
     final aartiBookings = await conn.execute(
       Sql.named('''
-        SELECT ab.house_number, 
+        SELECT ab.id as booking_id, ab.house_number, 
                COALESCE(u.name, SPLIT_PART(SPLIT_PART(ab.notes, '|', 1), '] ', 2)) as name, 
-               COALESCE(a.slot_time, '') as slot_time, 
-               COALESCE(a.slot_label, '') as slot_label, 
-               ab.status
+               ab.status, ab.notes
         FROM aarti_bookings ab
         LEFT JOIN users u ON ab.user_id = u.id
-        LEFT JOIN aarti_slots a ON ab.slot_id = a.id
         WHERE ab.day_number = @day AND ab.status IN ('approved', 'pending')
-        ORDER BY a.slot_time
+        ORDER BY ab.created_at DESC
       '''),
       parameters: {'day': dayNumber},
     );
