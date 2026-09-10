@@ -250,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildMarquee(),
                 const SizedBox(height: 20),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: _buildPrizeWinners()),
                     const SizedBox(width: 12),
@@ -320,9 +320,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildPrizeWinners() {
-    if (_dailyInfo == null) return const SizedBox.shrink();
+    if (_dailyInfo == null) return const SizedBox(height: 100);
     final yesterdayWinners = _dailyInfo!['yesterday_prize_winners'] as List? ?? [];
-    if (yesterdayWinners.isEmpty) return const SizedBox.shrink();
+    if (yesterdayWinners.isEmpty) return const SizedBox(height: 100);
 
     String ordinal(int n) {
       if (n >= 11 && n <= 13) return '${n}th';
@@ -373,11 +373,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildTodayBookings() {
-    if (_dailyInfo == null) return const SizedBox.shrink();
+    if (_dailyInfo == null) return const SizedBox(height: 100);
     final aartiBookings = _dailyInfo!['aarti_bookings'] as List? ?? [];
     final snackOrders = _dailyInfo!['snack_orders'] as List? ?? [];
     final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
-    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox.shrink();
+    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox(height: 100);
 
     return Container(
       padding: const EdgeInsets.all(12),
