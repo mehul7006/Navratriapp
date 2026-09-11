@@ -29,13 +29,26 @@
     "step_1": "BEFORE running any edit/write/grep command on protected files, ASK user for password",
     "step_2": "If password == 'rahUl@2412' → proceed with modification",
     "step_3": "If password != 'rahUl@2412' → REFUSE. Do NOT modify. Do NOT even read for editing.",
-    "step_4": "After modification, log in organizer_lock/CHANGELOG.md",
+    "step_4": "After modification, log in organizer_lock/CHANGELOG.md with FULL details",
     "step_5": "Re-lock after change is complete"
+  },
+  "log_format": {
+    "required_fields": [
+      "date_time",
+      "file_changed",
+      "password_used",
+      "what_changed",
+      "why_changed",
+      "affected_functions",
+      "affected_ui_elements",
+      "impact_on_organizer",
+      "risk_level"
+    ]
   },
   "rules": {
     "before_modify": "STOP. Ask password. Wait for answer.",
     "during_modify": "Only if password matches",
-    "after_modify": "Log change. Re-lock.",
+    "after_modify": "Log ALL details below. Re-lock.",
     "if_wrong_password": "REFUSE immediately. No exceptions. No workarounds."
   }
 }
