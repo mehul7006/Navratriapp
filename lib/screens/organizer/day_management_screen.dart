@@ -175,7 +175,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            backgroundColor: AppTheme.cardBg,
+                            backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
                             title: Text('Start Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
                             content: Text('This will activate Day $_selectedDay and deactivate all other days.',
                             style: const TextStyle(color: Colors.white70)),
@@ -203,7 +203,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            backgroundColor: AppTheme.cardBg,
+                            backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
                             title: Text('End Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
                             content: Text('This will complete Day $_selectedDay and auto-start the next day.',
                             style: const TextStyle(color: Colors.white70)),
@@ -238,7 +238,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            backgroundColor: AppTheme.cardBg,
+                            backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
                             title: Text('Reopen Day $_selectedDay?', style: const TextStyle(color: Colors.white)),
                             content: Text('This will reopen Day $_selectedDay and mark it as active again.',
                             style: const TextStyle(color: Colors.white70)),
@@ -273,7 +273,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        backgroundColor: AppTheme.cardBg,
+                        backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
                         title: Text('Go Back to Day $prevDay?', style: const TextStyle(color: Colors.white)),
                         content: Text('This will end Day $_selectedDay and reactivate Day $prevDay.',
                         style: const TextStyle(color: Colors.white70)),
@@ -416,7 +416,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
+        backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
         title: Text('Edit Day $_selectedDay', style: const TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -451,7 +451,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
+        backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
         title: Text(AppLocalizations.t('add_event'), style: const TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
