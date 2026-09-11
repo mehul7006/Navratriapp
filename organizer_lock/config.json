@@ -1,5 +1,5 @@
 {
-  "password": "NISHIT@2026",
+  "password": "rahUl@2412",
   "description": "Developer lock for organizer code files. Password required before modifying any organizer file.",
   "protected_files": [
     "lib/screens/organizer/dashboard_screen.dart",
