@@ -13,6 +13,7 @@ class AartiManagementScreen extends StatefulWidget {
 
 class _AartiManagementScreenState extends State<AartiManagementScreen> {
   List<Map<String, dynamic>> _bookings = [];
+  List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
   int _selectedDay = 1;
   int _selectedTab = 0; // 0=Book, 1=Pending, 2=Confirmed
@@ -20,7 +21,31 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    _days = await DatabaseHelper.getNavratriDays();
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
+    await _loadData();
+  }
+
+  bool _isDayCompleted(int day) {
+    final d = _days.firstWhere((d) => d['day_number'] == day, orElse: () => {});
+    return d['is_completed'] == true;
+  }
+
+  bool _isDayActive(int day) {
+    final d = _days.firstWhere((d) => d['day_number'] == day, orElse: () => {});
+    return d['is_active'] == true;
+  }
+
+  int get _runningDay {
+    for (final d in _days) {
+      if (d['is_active'] == true) return d['day_number'] as int;
+    }
+    return 1;
   }
 
   Future<void> _loadData() async {
@@ -76,18 +101,38 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
         children: List.generate(10, (index) {
           final day = index + 1;
           final isSelected = _selectedDay == day;
+          final isCompleted = _isDayCompleted(day);
+          final isActive = _isDayActive(day);
           return Expanded(
             child: GestureDetector(
-              onTap: () { setState(() => _selectedDay = day); _loadData(); },
+              onTap: isCompleted ? null : () { setState(() => _selectedDay = day); _loadData(); },
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+                  color: isCompleted
+                      ? Colors.grey.withOpacity(0.3)
+                      : isSelected
+                          ? AppTheme.goldPrimary
+                          : isActive
+                              ? AppTheme.goldPrimary.withOpacity(0.15)
+                              : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                  border: Border.all(
+                    color: isCompleted
+                        ? Colors.grey.withOpacity(0.5)
+                        : AppTheme.goldPrimary.withOpacity(0.5),
+                  ),
                 ),
-                child: Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isCompleted)
+                      Icon(Icons.lock, size: 10, color: Colors.grey)
+                    else
+                      Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+                  ],
+                ),
               ),
             ),
           );
@@ -301,7 +346,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   void _showAddBookingDialog() {
     final houseController = TextEditingController();
     final nameController = TextEditingController();
-    int formDay = _selectedDay;
+    int formDay = _runningDay;
     List<Map<String, dynamic>> members = [];
     bool isSearching = false;
     void Function(VoidCallback)? sheetSetState;
@@ -329,18 +374,29 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                   children: List.generate(10, (index) {
                     final day = index + 1;
                     final isFormSelected = formDay == day;
+                    final isCompleted = _isDayCompleted(day);
                     return Expanded(
                       child: GestureDetector(
-                        onTap: () => setSheetState(() => formDay = day),
+                        onTap: isCompleted ? null : () => setSheetState(() => formDay = day),
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 2),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
+                            color: isCompleted
+                                ? Colors.grey.withOpacity(0.3)
+                                : isFormSelected
+                                    ? AppTheme.goldPrimary
+                                    : Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                            border: Border.all(
+                              color: isCompleted
+                                  ? Colors.grey.withOpacity(0.5)
+                                  : AppTheme.goldPrimary.withOpacity(0.5),
+                            ),
                           ),
-                          child: Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+                          child: isCompleted
+                              ? Icon(Icons.lock, size: 10, color: Colors.grey)
+                              : Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
                         ),
                       ),
                     );
@@ -389,7 +445,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 _buildField(controller: nameController, label: 'Name', icon: Icons.person),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: _isDayCompleted(formDay) ? null : () async {
                     if (houseController.text.isEmpty || nameController.text.isEmpty) return;
                     try {
                       final users = await DatabaseHelper.getMembersByHouse(houseController.text.trim().toUpperCase());
@@ -421,8 +477,14 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark, padding: const EdgeInsets.symmetric(vertical: 16)),
-                  child: const Text('BOOK SLOT', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isDayCompleted(formDay) ? Colors.grey : AppTheme.goldPrimary,
+                    foregroundColor: AppTheme.purpleDark,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isDayCompleted(formDay)
+                      ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.lock, size: 16), SizedBox(width: 6), Text('Day Ended', style: TextStyle(fontWeight: FontWeight.bold))])
+                      : const Text('BOOK SLOT', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 20),
               ],
