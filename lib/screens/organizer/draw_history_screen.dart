@@ -105,7 +105,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
               labelStyle: TextStyle(color: _selectedDay == 0 ? Colors.black : Colors.white, fontSize: 12),
             ),
           ),
-          ...List.generate(9, (i) {
+          ...List.generate(10, (i) {
             final dayNum = i + 1;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -231,7 +231,7 @@ class _DrawHistoryScreenState extends State<DrawHistoryScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isCancelled ? Colors.red.withOpacity(0.08) : prizeColor.withOpacity(0.08),
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: isCancelled ? Colors.red.withOpacity(0.3) : prizeColor.withOpacity(0.3)),
       ),
