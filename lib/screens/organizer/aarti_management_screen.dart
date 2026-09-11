@@ -354,7 +354,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.purpleCard,
+      backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
