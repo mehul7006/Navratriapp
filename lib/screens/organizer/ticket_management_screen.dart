@@ -640,7 +640,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
             children: [
               DropdownButtonFormField<int>(
                 value: selectedDay,
-                dropdownColor: AppTheme.purpleDeep,
+                dropdownColor: AppTheme.purpleCard.withOpacity(0.6),
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Day', labelStyle: TextStyle(color: Colors.white70)),
                 items: List.generate(10, (i) => DropdownMenuItem(value: i + 1, child: Text('Day ${i + 1}'))),
