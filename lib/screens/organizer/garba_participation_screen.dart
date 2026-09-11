@@ -445,7 +445,7 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
+        backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
         title: const Text('Add Member', style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
