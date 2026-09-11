@@ -217,7 +217,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
                           await DatabaseHelper.endDay(_selectedDay);
                           _loadData();
                           if (mounted) {
-                            final nextDay = (_selectedDay < 9) ? _selectedDay + 1 : null;
+                            final nextDay = (_selectedDay < 10) ? _selectedDay + 1 : null;
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                               content: Text(nextDay != null ? 'Day $_selectedDay ended! Day $nextDay auto-started.' : 'Day $_selectedDay ended! Festival complete.'),
                               backgroundColor: Colors.green,

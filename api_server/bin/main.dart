@@ -2440,18 +2440,18 @@ Future<Response> _disqualifyDraw(Request request) async {
         UPDATE daily_draws SET status = 'disqualified', is_available = FALSE, rescheduled_to_day = @nextDay, prize_level = NULL
         WHERE id = @id
       '''),
-      parameters: {'id': drawId, 'nextDay': nextDay <= 9 ? nextDay : null},
+      parameters: {'id': drawId, 'nextDay': nextDay <= 10 ? nextDay : null},
     );
 
     // Move the ticket to the next day if within 9 days
-    if (nextDay <= 9) {
+    if (nextDay <= 10) {
       await conn.execute(
         Sql.named('UPDATE draw_tickets SET day_number = @nextDay WHERE ticket_code = @code'),
         parameters: {'nextDay': nextDay, 'code': ticketCode},
       );
     }
 
-    return _jsonResponse({'ok': true, 'rescheduled_to_day': nextDay <= 9 ? nextDay : null});
+    return _jsonResponse({'ok': true, 'rescheduled_to_day': nextDay <= 10 ? nextDay : null});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -2652,7 +2652,7 @@ Future<Response> _endDay(Request request, String day) async {
       parameters: {'day': int.parse(day)},
     );
     final nextDay = int.parse(day) + 1;
-    if (nextDay <= 9) {
+    if (nextDay <= 10) {
       await conn.execute(
         Sql.named(
             "UPDATE navratri_days SET is_active = TRUE WHERE day_number = @day"),
@@ -2660,7 +2660,7 @@ Future<Response> _endDay(Request request, String day) async {
       );
     }
     return _jsonResponse(
-        {'ok': true, 'next_day': nextDay <= 9 ? nextDay : null});
+        {'ok': true, 'next_day': nextDay <= 10 ? nextDay : null});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

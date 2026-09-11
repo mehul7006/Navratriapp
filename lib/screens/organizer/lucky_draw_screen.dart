@@ -573,7 +573,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        itemCount: 9,
+        itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
           final completed = _isDayCompleted(day);
