@@ -20,7 +20,13 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    final activeDay = await DatabaseHelper.getCurrentActiveDay();
+    if (activeDay != null) _selectedDay = activeDay;
+    await _loadData();
   }
 
   bool _isDayCompleted(int dayNumber) {
