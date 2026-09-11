@@ -71,23 +71,24 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
 
   Widget _buildDaySelector() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(
         children: List.generate(10, (index) {
           final day = index + 1;
           final isSelected = _selectedDay == day;
-          return GestureDetector(
-            onTap: () { setState(() => _selectedDay = day); _loadData(); },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+          return Expanded(
+            child: GestureDetector(
+              onTap: () { setState(() => _selectedDay = day); _loadData(); },
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                ),
+                child: Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
               ),
-              child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
             ),
           );
         }),
@@ -324,22 +325,23 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 const SizedBox(height: 16),
                 Text('Select Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                Row(
                   children: List.generate(10, (index) {
                     final day = index + 1;
                     final isFormSelected = formDay == day;
-                    return GestureDetector(
-                      onTap: () => setSheetState(() => formDay = day),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setSheetState(() => formDay = day),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+                          ),
+                          child: Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
                         ),
-                        child: Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
                       ),
                     );
                   }),
