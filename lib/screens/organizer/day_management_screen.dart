@@ -96,7 +96,7 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        itemCount: 9,
+        itemCount: 10,
         itemBuilder: (context, index) {
           final dayNum = index + 1;
           final dayData = _getDayData(dayNum);
