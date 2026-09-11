@@ -184,7 +184,7 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
               margin: const EdgeInsets.only(right: 6),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.goldPrimary : AppTheme.purpleCard,
+                color: isSelected ? AppTheme.goldPrimary : AppTheme.purpleCard.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
@@ -203,7 +203,7 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
   Widget _buildTabBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(color: AppTheme.purpleCard, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: AppTheme.purpleCard.withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
       child: Row(
         children: [
           Expanded(child: _buildTab('queue', AppLocalizations.t('request_queue'))),
@@ -280,7 +280,7 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.purpleCard,
+        color: AppTheme.purpleCard.withOpacity(0.6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withOpacity(0.4), width: isPlaying ? 2 : 1),
       ),
@@ -352,7 +352,7 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppTheme.purpleCard,
+            color: AppTheme.purpleCard.withOpacity(0.6),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.purpleAccent.withOpacity(0.4)),
           ),
