@@ -103,7 +103,7 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     return Container(
       height: 50, padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ListView.builder(
-        scrollDirection: Axis.horizontal, itemCount: 9,
+        scrollDirection: Axis.horizontal, itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
           final isSelected = _selectedDay == day;

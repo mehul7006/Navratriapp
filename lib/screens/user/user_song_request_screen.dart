@@ -152,7 +152,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: 9,
+        itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
           final isSelected = day == _selectedDay;

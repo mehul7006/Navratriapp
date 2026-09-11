@@ -91,7 +91,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        itemCount: 9,
+        itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
           final bookable = _isDayBookable(day);

@@ -69,7 +69,7 @@ class _UserScheduleScreenState extends State<UserScheduleScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        itemCount: 9,
+        itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
           final dayData = _days.where((d) => d['day_number'] == day).toList();
