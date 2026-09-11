@@ -94,7 +94,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.cardBg,
+          backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
           title: Text('Delete ${_selectedTicketIds.length} Tickets', style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -262,7 +262,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
               labelStyle: TextStyle(color: _selectedDay == 0 ? Colors.black : Colors.white),
             ),
           ),
-          ...List.generate(9, (i) {
+          ...List.generate(10, (i) {
             final dayNum = i + 1;
             final dayData = _days.where((d) => d['day_number'] == dayNum).toList();
             final goddess = dayData.isNotEmpty ? dayData[0]['goddess_name'] ?? '' : '';
@@ -572,7 +572,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
           });
           
           return AlertDialog(
-            backgroundColor: AppTheme.cardBg,
+            backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
             title: const Text('Cancel Prize', style: TextStyle(color: Colors.white)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -633,7 +633,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.cardBg,
+          backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
           title: Text(AppLocalizations.t('generate_tickets'), style: const TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -643,7 +643,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                 dropdownColor: AppTheme.purpleDeep,
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(labelText: 'Day', labelStyle: TextStyle(color: Colors.white70)),
-                items: List.generate(9, (i) => DropdownMenuItem(value: i + 1, child: Text('Day ${i + 1}'))),
+                items: List.generate(10, (i) => DropdownMenuItem(value: i + 1, child: Text('Day ${i + 1}'))),
                 onChanged: (v) => setDialogState(() => selectedDay = v ?? 1),
               ),
               const SizedBox(height: 12),
@@ -693,7 +693,7 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
       barrierDismissible: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.cardBg,
+          backgroundColor: AppTheme.purpleCard.withOpacity(0.6),
           title: Text(AppLocalizations.t('assign_ticket_title'), style: const TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
