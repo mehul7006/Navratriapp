@@ -1186,7 +1186,8 @@ Future<Response> _getSnackOrders(Request request) async {
     final status = request.url.queryParameters['status'];
     final conn = await db;
     var sql = '''
-      SELECT so.*, u.name as user_name, s.name as snack_name
+      SELECT so.*, u.name as user_name,
+        COALESCE(NULLIF(so.snack_name, ''), s.name) as snack_name
       FROM snack_orders so
       LEFT JOIN users u ON so.user_id = u.id
       LEFT JOIN snacks s ON so.snack_id = s.id
@@ -1215,9 +1216,9 @@ Future<Response> _getMySnackOrders(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('''
-        SELECT so.*, s.name as snack_name
+        SELECT so.*, COALESCE(NULLIF(so.snack_name, ''), s.name) as snack_name
         FROM snack_orders so
-        JOIN snacks s ON so.snack_id = s.id
+        LEFT JOIN snacks s ON so.snack_id = s.id
         WHERE so.house_number = @house
         ORDER BY so.created_at DESC
       '''),
@@ -1239,16 +1240,17 @@ Future<Response> _orderSnack(Request request) async {
     }
     final results = await conn.execute(
       Sql.named('''
-        INSERT INTO snack_orders (user_id, house_number, snack_id, day_number, quantity, notes)
-        VALUES (@userId, @house, @snackId, @day, @qty, @notes) RETURNING id
+        INSERT INTO snack_orders (user_id, house_number, snack_id, day_number, quantity, notes, snack_name)
+        VALUES (@userId, @house, @snackId, @day, @qty, @notes, @snackName) RETURNING id
       '''),
       parameters: {
         'userId': body['user_id'],
         'house': body['house_number'],
-        'snackId': body['snack_id'],
+        'snackId': body['snack_id'] ?? 1,
         'day': body['day_number'],
-        'qty': body['quantity'],
-        'notes': body['notes'],
+        'qty': body['quantity'] ?? 1,
+        'notes': body['notes'] ?? '',
+        'snackName': body['snack_name'] ?? '',
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});

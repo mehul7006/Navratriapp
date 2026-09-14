@@ -45,6 +45,9 @@ class _UserScheduleScreenState extends State<UserScheduleScreen> {
         title: Text(AppLocalizations.t('festival_schedule'), style: const TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadData, constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36)),
+        ],
       ),
       child: Column(
         children: [

@@ -415,7 +415,7 @@ class DatabaseHelper {
     return _get('/api/snack-orders/my/$houseNumber');
   }
 
-  static Future<int> orderSnack({required int userId, required String houseNumber, int? snackId, required int dayNumber, required int quantity, String? notes}) async {
+  static Future<int> orderSnack({required int userId, required String houseNumber, int? snackId, required int dayNumber, required int quantity, String? notes, String? snackName}) async {
     final result = await _post('/api/snack-orders', {
       'user_id': userId,
       'house_number': houseNumber,
@@ -423,6 +423,7 @@ class DatabaseHelper {
       'day_number': dayNumber,
       'quantity': quantity,
       'notes': notes,
+      'snack_name': snackName ?? '',
     });
     return result?['id'] ?? 0;
   }

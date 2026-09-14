@@ -73,6 +73,9 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadData, constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36)),
+        ],
       ),
       floatingActionButton: _isDayBookable(_selectedDay)
           ? FloatingActionButton(

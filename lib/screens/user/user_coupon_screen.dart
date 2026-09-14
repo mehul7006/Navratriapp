@@ -79,6 +79,9 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadData, constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36)),
+        ],
       ),
       child: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -51,10 +51,15 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     final houseNumber = authProvider.houseNumber ?? '';
     
     final announcements = await DatabaseHelper.getAnnouncements();
-    final bookings = await DatabaseHelper.getMyAartiBookings(houseNumber);
-    final orders = await DatabaseHelper.getMySnackOrders(houseNumber);
-    final gifts = await DatabaseHelper.getMyGifts(houseNumber);
     final days = await DatabaseHelper.getNavratriDays();
+    List<Map<String, dynamic>> bookings = [];
+    List<Map<String, dynamic>> orders = [];
+    List<Map<String, dynamic>> gifts = [];
+    if (houseNumber.isNotEmpty) {
+      bookings = await DatabaseHelper.getMyAartiBookings(houseNumber);
+      orders = await DatabaseHelper.getMySnackOrders(houseNumber);
+      gifts = await DatabaseHelper.getMyGifts(houseNumber);
+    }
     
     if (mounted) {
       setState(() {

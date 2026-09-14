@@ -61,7 +61,10 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
   Future<void> _loadGifts() async {
     setState(() => _isLoading = true);
     final authProvider = context.read<AuthProvider>();
-    _myGifts = await DatabaseHelper.getMyGifts(authProvider.houseNumber ?? '');
+    final houseNumber = authProvider.houseNumber ?? '';
+    if (houseNumber.isNotEmpty) {
+      _myGifts = await DatabaseHelper.getMyGifts(houseNumber);
+    }
     _availableGifts = await DatabaseHelper.getGifts(dayNumber: _selectedDay);
     if (mounted) setState(() => _isLoading = false);
   }
