@@ -180,23 +180,23 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     switch (status) {
       case 'approved':
         statusColor = Colors.green;
-        statusText = 'APPROVED';
+        statusText = 'Approved';
         statusIcon = Icons.check_circle;
         break;
       case 'rejected':
         statusColor = Colors.red;
-        statusText = 'REJECTED';
+        statusText = 'Rejected';
         statusIcon = Icons.cancel;
         break;
       case 'cancelled':
-        statusColor = Colors.grey;
-        statusText = 'CANCELLED';
+        statusColor = Colors.red;
+        statusText = 'Cancelled';
         statusIcon = Icons.cancel;
         break;
       default:
         statusColor = Colors.orange;
-        statusText = 'PENDING';
-        statusIcon = Icons.hourglass_empty;
+        statusText = 'Awaiting Approval';
+        statusIcon = Icons.access_time;
     }
 
     final houseNumber = booking['house_number']?.toString() ?? '';
@@ -248,7 +248,25 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
               ],
             ),
           ),
-          Icon(statusIcon, size: 18, color: statusColor),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(statusIcon, size: 14, color: statusColor),
+                const SizedBox(width: 4),
+                Text(
+                  statusText,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor),
+                ),
+              ],
+            ),
+          ),
           if (isMyBooking && (status == 'pending' || status == 'approved')) ...[
             const SizedBox(width: 8),
             GestureDetector(

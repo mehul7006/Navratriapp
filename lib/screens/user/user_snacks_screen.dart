@@ -172,28 +172,34 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
     final status = order['status'] ?? 'pending';
     final Color statusColor;
     final IconData statusIcon;
+    final String statusLabel;
 
     switch (status) {
       case 'approved':
       case 'delivered':
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
+        statusLabel = 'Approved';
         break;
       case 'preparing':
         statusColor = Colors.blue;
         statusIcon = Icons.hourglass_top;
+        statusLabel = 'Preparing';
         break;
       case 'rejected':
         statusColor = Colors.red;
         statusIcon = Icons.cancel;
+        statusLabel = 'Rejected';
         break;
       case 'cancelled':
-        statusColor = Colors.grey;
+        statusColor = Colors.red;
         statusIcon = Icons.cancel;
+        statusLabel = 'Cancelled';
         break;
       default:
         statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
+        statusIcon = Icons.access_time;
+        statusLabel = 'Awaiting Approval';
     }
 
     final houseNumber = order['house_number']?.toString() ?? '';
@@ -253,7 +259,25 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
               ],
             ),
           ),
-          Icon(statusIcon, size: 18, color: statusColor),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(statusIcon, size: 14, color: statusColor),
+                const SizedBox(width: 4),
+                Text(
+                  statusLabel,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor),
+                ),
+              ],
+            ),
+          ),
           if (isMyOrder && status != 'cancelled') ...[
             const SizedBox(width: 8),
             GestureDetector(
