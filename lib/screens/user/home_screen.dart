@@ -296,9 +296,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       crossAxisCount: 5,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 0.85,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
+      childAspectRatio: 2.8,
       children: [
         _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
@@ -336,9 +336,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 34, color: AppTheme.goldPrimary),
-                  const SizedBox(height: 6),
-                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
+                  Icon(icon, size: 22, color: AppTheme.goldPrimary),
+                  const SizedBox(height: 2),
+                  Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -367,7 +367,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         children: [
           ..._announcements.take(3).map((a) => Container(
             margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(color: AppTheme.purpleDark.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
