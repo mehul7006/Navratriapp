@@ -151,7 +151,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
                 ),
-                child: Text('My Gifts (${_myGifts.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _showAssigned ? AppTheme.purpleDark : AppTheme.textMuted)),
+                child: Text('Gift Distribution (${_myGifts.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _showAssigned ? AppTheme.purpleDark : AppTheme.textMuted)),
               ),
             ),
           ),

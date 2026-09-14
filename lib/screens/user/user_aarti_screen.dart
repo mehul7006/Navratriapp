@@ -299,6 +299,194 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     }
   }
 
+  void _showDayOverviewPopup({
+    required int selectedDay,
+    required int userId,
+    required String houseNumber,
+    required String personName,
+  }) async {
+    final allApproved = await DatabaseHelper.getAartiBookings(status: 'approved');
+
+    final Map<int, List<Map<String, dynamic>>> dayBookings = {};
+    for (final b in allApproved) {
+      final day = b['day_number'] as int;
+      dayBookings.putIfAbsent(day, () => []).add(b);
+    }
+
+    if (!mounted) return;
+
+    int chosenDay = selectedDay;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF16042A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppTheme.goldPrimary.withValues(alpha: 0.6), width: 1.5),
+          ),
+          title: Column(
+            children: [
+              Text(
+                'Day $selectedDay already has a booking',
+                style: TextStyle(color: AppTheme.goldPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Do you want to change any vacant day?',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 340,
+            child: Opacity(
+              opacity: 0.6,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 400;
+                  final crossAxisCount = isMobile ? 2 : 3;
+                  final fontSize = isMobile ? 14.0 : 16.0;
+                  final subFontSize = isMobile ? 10.0 : 12.0;
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 1.8,
+                    ),
+                    itemCount: 10,
+                    itemBuilder: (context, index) {
+                      final day = index + 1;
+                      final completed = _isDayCompleted(day);
+                      final bookings = dayBookings[day] ?? [];
+                      final hasBooking = bookings.isNotEmpty;
+                      final isChosen = chosenDay == day;
+
+                      return GestureDetector(
+                        onTap: completed || hasBooking
+                            ? null
+                            : () => setDialogState(() => chosenDay = day),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isChosen
+                                ? AppTheme.goldPrimary.withValues(alpha: 0.2)
+                                : hasBooking
+                                    ? Colors.green.withValues(alpha: 0.1)
+                                    : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isChosen
+                                  ? AppTheme.goldPrimary
+                                  : hasBooking
+                                      ? Colors.green.withValues(alpha: 0.5)
+                                      : Colors.grey.withValues(alpha: 0.3),
+                              width: isChosen ? 2.0 : 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Day $day',
+                                style: TextStyle(
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: completed
+                                      ? Colors.grey
+                                      : isChosen
+                                          ? AppTheme.goldPrimary
+                                          : Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              if (completed)
+                                Icon(Icons.lock, size: 14, color: Colors.grey)
+                              else if (hasBooking)
+                                Column(
+                                  children: [
+                                    Text(
+                                      bookings.first['name']?.toString() ?? bookings.first['user_name']?.toString() ?? '',
+                                      style: TextStyle(fontSize: subFontSize, color: Colors.green, fontWeight: FontWeight.w600),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      '(${bookings.first['house_number'] ?? ''})',
+                                      style: TextStyle(fontSize: subFontSize - 1, color: Colors.green.withValues(alpha: 0.7)),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                )
+                              else
+                                Text(
+                                  isChosen ? 'Selected' : 'Vacant',
+                                  style: TextStyle(
+                                    fontSize: subFontSize,
+                                    color: isChosen ? AppTheme.goldPrimary : Colors.white70,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await DatabaseHelper.bookAartiSlot(
+                    userId: userId,
+                    houseNumber: houseNumber,
+                    dayNumber: chosenDay,
+                    slotId: 0,
+                    name: personName,
+                  );
+                  _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Booking request sent for Day $chosenDay - awaiting organizer approval'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.goldPrimary,
+                foregroundColor: AppTheme.purpleDark,
+              ),
+              child: const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAddBookingSheet() {
     final houseController = TextEditingController();
     final nameController = TextEditingController();
@@ -501,35 +689,49 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                             final personName = nameController.text.trim();
                             if (personName.isEmpty) return;
 
+                            int userId = 0;
                             try {
-                              int userId = 0;
-                              try {
-                                final users = await DatabaseHelper.getMembersByHouse(houseNum);
-                                for (final u in users) {
-                                  if ((u['name'] ?? '').toString().toLowerCase() == personName.toLowerCase()) {
-                                    userId = u['id'] as int;
-                                    break;
-                                  }
+                              final users = await DatabaseHelper.getMembersByHouse(houseNum);
+                              for (final u in users) {
+                                if ((u['name'] ?? '').toString().toLowerCase() == personName.toLowerCase()) {
+                                  userId = u['id'] as int;
+                                  break;
                                 }
-                              } catch (_) {}
+                              }
+                            } catch (_) {}
 
-                              await DatabaseHelper.bookAartiSlot(
-                                userId: userId,
-                                houseNumber: houseNum,
+                            try {
+                              final existingBookings = await DatabaseHelper.getAartiBookings(
                                 dayNumber: formDay,
-                                slotId: 0,
-                                name: personName,
+                                status: 'approved',
                               );
 
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              _loadData();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Booking request sent for Day $formDay - awaiting organizer approval'),
-                                    backgroundColor: Colors.green,
-                                  ),
+                              if (existingBookings.isNotEmpty && ctx.mounted) {
+                                Navigator.pop(ctx);
+                                _showDayOverviewPopup(
+                                  selectedDay: formDay,
+                                  userId: userId,
+                                  houseNumber: houseNum,
+                                  personName: personName,
                                 );
+                              } else {
+                                await DatabaseHelper.bookAartiSlot(
+                                  userId: userId,
+                                  houseNumber: houseNum,
+                                  dayNumber: formDay,
+                                  slotId: 0,
+                                  name: personName,
+                                );
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                _loadData();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Booking request sent for Day $formDay - awaiting organizer approval'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
                               }
                             } catch (e) {
                               if (mounted) {

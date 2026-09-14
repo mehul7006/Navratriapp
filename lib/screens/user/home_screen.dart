@@ -85,9 +85,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadData, constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36)),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, size: 20),
+            constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36),
             onPressed: () {
               showDialog(
                 context: context,
