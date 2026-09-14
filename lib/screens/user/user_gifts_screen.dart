@@ -230,9 +230,14 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (name.isNotEmpty)
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
                 Text(
-                  name.isNotEmpty ? '$name ($houseNumber)' : houseNumber,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  houseNumber,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.goldPrimary),
                 ),
                 if (giftName.isNotEmpty)
                   Text(

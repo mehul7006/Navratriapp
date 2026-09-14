@@ -233,13 +233,19 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              name.isNotEmpty ? '$name ($houseNumber)' : houseNumber,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (name.isNotEmpty)
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                Text(
+                  houseNumber,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.goldPrimary),
+                ),
+              ],
             ),
           ),
           Icon(statusIcon, size: 18, color: statusColor),
