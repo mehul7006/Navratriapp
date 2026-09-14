@@ -473,7 +473,7 @@ class DatabaseHelper {
     return _get('/api/gift-assignments', queryParams: params.isNotEmpty ? params : null);
   }
 
-  static Future<int> assignGift({required int? giftId, required int userId, required String houseNumber, int? dayNumber, int? assignedBy, String? notes, String? status}) async {
+  static Future<int> assignGift({required int? giftId, required int userId, required String houseNumber, int? dayNumber, int? assignedBy, String? notes, String? status, String? giftName}) async {
     final result = await _post('/api/gift-assignments', {
       'gift_id': giftId,
       'user_id': userId,
@@ -482,6 +482,7 @@ class DatabaseHelper {
       'assigned_by': assignedBy,
       'notes': notes,
       'status': status,
+      'gift_name': giftName ?? '',
     });
     return result?['id'] ?? 0;
   }

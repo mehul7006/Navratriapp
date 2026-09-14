@@ -14,11 +14,9 @@ class UserGiftsScreen extends StatefulWidget {
 }
 
 class _UserGiftsScreenState extends State<UserGiftsScreen> {
-  List<Map<String, dynamic>> _myGifts = [];
-  List<Map<String, dynamic>> _availableGifts = [];
+  List<Map<String, dynamic>> _allAssignments = [];
   List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
-  bool _showAssigned = true;
   int _selectedDay = 1;
 
   @override
@@ -31,7 +29,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
     _days = await DatabaseHelper.getNavratriDays();
     final activeDay = await DatabaseHelper.getCurrentActiveDay();
     if (activeDay != null) _selectedDay = activeDay;
-    _loadGifts();
+    _loadData();
   }
 
   bool _isDayBookable(int dayNumber) {
@@ -58,14 +56,10 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
     return day.isNotEmpty && day['is_completed'] == true;
   }
 
-  Future<void> _loadGifts() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final authProvider = context.read<AuthProvider>();
-    final houseNumber = authProvider.houseNumber ?? '';
-    if (houseNumber.isNotEmpty) {
-      _myGifts = await DatabaseHelper.getMyGifts(houseNumber);
-    }
-    _availableGifts = await DatabaseHelper.getGifts(dayNumber: _selectedDay);
+    final all = await DatabaseHelper.getGiftAssignments();
+    _allAssignments = all.where((a) => a['day_number'] == _selectedDay).toList();
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -78,17 +72,40 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadGifts),
+          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadData, constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36)),
         ],
       ),
+      floatingActionButton: _isDayBookable(_selectedDay)
+          ? FloatingActionButton(
+              backgroundColor: AppTheme.goldPrimary,
+              onPressed: () => _showAddAssignmentSheet(),
+              child: const Icon(Icons.add, color: AppTheme.purpleDark, size: 28),
+            )
+          : null,
       child: Column(
         children: [
           _buildDaySelector(),
-          _buildTabBar(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _showAssigned ? _buildMyGifts() : _buildAvailableGifts(),
+                : _allAssignments.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.card_giftcard_outlined, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+                            const SizedBox(height: 12),
+                            Text('No gift assignments for Day $_selectedDay', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+                            const SizedBox(height: 8),
+                            Text('Tap + to add a gift assignment', style: TextStyle(color: AppTheme.goldPrimary.withOpacity(0.5), fontSize: 12)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _allAssignments.length,
+                        itemBuilder: (context, index) => _buildAssignmentCard(_allAssignments[index]),
+                      ),
           ),
         ],
       ),
@@ -98,39 +115,51 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
   Widget _buildDaySelector() {
     return Container(
       height: 50,
-      color: AppTheme.purpleDeep.withValues(alpha: 0.3),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
-          final bookable = _isDayBookable(day);
-          final completed = _isDayCompleted(day);
           final isSelected = _selectedDay == day;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(
-              onTap: bookable ? () { setState(() => _selectedDay = day); _loadGifts(); } : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.goldPrimary : (completed ? Colors.red.withOpacity(0.15) : AppTheme.purpleCard),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: completed ? Colors.red.withOpacity(0.6) : (isSelected ? AppTheme.goldPrimary : Colors.transparent),
+          final completed = _isDayCompleted(day);
+          return GestureDetector(
+            onTap: () {
+              setState(() => _selectedDay = day);
+              _loadData();
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppTheme.goldPrimary
+                    : (completed ? Colors.red.withOpacity(0.15) : Colors.transparent),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: completed
+                      ? Colors.red.withOpacity(0.6)
+                      : (isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.5)),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Day $day',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: completed
+                          ? Colors.red.withOpacity(0.7)
+                          : (isSelected ? AppTheme.purpleDark : AppTheme.textMuted),
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Day $day', style: TextStyle(color: completed ? Colors.red.withOpacity(0.7) : (isSelected ? AppTheme.purpleDark : Colors.white), fontWeight: FontWeight.bold, fontSize: 12)),
-                    if (completed) ...[
-                      const SizedBox(width: 4),
-                      Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
-                    ],
+                  if (completed) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
                   ],
-                ),
+                ],
               ),
             ),
           );
@@ -139,235 +168,624 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildAssignmentCard(Map<String, dynamic> assignment) {
+    final status = assignment['status'] ?? 'assigned';
+    final Color statusColor;
+    final IconData statusIcon;
+
+    switch (status) {
+      case 'assigned':
+      case 'delivered':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case 'pending':
+        statusColor = Colors.orange;
+        statusIcon = Icons.hourglass_empty;
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusIcon = Icons.cancel;
+        break;
+      default:
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+    }
+
+    final houseNumber = assignment['house_number']?.toString() ?? '';
+    final name = assignment['user_name']?.toString() ?? '';
+    final giftName = assignment['gift_name']?.toString() ?? '';
+    final authProvider = context.read<AuthProvider>();
+    final myHouse = authProvider.houseNumber ?? '';
+    final isMyAssignment = houseNumber.toUpperCase() == myHouse.toUpperCase();
+
     return Container(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: AppTheme.hubItemDecoration,
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _showAssigned = true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _showAssigned ? AppTheme.goldPrimary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+          Container(
+            width: 48,
+            height: 42,
+            decoration: BoxDecoration(
+              gradient: AppTheme.goldGradient,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    houseNumber,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
+                  ),
                 ),
-                child: Text('Gift Distribution (${_myGifts.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _showAssigned ? AppTheme.purpleDark : AppTheme.textMuted)),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _showAssigned = false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: !_showAssigned ? AppTheme.goldPrimary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isNotEmpty ? '$name ($houseNumber)' : houseNumber,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
-                child: Text('Available (${_availableGifts.length})', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: !_showAssigned ? AppTheme.purpleDark : AppTheme.textMuted)),
-              ),
+                if (giftName.isNotEmpty)
+                  Text(
+                    giftName,
+                    style: TextStyle(fontSize: 11, color: AppTheme.goldPrimary.withValues(alpha: 0.8)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
             ),
           ),
+          Icon(statusIcon, size: 18, color: statusColor),
+          if (isMyAssignment && status != 'cancelled') ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _cancelAssignment(assignment),
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 14),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildMyGifts() {
-    if (_myGifts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.card_giftcard_outlined, size: 80, color: AppTheme.textMuted.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            Text(AppLocalizations.t('no_gifts_received'), style: const TextStyle(fontSize: 18, color: AppTheme.textMuted)),
-            const SizedBox(height: 8),
-            Text(AppLocalizations.t('gifts_will_appear'), style: const TextStyle(fontSize: 13, color: AppTheme.textMuted), textAlign: TextAlign.center),
-          ],
-        ),
-      );
-    }
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [AppTheme.goldPrimary.withOpacity(0.2), AppTheme.purpleCard]),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.card_giftcard, color: AppTheme.goldPrimary, size: 28),
-              const SizedBox(width: 12),
-              Text('${_myGifts.length} Gift${_myGifts.length != 1 ? 's' : ''} Received', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: _myGifts.length,
-            itemBuilder: (context, index) => _buildGiftCard(_myGifts[index]),
-          ),
-        ),
-      ],
+  Future<void> _cancelAssignment(Map<String, dynamic> assignment) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Cancel Assignment', style: TextStyle(color: Colors.white)),
+        content: const Text('Are you sure you want to cancel this gift assignment?', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+        ],
+      ),
     );
-  }
-
-  Widget _buildAvailableGifts() {
-    if (_availableGifts.isEmpty) return Center(child: Text(AppLocalizations.t('no_gifts_available_day'), style: const TextStyle(color: AppTheme.textMuted)));
-    final dayBookable = _isDayBookable(_selectedDay);
-    final completed = _isDayCompleted(_selectedDay);
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _availableGifts.length,
-      itemBuilder: (context, index) {
-        final gift = _availableGifts[index];
-        final isAssigned = _myGifts.any((g) => g['gift_id'] == gift['id'] && g['day_number'] == _selectedDay);
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: AppTheme.hubItemDecoration,
-          child: Row(
-            children: [
-              Container(
-                width: 50, height: 50,
-                decoration: const BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.all(Radius.circular(12))),
-                child: const Center(child: Icon(Icons.card_giftcard, color: AppTheme.purpleDark, size: 24)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(gift['name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                    const SizedBox(height: 2),
-                    if (completed)
-                      Text('Day completed - bookings closed', style: TextStyle(fontSize: 12, color: Colors.red.withOpacity(0.7)))
-                    else
-                      Text('Day ${gift['day_number']} • ${gift['sponsor_name'] ?? 'Community'}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                  ],
-                ),
-              ),
-              if (!dayBookable)
-                Icon(Icons.lock, color: Colors.red.withOpacity(0.6), size: 24)
-              else if (isAssigned)
-                const Icon(Icons.check_circle, color: Colors.green, size: 28)
-              else
-                GestureDetector(
-                  onTap: () async {
-                    final auth = context.read<AuthProvider>();
-                    try {
-                      await DatabaseHelper.assignGift(
-                        giftId: gift['id'],
-                        userId: auth.currentUser?['id'] ?? 0,
-                        houseNumber: auth.houseNumber ?? '',
-                        dayNumber: _selectedDay,
-                      );
-                      _loadGifts();
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('gift_booked')), backgroundColor: Colors.green));
-                    } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
-                    child: Text(AppLocalizations.t('book'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
-                  ),
-                ),
-            ],
-          ),
+    if (confirm == true) {
+      await DatabaseHelper.cancelGiftAssignment(assignment['id']);
+      _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Assignment cancelled'), backgroundColor: Colors.orange),
         );
-      },
-    );
+      }
+    }
   }
 
-  Widget _buildGiftCard(Map<String, dynamic> gift) {
-    final type = gift['gift_type'] ?? 'daily';
-    final typeColor = type == 'sponsor' ? Colors.orange : Colors.purple;
-    final status = gift['status'] ?? 'assigned';
+  void _showDayOverviewPopup({
+    required int selectedDay,
+    required int userId,
+    required String houseNumber,
+    required String personName,
+    required String giftName,
+  }) async {
+    final allAssignments = await DatabaseHelper.getGiftAssignments();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: AppTheme.hubItemDecoration,
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [typeColor.withOpacity(0.3), AppTheme.purpleCard]),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.card_giftcard, color: typeColor, size: 18),
-                const SizedBox(width: 8),
-                Text(type == 'sponsor' ? AppLocalizations.t('sponsor_gift') : AppLocalizations.t('daily_gift'), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: typeColor)),
-                const Spacer(),
-                Text('Day ${gift['day_number'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-              ],
-            ),
+    final Map<int, List<Map<String, dynamic>>> dayAssignments = {};
+    for (final a in allAssignments) {
+      final s = a['status'] ?? '';
+      if (s == 'cancelled') continue;
+      final day = a['day_number'] as int;
+      dayAssignments.putIfAbsent(day, () => []).add(a);
+    }
+
+    if (!mounted) return;
+
+    int chosenDay = selectedDay;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF16042A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppTheme.goldPrimary.withValues(alpha: 0.6), width: 1.5),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 60, height: 60,
-                  decoration: const BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.all(Radius.circular(14))),
-                  child: const Center(child: Icon(Icons.card_giftcard, color: AppTheme.purpleDark, size: 30)),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(gift['gift_name'] ?? '', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Text('Assigned on ${gift['assigned_at'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                    ],
-                  ),
-                ),
-                if (status != 'cancelled')
-                  IconButton(
-                    icon: const Icon(Icons.cancel, color: Colors.red, size: 28),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          backgroundColor: AppTheme.cardBg,
-                          title: Text(AppLocalizations.t('cancel_gift_title'), style: const TextStyle(color: Colors.white)),
-                          content: Text(AppLocalizations.t('cancel_gift_content'), style: const TextStyle(color: Colors.white70)),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('no'), style: const TextStyle(color: AppTheme.goldPrimary))),
-                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('yes_cancel'), style: const TextStyle(color: Colors.red))),
-                          ],
+          title: Column(
+            children: [
+              Text(
+                'Day $selectedDay already has assignments',
+                style: TextStyle(color: AppTheme.goldPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Do you want to change any vacant day?',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 340,
+            child: Opacity(
+              opacity: 0.6,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 400;
+                  final crossAxisCount = isMobile ? 2 : 3;
+                  final fontSize = isMobile ? 14.0 : 16.0;
+                  final subFontSize = isMobile ? 10.0 : 12.0;
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 1.8,
+                    ),
+                    itemCount: 10,
+                    itemBuilder: (context, index) {
+                      final day = index + 1;
+                      final completed = _isDayCompleted(day);
+                      final assignments = dayAssignments[day] ?? [];
+                      final hasAssignments = assignments.isNotEmpty;
+                      final isChosen = chosenDay == day;
+
+                      return GestureDetector(
+                        onTap: completed || hasAssignments
+                            ? null
+                            : () => setDialogState(() => chosenDay = day),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isChosen
+                                ? AppTheme.goldPrimary.withValues(alpha: 0.2)
+                                : hasAssignments
+                                    ? Colors.green.withValues(alpha: 0.1)
+                                    : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isChosen
+                                  ? AppTheme.goldPrimary
+                                  : hasAssignments
+                                      ? Colors.green.withValues(alpha: 0.5)
+                                      : Colors.grey.withValues(alpha: 0.3),
+                              width: isChosen ? 2.0 : 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Day $day',
+                                style: TextStyle(
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: completed
+                                      ? Colors.grey
+                                      : isChosen
+                                          ? AppTheme.goldPrimary
+                                          : Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              if (completed)
+                                Icon(Icons.lock, size: 14, color: Colors.grey)
+                              else if (hasAssignments)
+                                Column(
+                                  children: [
+                                    Text(
+                                      assignments.first['user_name']?.toString() ?? '',
+                                      style: TextStyle(fontSize: subFontSize, color: Colors.green, fontWeight: FontWeight.w600),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      '(${assignments.first['house_number'] ?? ''})',
+                                      style: TextStyle(fontSize: subFontSize - 1, color: Colors.green.withValues(alpha: 0.7)),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                )
+                              else
+                                Text(
+                                  isChosen ? 'Selected' : 'Vacant',
+                                  style: TextStyle(
+                                    fontSize: subFontSize,
+                                    color: isChosen ? AppTheme.goldPrimary : Colors.white70,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       );
-                      if (confirm == true) {
-                        await DatabaseHelper.cancelGiftAssignment(gift['id']);
-                        _loadGifts();
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('gift_cancelled')), backgroundColor: Colors.orange));
-                      }
                     },
-                  )
-                else
-                  const Icon(Icons.cancel, color: Colors.grey, size: 28),
-              ],
+                  );
+                },
+              ),
             ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await DatabaseHelper.assignGift(
+                    giftId: null,
+                    userId: userId,
+                    houseNumber: houseNumber,
+                    dayNumber: chosenDay,
+                    giftName: giftName,
+                  );
+                  _loadData();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gift assignment sent for Day $chosenDay - awaiting approval'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.goldPrimary,
+                foregroundColor: AppTheme.purpleDark,
+              ),
+              child: const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddAssignmentSheet() {
+    final houseController = TextEditingController();
+    final nameController = TextEditingController();
+    final giftController = TextEditingController();
+    int formDay = _selectedDay;
+    List<Map<String, dynamic>> members = [];
+    bool isSearching = false;
+    bool showNameField = false;
+    void Function(VoidCallback)? sheetSetState;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.purpleCard.withOpacity(0.9),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          sheetSetState = setSheetState;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Gift Distribution',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text('Select Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 10,
+                      itemBuilder: (context, index) {
+                        final day = index + 1;
+                        final isFormSelected = formDay == day;
+                        final isCompleted = _isDayCompleted(day);
+                        return GestureDetector(
+                          onTap: isCompleted ? null : () => setSheetState(() => formDay = day),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isCompleted
+                                  ? Colors.grey.withOpacity(0.3)
+                                  : isFormSelected
+                                      ? AppTheme.goldPrimary
+                                      : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isCompleted
+                                    ? Colors.grey.withOpacity(0.5)
+                                    : AppTheme.goldPrimary.withOpacity(0.5),
+                              ),
+                            ),
+                            child: isCompleted
+                                ? Icon(Icons.lock, size: 10, color: Colors.grey)
+                                : Text(
+                                    'Day $day',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted,
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: houseController,
+                    textCapitalization: TextCapitalization.characters,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (v) {
+                      final upper = v.toUpperCase();
+                      if (v != upper) {
+                        houseController.value = houseController.value.copyWith(
+                          text: upper,
+                          selection: TextSelection.collapsed(offset: upper.length),
+                        );
+                      }
+                      if (upper.length >= 2) {
+                        setSheetState(() { isSearching = true; members = []; });
+                        DatabaseHelper.getMembersByHouse(upper).then((results) {
+                          setSheetState(() { members = results; isSearching = false; showNameField = results.isEmpty; });
+                        }).catchError((_) {
+                          setSheetState(() { isSearching = false; showNameField = true; });
+                        });
+                      } else {
+                        setSheetState(() { members = []; isSearching = false; showNameField = false; });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'House Number (e.g. B437)',
+                      prefixIcon: Icon(Icons.home, color: AppTheme.goldPrimary),
+                      labelStyle: const TextStyle(color: AppTheme.textMuted),
+                      filled: true,
+                      fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (isSearching)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: Text('Searching...', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
+                    ),
+
+                  if (members.isNotEmpty) ...[
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: members.length,
+                        itemBuilder: (ctx, i) {
+                          final m = members[i];
+                          return ListTile(
+                            dense: true,
+                            title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            subtitle: Text(m['house_number'] ?? '', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                            onTap: () {
+                              setSheetState(() {
+                                nameController.text = m['name'] ?? '';
+                                houseController.text = m['house_number'] ?? '';
+                                members = [];
+                                showNameField = false;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  if (showNameField || members.isEmpty) ...[
+                    TextFormField(
+                      controller: nameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Name',
+                        prefixIcon: Icon(Icons.person, color: AppTheme.goldPrimary),
+                        labelStyle: const TextStyle(color: AppTheme.textMuted),
+                        filled: true,
+                        fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  TextFormField(
+                    controller: giftController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Gift Name (Optional)',
+                      prefixIcon: Icon(Icons.card_giftcard, color: AppTheme.goldPrimary),
+                      labelStyle: const TextStyle(color: AppTheme.textMuted),
+                      filled: true,
+                      fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  ElevatedButton(
+                    onPressed: _isDayCompleted(formDay)
+                        ? null
+                        : () async {
+                            if (houseController.text.trim().isEmpty) return;
+                            final houseNum = houseController.text.trim().toUpperCase();
+                            final personName = nameController.text.trim();
+                            final giftName = giftController.text.trim();
+                            if (personName.isEmpty) return;
+
+                            int userId = 0;
+                            try {
+                              final users = await DatabaseHelper.getMembersByHouse(houseNum);
+                              for (final u in users) {
+                                if ((u['name'] ?? '').toString().toLowerCase() == personName.toLowerCase()) {
+                                  userId = u['id'] as int;
+                                  break;
+                                }
+                              }
+                            } catch (_) {}
+
+                            try {
+                              final existingAssignments = await DatabaseHelper.getGiftAssignments(
+                                dayNumber: formDay,
+                              );
+                              final activeAssignments = existingAssignments.where((a) {
+                                final s = a['status'] ?? '';
+                                return s != 'cancelled';
+                              }).toList();
+
+                              if (activeAssignments.isNotEmpty && ctx.mounted) {
+                                Navigator.pop(ctx);
+                                _showDayOverviewPopup(
+                                  selectedDay: formDay,
+                                  userId: userId,
+                                  houseNumber: houseNum,
+                                  personName: personName,
+                                  giftName: giftName,
+                                );
+                              } else {
+                                await DatabaseHelper.assignGift(
+                                  giftId: null,
+                                  userId: userId,
+                                  houseNumber: houseNum,
+                                  dayNumber: formDay,
+                                  giftName: giftName,
+                                );
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                _loadData();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Gift assignment sent for Day $formDay - awaiting approval'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isDayCompleted(formDay) ? Colors.grey : AppTheme.goldPrimary,
+                      foregroundColor: AppTheme.purpleDark,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isDayCompleted(formDay)
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.lock, size: 16),
+                              SizedBox(width: 6),
+                              Text('Day Ended', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          )
+                        : const Text('SUBMIT ASSIGNMENT', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -1361,7 +1361,7 @@ Future<Response> _getGiftAssignments(Request request) async {
     final day = request.url.queryParameters['day'];
     final conn = await db;
     var sql = '''
-      SELECT ga.*, g.name as gift_name, u.name as user_name
+      SELECT ga.*, COALESCE(NULLIF(ga.gift_name, ''), g.name) as gift_name, u.name as user_name
       FROM gift_assignments ga
       LEFT JOIN gifts g ON ga.gift_id = g.id
       LEFT JOIN users u ON ga.user_id = u.id
@@ -1392,8 +1392,8 @@ Future<Response> _assignGift(Request request) async {
     final status = body['status'] ?? 'assigned';
     final results = await conn.execute(
       Sql.named('''
-        INSERT INTO gift_assignments (gift_id, user_id, house_number, day_number, assigned_by, notes, status)
-        VALUES (@gift, @user, @house, @day, @by, @notes, @status) RETURNING id
+        INSERT INTO gift_assignments (gift_id, user_id, house_number, day_number, assigned_by, notes, status, gift_name)
+        VALUES (@gift, @user, @house, @day, @by, @notes, @status, @giftName) RETURNING id
       '''),
       parameters: {
         'gift': giftId == 0 ? null : giftId,
@@ -1401,8 +1401,9 @@ Future<Response> _assignGift(Request request) async {
         'house': body['house_number'],
         'day': body['day_number'],
         'by': body['assigned_by'] == 0 ? null : body['assigned_by'],
-        'notes': body['notes'],
+        'notes': body['notes'] ?? '',
         'status': status,
+        'giftName': body['gift_name'] ?? '',
       },
     );
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
@@ -1416,9 +1417,9 @@ Future<Response> _getMyGifts(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('''
-        SELECT ga.*, g.name as gift_name, g.gift_type
+        SELECT ga.*, COALESCE(NULLIF(ga.gift_name, ''), g.name) as gift_name, g.gift_type
         FROM gift_assignments ga
-        JOIN gifts g ON ga.gift_id = g.id
+        LEFT JOIN gifts g ON ga.gift_id = g.id
         WHERE ga.house_number = @house
         ORDER BY ga.assigned_at DESC
       '''),

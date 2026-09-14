@@ -58,7 +58,8 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    _allOrders = await DatabaseHelper.getSnackOrders(dayNumber: _selectedDay);
+    final all = await DatabaseHelper.getSnackOrders();
+    _allOrders = all.where((o) => o['day_number'] == _selectedDay).toList();
     if (mounted) setState(() => _isLoading = false);
   }
 
