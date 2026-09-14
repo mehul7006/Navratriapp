@@ -491,12 +491,12 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
   }
 
   void _showAddBookingSheet() {
-    final houseController = TextEditingController();
     final nameController = TextEditingController();
+    final authProvider = context.read<AuthProvider>();
+    final myHouse = authProvider.houseNumber ?? '';
+    final myName = authProvider.currentUser?['name']?.toString() ?? '';
+    nameController.text = myName;
     int formDay = _selectedDay;
-    List<Map<String, dynamic>> members = [];
-    bool isSearching = false;
-    bool showNameField = false;
     void Function(VoidCallback)? sheetSetState;
 
     showModalBottomSheet(
@@ -574,31 +574,33 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                   const SizedBox(height: 16),
 
                   TextFormField(
-                    controller: houseController,
-                    textCapitalization: TextCapitalization.characters,
-                    style: const TextStyle(color: Colors.white),
-                    onChanged: (v) {
-                      final upper = v.toUpperCase();
-                      if (v != upper) {
-                        houseController.value = houseController.value.copyWith(
-                          text: upper,
-                          selection: TextSelection.collapsed(offset: upper.length),
-                      );
-                      }
-                      if (upper.length >= 2) {
-                        setSheetState(() { isSearching = true; members = []; });
-                        DatabaseHelper.getMembersByHouse(upper).then((results) {
-                          setSheetState(() { members = results; isSearching = false; showNameField = results.isEmpty; });
-                        }).catchError((_) {
-                          setSheetState(() { isSearching = false; showNameField = true; });
-                        });
-                      } else {
-                        setSheetState(() { members = []; isSearching = false; showNameField = false; });
-                      }
-                    },
+                    initialValue: myHouse,
+                    readOnly: true,
+                    style: const TextStyle(color: Colors.white70),
                     decoration: InputDecoration(
-                      labelText: 'House Number (e.g. B437)',
+                      labelText: 'House Number',
                       prefixIcon: Icon(Icons.home, color: AppTheme.goldPrimary),
+                      labelStyle: const TextStyle(color: AppTheme.textMuted),
+                      filled: true,
+                      fillColor: AppTheme.purpleDark.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextFormField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      prefixIcon: Icon(Icons.person, color: AppTheme.goldPrimary),
                       labelStyle: const TextStyle(color: AppTheme.textMuted),
                       filled: true,
                       fillColor: AppTheme.purpleDark.withOpacity(0.5),
@@ -616,92 +618,16 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
 
-                  if (isSearching)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Text('Searching...', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
-                    ),
-
-                  if (members.isNotEmpty) ...[
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 150),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: members.length,
-                        itemBuilder: (ctx, i) {
-                          final m = members[i];
-                          return ListTile(
-                            dense: true,
-                            title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)),
-                            subtitle: Text(m['house_number'] ?? '', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                            onTap: () {
-                              setSheetState(() {
-                                nameController.text = m['name'] ?? '';
-                                houseController.text = m['house_number'] ?? '';
-                                members = [];
-                                showNameField = false;
-                              });
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  if (showNameField || members.isEmpty) ...[
-                    TextFormField(
-                      controller: nameController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        prefixIcon: Icon(Icons.person, color: AppTheme.goldPrimary),
-                        labelStyle: const TextStyle(color: AppTheme.textMuted),
-                        filled: true,
-                        fillColor: AppTheme.purpleDark.withOpacity(0.5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppTheme.goldPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: _isDayCompleted(formDay)
                         ? null
                         : () async {
-                            if (houseController.text.trim().isEmpty) return;
-                            final houseNum = houseController.text.trim().toUpperCase();
                             final personName = nameController.text.trim();
                             if (personName.isEmpty) return;
 
-                            int userId = 0;
-                            try {
-                              final users = await DatabaseHelper.getMembersByHouse(houseNum);
-                              for (final u in users) {
-                                if ((u['name'] ?? '').toString().toLowerCase() == personName.toLowerCase()) {
-                                  userId = u['id'] as int;
-                                  break;
-                                }
-                              }
-                            } catch (_) {}
+                            int userId = authProvider.currentUser?['id'] ?? 0;
 
                             try {
                               final existingBookings = await DatabaseHelper.getAartiBookings(
@@ -714,13 +640,13 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                                 _showDayOverviewPopup(
                                   selectedDay: formDay,
                                   userId: userId,
-                                  houseNumber: houseNum,
+                                  houseNumber: myHouse,
                                   personName: personName,
                                 );
                               } else {
                                 await DatabaseHelper.bookAartiSlot(
                                   userId: userId,
-                                  houseNumber: houseNum,
+                                  houseNumber: myHouse,
                                   dayNumber: formDay,
                                   slotId: 0,
                                   name: personName,
