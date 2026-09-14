@@ -350,12 +350,13 @@ class DatabaseHelper {
     return _get('/api/aarti-bookings/my/$houseNumber');
   }
 
-  static Future<int> bookAartiSlot({required int userId, required String houseNumber, required int dayNumber, required int slotId}) async {
+  static Future<int> bookAartiSlot({required int userId, required String houseNumber, required int dayNumber, int? slotId, String? name}) async {
     final result = await _post('/api/aarti-bookings', {
       'user_id': userId,
       'house_number': houseNumber,
       'day_number': dayNumber,
-      'slot_id': slotId,
+      'slot_id': slotId ?? 0,
+      'name': name ?? '',
     });
     return result?['id'] ?? 0;
   }
@@ -414,7 +415,7 @@ class DatabaseHelper {
     return _get('/api/snack-orders/my/$houseNumber');
   }
 
-  static Future<int> orderSnack({required int userId, required String houseNumber, required int snackId, required int dayNumber, required int quantity, String? notes}) async {
+  static Future<int> orderSnack({required int userId, required String houseNumber, int? snackId, required int dayNumber, required int quantity, String? notes}) async {
     final result = await _post('/api/snack-orders', {
       'user_id': userId,
       'house_number': houseNumber,

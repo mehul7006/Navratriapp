@@ -802,7 +802,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                       notes += '|SPONSOR_EXPENSE:0:${distributorController.text.trim()}';
                     }
                     final snacks = await DatabaseHelper.getSnacks();
-                    final snackId = snacks.isNotEmpty ? snacks.first['id'] : null;
+                    final snackId = snacks.isNotEmpty ? snacks.first['id'] as int? : null;
                     await DatabaseHelper.orderSnack(
                       userId: 0, houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
                       snackId: snackId, dayNumber: formDay, quantity: 1, notes: notes,

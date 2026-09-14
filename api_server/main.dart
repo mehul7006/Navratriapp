@@ -15,7 +15,7 @@ Future<Connection> get db async {
       port: 5432,
       database: 'navratri_2026',
       username: 'postgres',
-      password: 'your_local_password',
+      password: 'postgres',
     ),
     settings: const ConnectionSettings(
       sslMode: SslMode.disable,

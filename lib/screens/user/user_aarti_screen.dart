@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
-import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserAartiScreen extends StatefulWidget {
@@ -14,8 +13,7 @@ class UserAartiScreen extends StatefulWidget {
 }
 
 class _UserAartiScreenState extends State<UserAartiScreen> {
-  List<Map<String, dynamic>> _slots = [];
-  List<Map<String, dynamic>> _myBookings = [];
+  List<Map<String, dynamic>> _allBookings = [];
   List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
   int _selectedDay = 1;
@@ -31,6 +29,10 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     final activeDay = await DatabaseHelper.getCurrentActiveDay();
     if (activeDay != null) _selectedDay = activeDay;
     _loadData();
+  }
+
+  List<Map<String, dynamic>> get _dayBookings {
+    return _allBookings.where((b) => b['day_number'] == _selectedDay).toList();
   }
 
   bool _isDayBookable(int dayNumber) {
@@ -59,40 +61,50 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final authProvider = context.read<AuthProvider>();
-    _slots = await DatabaseHelper.getAartiSlots(_selectedDay);
-    _myBookings = await DatabaseHelper.getMyAartiBookings(authProvider.houseNumber ?? '');
+    _allBookings = await DatabaseHelper.getAartiBookings(dayNumber: _selectedDay);
     if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return BackgroundScaffold(
-      appBar: AppBar(title: Text(AppLocalizations.t('book_aarti_slot')), backgroundColor: AppTheme.purpleDeep, foregroundColor: AppTheme.goldPrimary, iconTheme: const IconThemeData(color: AppTheme.goldPrimary)),
+      appBar: AppBar(
+        title: const Text('Book Aarti'),
+        backgroundColor: AppTheme.purpleDeep,
+        foregroundColor: AppTheme.goldPrimary,
+        iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
+      ),
+      floatingActionButton: _isDayBookable(_selectedDay)
+          ? FloatingActionButton(
+              backgroundColor: AppTheme.goldPrimary,
+              onPressed: () => _showAddBookingSheet(),
+              child: const Icon(Icons.add, color: AppTheme.purpleDark, size: 28),
+            )
+          : null,
       child: Column(
         children: [
           _buildDaySelector(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_myBookings.isNotEmpty) ...[
-                          Text(AppLocalizations.t('my_bookings'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-                          const SizedBox(height: 8),
-                          ..._myBookings.map((b) => _buildMyBookingCard(b)),
-                          const SizedBox(height: 16),
-                        ],
-                        Text(AppLocalizations.t('available_slots'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-                        const SizedBox(height: 8),
-                        if (_slots.isEmpty) Center(child: Text(AppLocalizations.t('no_slots_available'), style: const TextStyle(color: AppTheme.textMuted))),
-                        ..._slots.map((s) => _buildSlotCard(s)),
-                      ],
-                    ),
-                  ),
+                : _dayBookings.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.wb_sunny_outlined, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+                            const SizedBox(height: 12),
+                            Text('No bookings for Day $_selectedDay', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+                            const SizedBox(height: 8),
+                            Text('Tap + to add a booking', style: TextStyle(color: AppTheme.goldPrimary.withOpacity(0.5), fontSize: 12)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _dayBookings.length,
+                        itemBuilder: (context, index) => _buildBookingCard(_dayBookings[index]),
+                      ),
           ),
         ],
       ),
@@ -101,30 +113,48 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
 
   Widget _buildDaySelector() {
     return Container(
-      height: 50, padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ListView.builder(
-        scrollDirection: Axis.horizontal, itemCount: 10,
+        scrollDirection: Axis.horizontal,
+        itemCount: 10,
         itemBuilder: (context, index) {
           final day = index + 1;
           final isSelected = _selectedDay == day;
           final bookable = _isDayBookable(day);
           final completed = _isDayCompleted(day);
           return GestureDetector(
-            onTap: bookable ? () { setState(() => _selectedDay = day); _loadData(); } : null,
+            onTap: () {
+              setState(() => _selectedDay = day);
+              _loadData();
+            },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.goldPrimary : (completed ? Colors.red.withOpacity(0.15) : Colors.transparent),
+                color: isSelected
+                    ? AppTheme.goldPrimary
+                    : (completed ? Colors.red.withOpacity(0.15) : Colors.transparent),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: completed ? Colors.red.withOpacity(0.6) : (isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.5)),
+                  color: completed
+                      ? Colors.red.withOpacity(0.6)
+                      : (isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.5)),
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Day $day', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: completed ? Colors.red.withOpacity(0.7) : (isSelected ? AppTheme.purpleDark : AppTheme.textMuted))),
+                  Text(
+                    'Day $day',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: completed
+                          ? Colors.red.withOpacity(0.7)
+                          : (isSelected ? AppTheme.purpleDark : AppTheme.textMuted),
+                    ),
+                  ),
                   if (completed) ...[
                     const SizedBox(width: 4),
                     Icon(Icons.lock, size: 12, color: Colors.red.withOpacity(0.7)),
@@ -138,128 +168,401 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
     );
   }
 
-  Widget _buildMyBookingCard(Map<String, dynamic> booking) {
+  Widget _buildBookingCard(Map<String, dynamic> booking) {
     final status = booking['status'] ?? 'pending';
-    final statusColor = status == 'approved' ? Colors.green : (status == 'rejected' ? Colors.red : (status == 'cancelled' ? Colors.grey : Colors.orange));
+    final Color statusColor;
+    final String statusText;
+    final IconData statusIcon;
+
+    switch (status) {
+      case 'approved':
+        statusColor = Colors.green;
+        statusText = 'APPROVED';
+        statusIcon = Icons.check_circle;
+        break;
+      case 'rejected':
+        statusColor = Colors.red;
+        statusText = 'REJECTED';
+        statusIcon = Icons.cancel;
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusText = 'CANCELLED';
+        statusIcon = Icons.cancel;
+        break;
+      default:
+        statusColor = Colors.orange;
+        statusText = 'PENDING';
+        statusIcon = Icons.hourglass_empty;
+    }
+
+    final houseNumber = booking['house_number']?.toString() ?? '';
+    final name = _extractName(booking);
+    final authProvider = context.read<AuthProvider>();
+    final myHouse = authProvider.houseNumber ?? '';
+    final isMyBooking = houseNumber.toUpperCase() == myHouse.toUpperCase();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: statusColor.withOpacity(0.5))),
-      child: Row(
-        children: [
-          Icon(status == 'approved' ? Icons.check_circle : (status == 'rejected' ? Icons.cancel : (status == 'cancelled' ? Icons.cancel : Icons.pending)), color: statusColor, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Slot: ${booking['slot_time']} - ${booking['slot_label']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 2),
-                Text('Day ${booking['day_number']} • Status: ${status.toUpperCase()}', style: TextStyle(fontSize: 12, color: statusColor)),
-              ],
-            ),
-          ),
-          if (status != 'cancelled' && status != 'rejected')
-            IconButton(
-              icon: const Icon(Icons.cancel, color: Colors.red, size: 22),
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: AppTheme.cardBg,
-                    title: Text(AppLocalizations.t('cancel_booking_title'), style: const TextStyle(color: Colors.white)),
-                    content: Text(AppLocalizations.t('cancel_booking_content'), style: const TextStyle(color: Colors.white70)),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.t('no'), style: const TextStyle(color: AppTheme.goldPrimary))),
-                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.t('yes_cancel'), style: const TextStyle(color: Colors.red))),
-                    ],
-                  ),
-                );
-                if (confirm == true) {
-                  await DatabaseHelper.cancelAartiBooking(booking['id']);
-                  _loadData();
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('booking_cancelled')), backgroundColor: Colors.orange));
-                }
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSlotCard(Map<String, dynamic> slot) {
-    final maxP = slot['max_participants'] ?? 1;
-    final currentP = slot['current_participants'] ?? 0;
-    final isFull = currentP >= maxP;
-    final isBooked = _myBookings.any((b) => b['slot_id'] == slot['id'] && b['status'] != 'rejected');
-    final dayBookable = _isDayBookable(_selectedDay);
-    final completed = _isDayCompleted(_selectedDay);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
       decoration: AppTheme.hubItemDecoration,
       child: Row(
         children: [
           Container(
-            width: 60, height: 60,
+            width: 48,
+            height: 42,
             decoration: BoxDecoration(
-              gradient: (!dayBookable || isFull || isBooked) ? null : AppTheme.goldGradient,
-              color: (!dayBookable || isFull || isBooked) ? AppTheme.textMuted.withOpacity(0.2) : null,
-              borderRadius: BorderRadius.circular(12),
+              gradient: AppTheme.goldGradient,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(slot['slot_time'] ?? '', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: (!dayBookable || isFull || isBooked) ? AppTheme.textMuted : AppTheme.purpleDark)),
-                const SizedBox(height: 2),
-                Text('$currentP/$maxP', style: TextStyle(fontSize: 11, color: (!dayBookable || isFull || isBooked) ? AppTheme.textMuted : AppTheme.purpleDark)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(slot['slot_label'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-                const SizedBox(height: 4),
-                if (completed)
-                  Text('Day completed - bookings closed', style: TextStyle(fontSize: 12, color: Colors.red.withOpacity(0.7)))
-                else if (isFull)
-                  Text(AppLocalizations.t('full'), style: TextStyle(fontSize: 12, color: AppTheme.redAccent))
-                else
-                  Text('${maxP - currentP} spots left', style: const TextStyle(fontSize: 12, color: AppTheme.cyanAccent)),
-              ],
-            ),
-          ),
-          if (!dayBookable)
-            Icon(Icons.lock, color: Colors.red.withOpacity(0.6), size: 24)
-          else if (!isFull && !isBooked)
-            GestureDetector(
-              onTap: () async {
-                final authProvider = context.read<AuthProvider>();
-                await DatabaseHelper.bookAartiSlot(
-                  userId: authProvider.currentUser?['id'],
-                  houseNumber: authProvider.houseNumber ?? '',
-                  dayNumber: _selectedDay,
-                  slotId: slot['id'],
-                );
-                _loadData();
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('booking_request_sent')), backgroundColor: Colors.green));
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
-                child: Text(AppLocalizations.t('book'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    houseNumber,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
+                  ),
+                ),
               ),
-            )
-          else if (isBooked)
-            const Icon(Icons.check_circle, color: Colors.green, size: 28)
-          else
-            Text(AppLocalizations.t('full'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.redAccent)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name.isNotEmpty ? '$name ($houseNumber)' : houseNumber,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Icon(statusIcon, size: 18, color: statusColor),
+          if (isMyBooking && (status == 'pending' || status == 'approved')) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _cancelBooking(booking),
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 14),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+
+  String _extractName(Map<String, dynamic> booking) {
+    final userName = booking['user_name']?.toString() ?? '';
+    if (userName.isNotEmpty) return userName;
+
+    final notes = booking['notes']?.toString() ?? '';
+    if (notes.isNotEmpty) {
+      final nameMatch = RegExp(r'\] ([^|]+)').firstMatch(notes);
+      if (nameMatch != null) {
+        final extracted = nameMatch.group(1)?.trim() ?? '';
+        if (extracted.isNotEmpty) return extracted;
+      }
+    }
+    return booking['house_number']?.toString() ?? '';
+  }
+
+  Future<void> _cancelBooking(Map<String, dynamic> booking) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Cancel Booking', style: TextStyle(color: Colors.white)),
+        content: const Text('Are you sure you want to cancel this aarti booking?', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppTheme.goldPrimary))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await DatabaseHelper.cancelAartiBooking(booking['id']);
+      _loadData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange),
+        );
+      }
+    }
+  }
+
+  void _showAddBookingSheet() {
+    final houseController = TextEditingController();
+    final nameController = TextEditingController();
+    int formDay = _selectedDay;
+    List<Map<String, dynamic>> members = [];
+    bool isSearching = false;
+    bool showNameField = false;
+    void Function(VoidCallback)? sheetSetState;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.purpleCard.withOpacity(0.9),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          sheetSetState = setSheetState;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Book Aarti',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text('Select Day', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 10,
+                      itemBuilder: (context, index) {
+                        final day = index + 1;
+                        final isFormSelected = formDay == day;
+                        final isCompleted = _isDayCompleted(day);
+                        return GestureDetector(
+                          onTap: isCompleted ? null : () => setSheetState(() => formDay = day),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isCompleted
+                                  ? Colors.grey.withOpacity(0.3)
+                                  : isFormSelected
+                                      ? AppTheme.goldPrimary
+                                      : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isCompleted
+                                    ? Colors.grey.withOpacity(0.5)
+                                    : AppTheme.goldPrimary.withOpacity(0.5),
+                              ),
+                            ),
+                            child: isCompleted
+                                ? Icon(Icons.lock, size: 10, color: Colors.grey)
+                                : Text(
+                                    'Day $day',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isFormSelected ? AppTheme.purpleDark : AppTheme.textMuted,
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: houseController,
+                    textCapitalization: TextCapitalization.characters,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (v) {
+                      final upper = v.toUpperCase();
+                      if (v != upper) {
+                        houseController.value = houseController.value.copyWith(
+                          text: upper,
+                          selection: TextSelection.collapsed(offset: upper.length),
+                      );
+                      }
+                      if (upper.length >= 2) {
+                        setSheetState(() { isSearching = true; members = []; });
+                        DatabaseHelper.getMembersByHouse(upper).then((results) {
+                          setSheetState(() { members = results; isSearching = false; showNameField = results.isEmpty; });
+                        }).catchError((_) {
+                          setSheetState(() { isSearching = false; showNameField = true; });
+                        });
+                      } else {
+                        setSheetState(() { members = []; isSearching = false; showNameField = false; });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'House Number (e.g. B437)',
+                      prefixIcon: Icon(Icons.home, color: AppTheme.goldPrimary),
+                      labelStyle: const TextStyle(color: AppTheme.textMuted),
+                      filled: true,
+                      fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (isSearching)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: Text('Searching...', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
+                    ),
+
+                  if (members.isNotEmpty) ...[
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: members.length,
+                        itemBuilder: (ctx, i) {
+                          final m = members[i];
+                          return ListTile(
+                            dense: true,
+                            title: Text(m['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            subtitle: Text(m['house_number'] ?? '', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                            onTap: () {
+                              setSheetState(() {
+                                nameController.text = m['name'] ?? '';
+                                houseController.text = m['house_number'] ?? '';
+                                members = [];
+                                showNameField = false;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  if (showNameField || members.isEmpty) ...[
+                    TextFormField(
+                      controller: nameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Name',
+                        prefixIcon: Icon(Icons.person, color: AppTheme.goldPrimary),
+                        labelStyle: const TextStyle(color: AppTheme.textMuted),
+                        filled: true,
+                        fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.goldPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _isDayCompleted(formDay)
+                        ? null
+                        : () async {
+                            if (houseController.text.trim().isEmpty) return;
+                            final houseNum = houseController.text.trim().toUpperCase();
+                            final personName = nameController.text.trim();
+                            if (personName.isEmpty) return;
+
+                            try {
+                              int userId = 0;
+                              try {
+                                final users = await DatabaseHelper.getMembersByHouse(houseNum);
+                                for (final u in users) {
+                                  if ((u['name'] ?? '').toString().toLowerCase() == personName.toLowerCase()) {
+                                    userId = u['id'] as int;
+                                    break;
+                                  }
+                                }
+                              } catch (_) {}
+
+                              await DatabaseHelper.bookAartiSlot(
+                                userId: userId,
+                                houseNumber: houseNum,
+                                dayNumber: formDay,
+                                slotId: 0,
+                                name: personName,
+                              );
+
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              _loadData();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Booking request sent for Day $formDay - awaiting organizer approval'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isDayCompleted(formDay) ? Colors.grey : AppTheme.goldPrimary,
+                      foregroundColor: AppTheme.purpleDark,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isDayCompleted(formDay)
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.lock, size: 16),
+                              SizedBox(width: 6),
+                              Text('Day Ended', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          )
+                        : const Text('SUBMIT BOOKING', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
 }
