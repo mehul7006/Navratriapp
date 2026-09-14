@@ -234,6 +234,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               ],
             ),
           ),
+          const Expanded(child: SizedBox.shrink()),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(color: AppTheme.goldPrimary, borderRadius: BorderRadius.circular(20)),
@@ -257,7 +258,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       children: [
         _buildSectionTitle(AppLocalizations.t('my_activity')),
         const SizedBox(height: 8),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             if (activeBookings.isNotEmpty)
               _buildActivityChip(Icons.self_improvement, '🪔 ${activeBookings.length} Aarti', Colors.orange),
@@ -292,35 +295,41 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context, Map<String, dynamic>? user) {
-    return GridView.count(
-      crossAxisCount: 5,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 6,
-      crossAxisSpacing: 6,
-      childAspectRatio: 2.8,
-      children: [
-        _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
-        _buildActionCard(icon: Icons.restaurant, title: AppLocalizations.t('food'), badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSnacksScreen()))),
-        _buildActionCard(icon: Icons.card_giftcard, title: AppLocalizations.t('gifts'), badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserGiftsScreen()))),
-        _buildActionCard(icon: Icons.confirmation_number, title: AppLocalizations.t('my_tickets'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserCouponScreen(houseNumber: user?['house_number'] ?? '', userName: user?['name'] ?? '')))),
-        _buildActionCard(icon: Icons.person, title: AppLocalizations.t('profile'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()))),
-        _buildActionCard(icon: Icons.event, title: AppLocalizations.t('schedule'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserScheduleScreen()))),
-        _buildActionCard(icon: Icons.emoji_events, title: AppLocalizations.t('winners'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen()))),
-        _buildActionCard(icon: Icons.receipt_long, title: AppLocalizations.t('payments'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
-        _buildActionCard(icon: Icons.music_note, title: AppLocalizations.t('songs'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSongRequestScreen()))),
-        _buildActionCard(icon: Icons.celebration, title: AppLocalizations.t('shoutout'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserShoutoutWallScreen()))),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width > 600 ? 5 : (width > 400 ? 4 : 3);
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.55,
+          children: [
+            _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
+            _buildActionCard(icon: Icons.restaurant, title: AppLocalizations.t('food'), badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSnacksScreen()))),
+            _buildActionCard(icon: Icons.card_giftcard, title: AppLocalizations.t('gifts'), badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserGiftsScreen()))),
+            _buildActionCard(icon: Icons.confirmation_number, title: AppLocalizations.t('my_tickets'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserCouponScreen(houseNumber: user?['house_number'] ?? '', userName: user?['name'] ?? '')))),
+            _buildActionCard(icon: Icons.person, title: AppLocalizations.t('profile'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()))),
+            _buildActionCard(icon: Icons.event, title: AppLocalizations.t('schedule'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserScheduleScreen()))),
+            _buildActionCard(icon: Icons.emoji_events, title: AppLocalizations.t('winners'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen()))),
+            _buildActionCard(icon: Icons.receipt_long, title: AppLocalizations.t('payments'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
+            _buildActionCard(icon: Icons.music_note, title: AppLocalizations.t('songs'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSongRequestScreen()))),
+            _buildActionCard(icon: Icons.celebration, title: AppLocalizations.t('shoutout'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserShoutoutWallScreen()))),
+          ],
+        );
+      },
     );
   }
 
@@ -329,22 +338,25 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
+        clipBehavior: Clip.hardEdge,
         decoration: AppTheme.hubItemDecoration,
         child: Stack(
+          clipBehavior: Clip.hardEdge,
           children: [
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 22, color: AppTheme.goldPrimary),
-                  const SizedBox(height: 2),
-                  Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
+                  Icon(icon, size: 34, color: AppTheme.goldPrimary),
+                  const SizedBox(height: 6),
+                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
             if (badge != null)
               Positioned(
-                right: 6, top: 6,
+                right: 0, top: 0,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
@@ -367,7 +379,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         children: [
           ..._announcements.take(3).map((a) => Container(
             margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: AppTheme.purpleDark.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
