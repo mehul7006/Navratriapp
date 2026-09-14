@@ -305,7 +305,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 1.55,
+          childAspectRatio: 1.15,
           children: [
             _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
