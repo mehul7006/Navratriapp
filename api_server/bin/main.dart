@@ -98,7 +98,7 @@ Future<Connection> get db async {
         "UPDATE users SET member_type = 'main' WHERE member_type IS NULL AND user_type != 'organizer'");
     // Gift assignments status column
     await _db!.execute(
-        "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'assigned'");
+        "ALTER TABLE gift_assignments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'pending'");
     // Max winners per day for lucky draw
     await _db!.execute(
         "ALTER TABLE navratri_days ADD COLUMN IF NOT EXISTS max_winners INT DEFAULT 3");
