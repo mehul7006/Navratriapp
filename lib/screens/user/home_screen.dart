@@ -293,11 +293,11 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   Widget _buildQuickActions(BuildContext context, Map<String, dynamic>? user) {
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: 5,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
       childAspectRatio: 0.85,
       children: [
         _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
@@ -336,9 +336,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 28, color: AppTheme.goldPrimary),
+                  Icon(icon, size: 34, color: AppTheme.goldPrimary),
                   const SizedBox(height: 6),
-                  Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
+                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
                 ],
               ),
             ),
