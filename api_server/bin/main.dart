@@ -1389,7 +1389,7 @@ Future<Response> _assignGift(Request request) async {
     }
     final userId = body['user_id'];
     final giftId = body['gift_id'];
-    final status = body['status'] ?? 'assigned';
+    final status = body['status'] ?? 'pending';
     final results = await conn.execute(
       Sql.named('''
         INSERT INTO gift_assignments (gift_id, user_id, house_number, day_number, assigned_by, notes, status, gift_name)
