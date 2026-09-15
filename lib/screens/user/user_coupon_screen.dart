@@ -22,8 +22,10 @@ class UserCouponScreen extends StatefulWidget {
 class _UserCouponScreenState extends State<UserCouponScreen> {
   List<Map<String, dynamic>> _tickets = [];
   List<Map<String, dynamic>> _days = [];
+  List<String> _personNames = [];
   bool _isLoading = true;
   int _selectedDay = 0;
+  String _selectedPerson = '';
 
   @override
   void initState() {
@@ -55,8 +57,11 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
     setState(() => _isLoading = true);
     try {
       final tickets = await DatabaseHelper.getMyTickets(widget.houseNumber);
+      final persons = tickets.map((t) => t['user_name']?.toString() ?? '').where((n) => n.isNotEmpty).toSet().toList()..sort();
       setState(() {
         _tickets = tickets;
+        _personNames = persons;
+        if (_selectedPerson.isEmpty && persons.length == 1) _selectedPerson = persons.first;
         _isLoading = false;
       });
     } catch (e) {
@@ -91,6 +96,9 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
               children: [
                 // User Info Card
                 _buildUserInfoCard(),
+                // Person Selector
+                if (_personNames.length > 1)
+                  _buildPersonSelector(),
                 // Day Filter
                 _buildDayFilter(),
                 // Tickets List
@@ -201,6 +209,46 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
     );
   }
 
+  Widget _buildPersonSelector() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.purpleCard.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.person, size: 18, color: AppTheme.goldPrimary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedPerson.isEmpty ? null : _selectedPerson,
+                hint: Text('Select Person', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                isExpanded: true,
+                dropdownColor: AppTheme.purpleDark,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                items: [
+                  DropdownMenuItem<String>(
+                    value: '',
+                    child: Text('All Persons', style: TextStyle(color: AppTheme.goldPrimary)),
+                  ),
+                  ..._personNames.map((name) => DropdownMenuItem<String>(
+                    value: name,
+                    child: Text(name),
+                  )),
+                ],
+                onChanged: (value) => setState(() => _selectedPerson = value ?? ''),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDayFilter() {
     return Container(
       height: 50,
@@ -278,9 +326,12 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
   }
 
   Widget _buildTicketsList() {
-    final filteredTickets = _selectedDay == 0
+    var filteredTickets = _selectedDay == 0
         ? _tickets
         : _tickets.where((t) => t['day_number'] == _selectedDay).toList();
+    if (_selectedPerson.isNotEmpty) {
+      filteredTickets = filteredTickets.where((t) => t['user_name']?.toString() == _selectedPerson).toList();
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(12),
@@ -446,6 +497,16 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                         'Dress: ${ticket['dress_code'] ?? 'N/A'}',
                         style: const TextStyle(fontSize: 11, color: AppTheme.cyanAccent),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ticket: ${ticket['ticket_code'] ?? 'N/A'}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary),
+                      ),
+                      if (ticket['user_name']?.toString().isNotEmpty == true)
+                        Text(
+                          '${ticket['user_name']}',
+                          style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                        ),
                     ],
                   ),
                 ),
