@@ -249,9 +249,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     final activeDay = _days.where((d) => d['is_active'] == true).toList();
     final todayNum = activeDay.isNotEmpty ? activeDay.first['day_number'] : (_days.isNotEmpty ? _days.first['day_number'] : 1);
 
-    final todayBookings = _myBookings.where((b) => b['day_number'] == todayNum && (b['status'] == 'approved' || b['status'] == 'pending')).toList();
-    final todayOrders = _myOrders.where((o) => o['day_number'] == todayNum && o['status'] != 'cancelled' && o['status'] != 'delivered').toList();
-    final todayGifts = _myGifts.where((g) => g['day_number'] == todayNum && g['status'] != 'cancelled').toList();
+    final todayBookings = _myBookings.where((b) => b['day_number'] == todayNum && b['status'] == 'approved').toList();
+    final todayOrders = _myOrders.where((o) => o['day_number'] == todayNum && o['status'] == 'approved').toList();
+    final todayGifts = _myGifts.where((g) => g['day_number'] == todayNum && (g['status'] == 'assigned' || g['status'] == 'delivered')).toList();
 
     if (todayBookings.isEmpty && todayOrders.isEmpty && todayGifts.isEmpty) {
       return const SizedBox.shrink();
