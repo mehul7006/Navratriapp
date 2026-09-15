@@ -151,7 +151,7 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                   Text(
                     'Day $day',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: completed
                           ? Colors.red.withOpacity(0.7)
@@ -213,25 +213,19 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
         children: [
           Container(
             width: 48,
-            height: 42,
-            decoration: BoxDecoration(
+            height: 48,
+            decoration: const BoxDecoration(
               gradient: AppTheme.goldGradient,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.all(Radius.circular(10)),
             ),
             child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    houseNumber,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
-                  ),
-                ),
+              child: Text(
+                houseNumber,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,34 +233,15 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                 if (name.isNotEmpty)
                   Text(
                     name,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
-                Text(
-                  houseNumber,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.goldPrimary),
-                ),
+                const SizedBox(height: 2),
+                if (houseNumber.isNotEmpty)
+                  Text('House: $houseNumber', style: const TextStyle(fontSize: 15, color: AppTheme.textMuted)),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(statusIcon, size: 14, color: statusColor),
-                const SizedBox(width: 4),
-                Text(
-                  statusText,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor),
-                ),
-              ],
-            ),
-          ),
+          Icon(statusIcon, color: statusColor, size: 24),
           if (isMyBooking && (status == 'pending' || status == 'approved')) ...[
             const SizedBox(width: 8),
             GestureDetector(

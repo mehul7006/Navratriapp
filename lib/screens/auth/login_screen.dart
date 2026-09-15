@@ -338,9 +338,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildPrizeWinners() {
-    if (_dailyInfo == null) return const SizedBox(height: 200);
+    if (_dailyInfo == null) return const SizedBox.shrink();
     final yesterdayWinners = _dailyInfo!['yesterday_prize_winners'] as List? ?? [];
-    if (yesterdayWinners.isEmpty) return const SizedBox(height: 200);
+    if (yesterdayWinners.isEmpty) return const SizedBox.shrink();
     final winnerDay = _dailyInfo!['yesterday_day'] ?? 0;
 
     String ordinal(int n) {
@@ -392,11 +392,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildTodayBookings() {
-    if (_dailyInfo == null) return const SizedBox(height: 200);
+    if (_dailyInfo == null) return const SizedBox.shrink();
     final aartiBookings = _dailyInfo!['aarti_bookings'] as List? ?? [];
     final snackOrders = _dailyInfo!['snack_orders'] as List? ?? [];
     final giftAssignments = _dailyInfo!['gift_assignments'] as List? ?? [];
-    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox(height: 200);
+    if (aartiBookings.isEmpty && snackOrders.isEmpty && giftAssignments.isEmpty) return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(16),

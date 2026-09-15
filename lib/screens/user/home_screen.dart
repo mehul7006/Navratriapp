@@ -89,36 +89,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         elevation: 0,
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _loadData, constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36)),
-          IconButton(
-            icon: const Icon(Icons.logout, size: 20),
-            constraints: const BoxConstraints(maxWidth: 36, maxHeight: 36),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to logout?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        authProvider.logout();
-                        Navigator.pushReplacementNamed(context, '/login');
-                      },
-                      child: const Text('Logout'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
       ),
       child: RefreshIndicator(
         onRefresh: _loadData,
@@ -130,6 +100,38 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(icon: const Icon(Icons.refresh, size: 20, color: AppTheme.goldPrimary), onPressed: _loadData),
+                  IconButton(
+                    icon: const Icon(Icons.logout, size: 20, color: AppTheme.goldPrimary),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Logout'),
+                          content: const Text('Are you sure you want to logout?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                authProvider.logout();
+                                Navigator.pushReplacementNamed(context, '/login');
+                              },
+                              child: const Text('Logout'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
               _buildProfileCard(user),
               const SizedBox(height: 16),
               _buildCurrentDayBanner(),
@@ -357,27 +359,27 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 1.15,
+          childAspectRatio: 1.2,
           children: [
-            _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null,
+            _buildActionCard(icon: Icons.self_improvement, title: AppLocalizations.t('book_aarti'), badge: _stats['bookings'] > 0 ? '${_stats['bookings']}' : null, isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserAartiScreen()))),
-            _buildActionCard(icon: Icons.restaurant, title: AppLocalizations.t('food'), badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null,
+            _buildActionCard(icon: Icons.restaurant, title: AppLocalizations.t('food'), badge: _stats['orders'] > 0 ? '${_stats['orders']}' : null, isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSnacksScreen()))),
-            _buildActionCard(icon: Icons.card_giftcard, title: AppLocalizations.t('gifts'), badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null,
+            _buildActionCard(icon: Icons.card_giftcard, title: AppLocalizations.t('gifts'), badge: _stats['gifts'] > 0 ? '${_stats['gifts']}' : null, isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserGiftsScreen()))),
-            _buildActionCard(icon: Icons.confirmation_number, title: AppLocalizations.t('my_tickets'),
+            _buildActionCard(icon: Icons.confirmation_number, title: AppLocalizations.t('my_tickets'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserCouponScreen(houseNumber: user?['house_number'] ?? '', userName: user?['name'] ?? '')))),
-            _buildActionCard(icon: Icons.person, title: AppLocalizations.t('profile'),
+            _buildActionCard(icon: Icons.person, title: AppLocalizations.t('profile'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()))),
-            _buildActionCard(icon: Icons.event, title: AppLocalizations.t('schedule'),
+            _buildActionCard(icon: Icons.event, title: AppLocalizations.t('schedule'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserScheduleScreen()))),
-            _buildActionCard(icon: Icons.emoji_events, title: AppLocalizations.t('winners'),
+            _buildActionCard(icon: Icons.emoji_events, title: AppLocalizations.t('winners'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserWinnersScreen()))),
-            _buildActionCard(icon: Icons.receipt_long, title: AppLocalizations.t('payments'),
+            _buildActionCard(icon: Icons.receipt_long, title: AppLocalizations.t('payments'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
-            _buildActionCard(icon: Icons.music_note, title: AppLocalizations.t('songs'),
+            _buildActionCard(icon: Icons.music_note, title: AppLocalizations.t('songs'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSongRequestScreen()))),
-            _buildActionCard(icon: Icons.celebration, title: AppLocalizations.t('shoutout'),
+            _buildActionCard(icon: Icons.celebration, title: AppLocalizations.t('shoutout'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserShoutoutWallScreen()))),
           ],
         );
@@ -385,36 +387,38 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 
-  Widget _buildActionCard({required IconData icon, required String title, String? badge, required VoidCallback onTap}) {
+  Widget _buildActionCard({required IconData icon, required String title, String? badge, required VoidCallback onTap, bool isDesktop = false}) {
+    final badgeFontSize = isDesktop ? 14.0 : 9.0;
+    final badgePaddingH = isDesktop ? 10.0 : 5.0;
+    final badgePaddingV = isDesktop ? 4.0 : 2.0;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         clipBehavior: Clip.hardEdge,
         decoration: AppTheme.hubItemDecoration,
         child: Stack(
           clipBehavior: Clip.hardEdge,
           children: [
-            Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
+            Positioned.fill(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: 34, color: AppTheme.goldPrimary),
-                    const SizedBox(height: 4),
-                    Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
+                    Icon(icon, size: 32, color: AppTheme.goldPrimary),
+                    const SizedBox(height: 3),
+                    Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
             ),
             if (badge != null)
               Positioned(
-                right: 0, top: 0,
+                right: isDesktop ? 4 : 2, top: isDesktop ? 4 : 2,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-                  child: Text(badge, style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                  padding: EdgeInsets.symmetric(horizontal: badgePaddingH, vertical: badgePaddingV),
+                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(isDesktop ? 12 : 8)),
+                  child: Text(badge, style: TextStyle(fontSize: badgeFontSize, color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
           ],
