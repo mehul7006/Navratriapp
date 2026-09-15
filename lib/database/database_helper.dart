@@ -18,61 +18,81 @@ class DatabaseHelper {
   // ========== HTTP HELPERS ==========
 
   static Future<List<Map<String, dynamic>>> _get(String path, {Map<String, String>? queryParams}) async {
-    final uri = Uri.parse('$_apiBase$path').replace(queryParameters: queryParams);
-    final response = await http.get(uri).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) throw Exception('API error: ${response.statusCode}');
-    final data = jsonDecode(response.body);
-    if (data == null) return [];
-    return (data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    try {
+      final uri = Uri.parse('$_apiBase$path').replace(queryParameters: queryParams);
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+      final data = jsonDecode(response.body);
+      if (data == null) return [];
+      return (data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<Map<String, dynamic>?> _post(String path, Map<String, dynamic> body) async {
-    final response = await http.post(
-      Uri.parse('$_apiBase$path'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) throw Exception('API error: ${response.statusCode}');
-    final data = jsonDecode(response.body);
-    return data is Map ? Map<String, dynamic>.from(data) : null;
+    try {
+      final response = await http.post(
+        Uri.parse('$_apiBase$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body);
+      return data is Map ? Map<String, dynamic>.from(data) : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<List<Map<String, dynamic>>> _postList(String path, Map<String, dynamic> body) async {
-    final response = await http.post(
-      Uri.parse('$_apiBase$path'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) throw Exception('API error: ${response.statusCode}');
-    final data = jsonDecode(response.body);
-    if (data is List) return data.map((e) => Map<String, dynamic>.from(e)).toList();
-    return [];
+    try {
+      final response = await http.post(
+        Uri.parse('$_apiBase$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+      final data = jsonDecode(response.body);
+      if (data is List) return data.map((e) => Map<String, dynamic>.from(e)).toList();
+      return [];
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<void> _put(String path, Map<String, dynamic> body) async {
-    final response = await http.put(
-      Uri.parse('$_apiBase$path'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) throw Exception('API error: ${response.statusCode}');
+    try {
+      final response = await http.put(
+        Uri.parse('$_apiBase$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return;
+    } catch (_) {}
   }
 
   static Future<Map<String, dynamic>?> _putJson(String path, Map<String, dynamic> body) async {
-    final response = await http.put(
-      Uri.parse('$_apiBase$path'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) return null;
-    final data = jsonDecode(response.body);
-    return data is Map<String, dynamic> ? data : null;
+    try {
+      final response = await http.put(
+        Uri.parse('$_apiBase$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body);
+      return data is Map<String, dynamic> ? data : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<void> _delete(String path) async {
-    final response = await http.delete(Uri.parse('$_apiBase$path'))
-        .timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) throw Exception('API error: ${response.statusCode}');
+    try {
+      final response = await http.delete(Uri.parse('$_apiBase$path'))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return;
+    } catch (_) {}
   }
 
   // ========== AUTHENTICATION ==========

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -28,7 +29,9 @@ void main() async {
     systemNavigationBarColor: AppTheme.purpleDark,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
-  runApp(const NavratriApp());
+  runZonedGuarded(() {
+    runApp(const NavratriApp());
+  }, (error, stack) {});
 }
 
 class NavratriApp extends StatelessWidget {
