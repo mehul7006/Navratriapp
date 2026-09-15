@@ -270,7 +270,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 title: 'Aarti',
                 color: Colors.orange,
                 count: todayBookings.length,
-                items: todayBookings.map((b) => '${b['person_name']?.toString() ?? ''}').where((n) => n.isNotEmpty).toList(),
+                items: todayBookings.map((b) => '${b['person_name']?.toString() ?? ''} (${b['house_number']?.toString() ?? ''})').where((n) => n.isNotEmpty).toList(),
               ),
             ),
             const SizedBox(width: 8),
@@ -280,7 +280,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 title: 'Snacks',
                 color: Colors.blue,
                 count: todayOrders.length,
-                items: todayOrders.map((o) => o['snack_name']?.toString() ?? 'Snack').toList(),
+                items: todayOrders.map((o) => '${o['person_name']?.toString().isNotEmpty == true ? o['person_name'].toString() : ''} (${o['house_number']?.toString() ?? ''}) - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}').toList(),
               ),
             ),
             const SizedBox(width: 8),
@@ -290,7 +290,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 title: 'Gifts',
                 color: Colors.purple,
                 count: todayGifts.length,
-                items: todayGifts.map((g) => g['gift_name']?.toString() ?? 'Gift').toList(),
+                items: todayGifts.map((g) => '${g['user_name']?.toString().isNotEmpty == true ? g['user_name'].toString() : ''} (${g['house_number']?.toString() ?? ''}) - ${g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift'}').toList(),
               ),
             ),
           ],
@@ -309,34 +309,34 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: color),
+              Icon(icon, size: 20, color: color),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color), overflow: TextOverflow.ellipsis),
+                child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color), overflow: TextOverflow.ellipsis),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-                child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+                child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
               ),
             ],
           ),
           const SizedBox(height: 6),
           if (items.isEmpty)
-            Text('No bookings', style: TextStyle(fontSize: 10, color: AppTheme.textMuted))
+            Text('No bookings', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))
           else
             for (final item in items.take(3))
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   item,
-                  style: const TextStyle(fontSize: 10, color: Colors.white70),
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
           if (items.length > 3)
-            Text('+${items.length - 3} more', style: TextStyle(fontSize: 9, color: AppTheme.textMuted)),
+            Text('+${items.length - 3} more', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
         ],
       ),
     );
