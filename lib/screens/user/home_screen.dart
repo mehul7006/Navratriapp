@@ -257,6 +257,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       return const SizedBox.shrink();
     }
 
+    String formatHouse(String h) {
+      final upper = h.toUpperCase();
+      if (upper.startsWith('HB') || upper.startsWith('H ')) return upper;
+      if (upper.startsWith('B') || upper.startsWith('A') || upper.startsWith('C') || upper.startsWith('D')) return 'H$upper';
+      return upper;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -267,7 +274,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           const SizedBox(height: 4),
           for (final b in todayBookings)
             _buildDetailItem(
-              '${b['person_name']?.toString() ?? ''} (${b['house_number']?.toString() ?? ''})',
+              '${b['person_name']?.toString() ?? ''} (${formatHouse(b['house_number']?.toString() ?? '')})',
               '#${b['day_number']}',
               Colors.green,
             ),
@@ -278,7 +285,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           const SizedBox(height: 4),
           for (final o in todayOrders)
             _buildDetailItem(
-              '${o['person_name']?.toString().isNotEmpty == true ? o['person_name'].toString() : o['house_number']?.toString() ?? ''} - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}',
+              '${o['person_name']?.toString().isNotEmpty == true ? o['person_name'].toString() : ''} (${formatHouse(o['house_number']?.toString() ?? '')}) - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}',
               '',
               Colors.blue,
             ),
@@ -289,7 +296,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           const SizedBox(height: 4),
           for (final g in todayGifts)
             _buildDetailItem(
-              '${g['user_name']?.toString().isNotEmpty == true ? g['user_name'].toString() : g['house_number']?.toString() ?? ''} - ${g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift'}',
+              '${g['user_name']?.toString().isNotEmpty == true ? g['user_name'].toString() : ''} (${formatHouse(g['house_number']?.toString() ?? '')}) - ${g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift'}',
               '',
               Colors.purple,
             ),
