@@ -132,82 +132,76 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
   Widget _buildWinnerCard(Map<String, dynamic> winner, int index) {
     final goddess = winner['goddess_name'] ?? '';
     final date = winner['event_date'] ?? '';
-    return Card(
-      color: Colors.green.withValues(alpha: 0.15),
+    return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.green, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.amber,
-              child: Text('#${index + 1}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            ),
-            if (winner['prize_level'] != null)
-              Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  (() {
-                    final p = winner['prize_level'] as int;
-                    String ordinal(int n) {
-                      if (n >= 11 && n <= 13) return '${n}th';
-                      switch (n % 10) {
-                        case 1: return '${n}st';
-                        case 2: return '${n}nd';
-                        case 3: return '${n}rd';
-                        default: return '${n}th';
-                      }
+      padding: const EdgeInsets.all(14),
+      decoration: AppTheme.hubItemDecoration,
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.amber,
+            child: Text('#${index + 1}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+          if (winner['prize_level'] != null)
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                (() {
+                  final p = winner['prize_level'] as int;
+                  String ordinal(int n) {
+                    if (n >= 11 && n <= 13) return '${n}th';
+                    switch (n % 10) {
+                      case 1: return '${n}st';
+                      case 2: return '${n}nd';
+                      case 3: return '${n}rd';
+                      default: return '${n}th';
                     }
-                    return '${ordinal(p)} Winner';
-                  })(),
-                  style: const TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold),
-                ),
-              ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.emoji_events, color: Colors.amber, size: 18),
-                      const SizedBox(width: 6),
-                      Text(winner['user_name'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text('House: ${winner['house_number'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text('Ticket: ${winner['ticket_code']?.toString().substring(0, [winner['ticket_code']?.toString().length ?? 0, 30].reduce((a, b) => a < b ? a : b)) ?? ''}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 11, fontFamily: 'monospace')),
-                ],
+                  }
+                  return '${ordinal(p)} Winner';
+                })(),
+                style: const TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: AppTheme.goldPrimary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-                  child: Text('Day ${winner['day_number']}', style: const TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                Row(
+                  children: [
+                    const Icon(Icons.emoji_events, color: Colors.amber, size: 18),
+                    const SizedBox(width: 6),
+                    Text(winner['user_name'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  ],
                 ),
-                if (goddess.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(goddess, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                  ),
+                const SizedBox(height: 4),
+                Text('House: ${winner['house_number'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text('Ticket: ${winner['ticket_code']?.toString().substring(0, [winner['ticket_code']?.toString().length ?? 0, 30].reduce((a, b) => a < b ? a : b)) ?? ''}',
+                    style: const TextStyle(color: Colors.white54, fontSize: 11, fontFamily: 'monospace')),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.goldPrimary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                child: Text('Day ${winner['day_number']}', style: const TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+              if (goddess.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(goddess, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
