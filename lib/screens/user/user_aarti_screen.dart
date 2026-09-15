@@ -288,6 +288,9 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
   }
 
   String _extractName(Map<String, dynamic> booking) {
+    final personName = booking['person_name']?.toString() ?? '';
+    if (personName.isNotEmpty) return personName;
+
     final userName = booking['user_name']?.toString() ?? '';
     if (userName.isNotEmpty) return userName;
 

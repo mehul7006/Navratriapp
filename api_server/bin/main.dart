@@ -1037,8 +1037,9 @@ Future<Response> _getMyAartiBookings(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('''
-        SELECT ab.*
+        SELECT ab.*, u.name as person_name
         FROM aarti_bookings ab
+        LEFT JOIN users u ON ab.user_id = u.id
         WHERE ab.house_number = @house
         ORDER BY ab.day_number, ab.created_at DESC
       '''),
@@ -1216,9 +1217,10 @@ Future<Response> _getMySnackOrders(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('''
-        SELECT so.*, COALESCE(NULLIF(so.snack_name, ''), s.name) as snack_name
+        SELECT so.*, COALESCE(NULLIF(so.snack_name, ''), s.name) as snack_name, u.name as person_name
         FROM snack_orders so
         LEFT JOIN snacks s ON so.snack_id = s.id
+        LEFT JOIN users u ON so.user_id = u.id
         WHERE so.house_number = @house
         ORDER BY so.created_at DESC
       '''),

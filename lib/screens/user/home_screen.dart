@@ -260,49 +260,57 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Day $todayNum Booking'),
+        _buildSectionTitle('Today\'s Bookings'),
         const SizedBox(height: 8),
-        if (todayBookings.isNotEmpty)
+        if (todayBookings.isNotEmpty) ...[
+          Text('🌞 Aarti:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+          const SizedBox(height: 4),
           for (final b in todayBookings)
-            _buildBookingItem(Icons.self_improvement, 'Aarti', b['status'] ?? 'pending', Colors.orange),
-        if (todayOrders.isNotEmpty)
+            _buildDetailItem(
+              '${b['person_name']?.toString() ?? ''} (${b['house_number']?.toString() ?? ''})',
+              '#${b['day_number']}',
+              Colors.green,
+            ),
+          const SizedBox(height: 8),
+        ],
+        if (todayOrders.isNotEmpty) ...[
+          Text('🍽 Snacks:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+          const SizedBox(height: 4),
           for (final o in todayOrders)
-            _buildBookingItem(Icons.restaurant, o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack', o['status'] ?? 'pending', Colors.blue),
-        if (todayGifts.isNotEmpty)
+            _buildDetailItem(
+              '${o['person_name']?.toString() ?? o['house_number']?.toString() ?? ''} - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}',
+              'x${o['quantity'] ?? 1}',
+              Colors.blue,
+            ),
+          const SizedBox(height: 8),
+        ],
+        if (todayGifts.isNotEmpty) ...[
+          Text('🎁 Gifts:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+          const SizedBox(height: 4),
           for (final g in todayGifts)
-            _buildBookingItem(Icons.card_giftcard, g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift', g['status'] ?? 'assigned', Colors.purple),
+            _buildDetailItem(
+              '${g['user_name']?.toString().isNotEmpty == true ? g['user_name'].toString() : g['house_number']?.toString() ?? ''} - ${g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift'}',
+              '',
+              Colors.purple,
+            ),
+          const SizedBox(height: 8),
+        ],
       ],
     );
   }
 
-  Widget _buildBookingItem(IconData icon, String name, String status, Color color) {
-    final isApproved = status == 'approved' || status == 'assigned' || status == 'delivered';
-    final statusColor = isApproved ? Colors.green : (status == 'cancelled' ? Colors.red : Colors.orange);
-    final statusLabel = isApproved ? 'Approved' : (status == 'cancelled' ? 'Cancelled' : 'Pending');
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
+  Widget _buildDetailItem(String text, String badge, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
+          Icon(Icons.check_circle, size: 14, color: Colors.green),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+            child: Text(text, style: const TextStyle(fontSize: 12, color: Colors.white)),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor)),
-          ),
+          if (badge.isNotEmpty)
+            Text(badge, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
