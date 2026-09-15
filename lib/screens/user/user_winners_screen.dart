@@ -85,7 +85,7 @@ class _UserWinnersScreenState extends State<UserWinnersScreen> {
               labelStyle: TextStyle(color: _selectedDay == 0 ? Colors.black : Colors.white),
             ),
           ),
-          ...List.generate(9, (i) {
+          ...List.generate(10, (i) {
             final day = i + 1;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
