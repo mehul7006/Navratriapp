@@ -257,62 +257,86 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       return const SizedBox.shrink();
     }
 
-    String formatHouse(String h) => 'House $h';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Today\'s Bookings'),
         const SizedBox(height: 8),
-        if (todayBookings.isNotEmpty) ...[
-          Text('🌞 Aarti:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-          const SizedBox(height: 4),
-          for (final b in todayBookings)
-            _buildDetailItem(
-              '${b['person_name']?.toString() ?? ''} (${formatHouse(b['house_number']?.toString() ?? '')})',
-              '#${b['day_number']}',
-              Colors.green,
+        Row(
+          children: [
+            Expanded(
+              child: _buildTodayCard(
+                icon: Icons.self_improvement,
+                title: 'Aarti',
+                color: Colors.orange,
+                count: todayBookings.length,
+                items: todayBookings.map((b) => '${b['person_name']?.toString() ?? ''}').where((n) => n.isNotEmpty).toList(),
+              ),
             ),
-          const SizedBox(height: 8),
-        ],
-        if (todayOrders.isNotEmpty) ...[
-          Text('🍽 Snacks:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-          const SizedBox(height: 4),
-          for (final o in todayOrders)
-            _buildDetailItem(
-              '${o['person_name']?.toString().isNotEmpty == true ? o['person_name'].toString() : ''} (${formatHouse(o['house_number']?.toString() ?? '')}) - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}',
-              '',
-              Colors.blue,
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildTodayCard(
+                icon: Icons.restaurant,
+                title: 'Snacks',
+                color: Colors.blue,
+                count: todayOrders.length,
+                items: todayOrders.map((o) => o['snack_name']?.toString() ?? 'Snack').toList(),
+              ),
             ),
-          const SizedBox(height: 8),
-        ],
-        if (todayGifts.isNotEmpty) ...[
-          Text('🎁 Gifts:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-          const SizedBox(height: 4),
-          for (final g in todayGifts)
-            _buildDetailItem(
-              '${g['user_name']?.toString().isNotEmpty == true ? g['user_name'].toString() : ''} (${formatHouse(g['house_number']?.toString() ?? '')}) - ${g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift'}',
-              '',
-              Colors.purple,
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildTodayCard(
+                icon: Icons.card_giftcard,
+                title: 'Gifts',
+                color: Colors.purple,
+                count: todayGifts.length,
+                items: todayGifts.map((g) => g['gift_name']?.toString() ?? 'Gift').toList(),
+              ),
             ),
-          const SizedBox(height: 8),
-        ],
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildDetailItem(String text, String badge, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+  Widget _buildTodayCard({required IconData icon, required String title, required Color color, required int count, required List<String> items}) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: AppTheme.hubItemDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, size: 14, color: Colors.green),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 12, color: Colors.white)),
+          Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color), overflow: TextOverflow.ellipsis),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+              ),
+            ],
           ),
-          if (badge.isNotEmpty)
-            Text(badge, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+          const SizedBox(height: 6),
+          if (items.isEmpty)
+            Text('No bookings', style: TextStyle(fontSize: 10, color: AppTheme.textMuted))
+          else
+            for (final item in items.take(3))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  item,
+                  style: const TextStyle(fontSize: 10, color: Colors.white70),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          if (items.length > 3)
+            Text('+${items.length - 3} more', style: TextStyle(fontSize: 9, color: AppTheme.textMuted)),
         ],
       ),
     );
