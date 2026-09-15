@@ -246,45 +246,63 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 
   Widget _buildMyBookingsSummary() {
-    final activeBookings = _myBookings.where((b) => b['status'] == 'approved' || b['status'] == 'pending').toList();
-    final activeOrders = _myOrders.where((o) => o['status'] != 'delivered' && o['status'] != 'cancelled').toList();
-    
-    if (activeBookings.isEmpty && activeOrders.isEmpty && _myGifts.isEmpty) {
+    final activeDay = _days.where((d) => d['is_active'] == true).toList();
+    final todayNum = activeDay.isNotEmpty ? activeDay.first['day_number'] : (_days.isNotEmpty ? _days.first['day_number'] : 1);
+
+    final todayBookings = _myBookings.where((b) => b['day_number'] == todayNum && (b['status'] == 'approved' || b['status'] == 'pending')).toList();
+    final todayOrders = _myOrders.where((o) => o['day_number'] == todayNum && o['status'] != 'cancelled' && o['status'] != 'delivered').toList();
+    final todayGifts = _myGifts.where((g) => g['day_number'] == todayNum && g['status'] != 'cancelled').toList();
+
+    if (todayBookings.isEmpty && todayOrders.isEmpty && todayGifts.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle(AppLocalizations.t('my_activity')),
+        _buildSectionTitle('Day $todayNum Booking'),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (activeBookings.isNotEmpty)
-              _buildActivityChip(Icons.self_improvement, '🪔 ${activeBookings.length} Aarti', Colors.orange),
-            if (activeOrders.isNotEmpty)
-              _buildActivityChip(Icons.restaurant, '🍽 ${activeOrders.length} Food', Colors.blue),
-            if (_myGifts.isNotEmpty)
-              _buildActivityChip(Icons.card_giftcard, '🎁 ${_myGifts.length} Gifts', Colors.purple),
-          ],
-        ),
+        if (todayBookings.isNotEmpty)
+          for (final b in todayBookings)
+            _buildBookingItem(Icons.self_improvement, 'Aarti', b['status'] ?? 'pending', Colors.orange),
+        if (todayOrders.isNotEmpty)
+          for (final o in todayOrders)
+            _buildBookingItem(Icons.restaurant, o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack', o['status'] ?? 'pending', Colors.blue),
+        if (todayGifts.isNotEmpty)
+          for (final g in todayGifts)
+            _buildBookingItem(Icons.card_giftcard, g['gift_name']?.toString().isNotEmpty == true ? g['gift_name'].toString() : 'Gift', g['status'] ?? 'assigned', Colors.purple),
       ],
     );
   }
 
-  Widget _buildActivityChip(IconData icon, String text, Color color) {
+  Widget _buildBookingItem(IconData icon, String name, String status, Color color) {
+    final isApproved = status == 'approved' || status == 'assigned' || status == 'delivered';
+    final statusColor = isApproved ? Colors.green : (status == 'cancelled' ? Colors.red : Colors.orange);
+    final statusLabel = isApproved ? 'Approved' : (status == 'cancelled' ? 'Cancelled' : 'Pending');
+
     return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.4))),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor)),
+          ),
         ],
       ),
     );
