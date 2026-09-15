@@ -1,7 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
-const String _apiBase = 'http://192.168.1.4:8080';
+final String _apiBase = kIsWeb ? '' : 'http://192.168.1.4:8080';
 
 class DatabaseHelper {
   static Future<void> connect() async {
