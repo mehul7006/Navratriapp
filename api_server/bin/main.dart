@@ -1255,7 +1255,25 @@ Future<Response> _orderSnack(Request request) async {
         'snackName': body['snack_name'] ?? '',
       },
     );
-    return _jsonResponse({'id': results.first.toColumnMap()['id']});
+    final orderId = results.first.toColumnMap()['id'] as int;
+    final snackName = body['snack_name'] ?? '';
+    final house = body['house_number'] ?? '';
+    final qty = body['quantity'] ?? 1;
+    if (snackName.toString().isNotEmpty) {
+      await conn.execute(
+        Sql.named('''
+          INSERT INTO expenses (category_id, item_name, amount, paid_to, paid_by, payment_method, notes, expense_date)
+          VALUES (4, @item, @amount, @paidTo, 'sponsor', 'cash', @notes, CURRENT_DATE)
+        '''),
+        parameters: {
+          'item': '[Snack] $snackName x$qty',
+          'amount': 0,
+          'paidTo': 'House $house',
+          'notes': 'Auto: snack order #$orderId by House $house',
+        },
+      );
+    }
+    return _jsonResponse({'id': orderId});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
@@ -1408,7 +1426,24 @@ Future<Response> _assignGift(Request request) async {
         'giftName': body['gift_name'] ?? '',
       },
     );
-    return _jsonResponse({'id': results.first.toColumnMap()['id']});
+    final assignmentId = results.first.toColumnMap()['id'] as int;
+    final giftName = body['gift_name'] ?? '';
+    final house = body['house_number'] ?? '';
+    if (giftName.toString().isNotEmpty) {
+      await conn.execute(
+        Sql.named('''
+          INSERT INTO expenses (category_id, item_name, amount, paid_to, paid_by, payment_method, notes, expense_date)
+          VALUES (5, @item, @amount, @paidTo, 'sponsor', 'cash', @notes, CURRENT_DATE)
+        '''),
+        parameters: {
+          'item': '[Gift] $giftName',
+          'amount': 0,
+          'paidTo': 'House $house',
+          'notes': 'Auto: gift assignment #$assignmentId to House $house',
+        },
+      );
+    }
+    return _jsonResponse({'id': assignmentId});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

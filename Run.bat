@@ -16,19 +16,15 @@ echo ============================================
 echo  [CLEANUP] Stopping all previous servers...
 echo ============================================
 
-:: Kill all dart and flutter processes
+:: Kill all dart and nginx processes
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM flutter.exe >nul 2>nul
+taskkill /F /IM nginx.exe >nul 2>nul
 
 :: Kill processes on all used ports
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8888 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8889 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :80 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :9001 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
-
-:: Kill named windows
-taskkill /FI "WindowTitle eq Navratri API Server" /T /F >nul 2>&1
-taskkill /FI "WindowTitle eq Navratri Flutter Web" /T /F >nul 2>&1
 
 echo [OK] All previous servers stopped!
 echo.
@@ -56,27 +52,35 @@ if %errorlevel% equ 0 (
     echo [WARNING] API server may not be ready yet. Check api_server.log
 )
 
-echo [4/4] Starting Flutter Web on port 9001...
+echo [4/4] Starting nginx on port 80...
+cd /d "E:\nginx-1.28.3"
+start /B nginx.exe
+cd /d "%PROJECT_DIR%"
+timeout /t 2 /nobreak >nul
+echo [OK] nginx started!
 echo.
 echo ============================================
 echo.
-echo   API Server:  http://localhost:8080
-echo   Flutter App: http://localhost:9001
+echo   App:  http://localhost
+echo   API:  http://localhost:8080
 echo.
-echo   Press Ctrl+C to stop both servers.
+echo   Press Ctrl+C to stop all servers.
 echo.
 echo ============================================
 echo.
 
-flutter run -d chrome --web-port=9001 --web-hostname=localhost
+pause
 
 echo.
 echo ============================================
 echo  [STOP] Stopping servers...
 echo ============================================
+cd /d "E:\nginx-1.28.3"
+nginx.exe -s stop >nul 2>nul
+cd /d "%PROJECT_DIR%"
 taskkill /F /IM dart.exe >nul 2>nul
-taskkill /F /IM flutter.exe >nul 2>nul
+taskkill /F /IM nginx.exe >nul 2>nul
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :9001 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :80 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
 echo  All servers stopped!
 echo ============================================

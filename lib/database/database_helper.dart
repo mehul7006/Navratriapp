@@ -850,11 +850,15 @@ class DatabaseHelper {
   }
 
   static Future<Map<String, dynamic>?> getDailyInfo({int? dayNumber}) async {
-    final params = dayNumber != null ? '?day=$dayNumber' : '';
-    final response = await http.get(Uri.parse('$_apiBase/api/daily-info$params')).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) return null;
-    final data = jsonDecode(response.body);
-    return data is Map ? Map<String, dynamic>.from(data) : null;
+    try {
+      final params = dayNumber != null ? '?day=$dayNumber' : '';
+      final response = await http.get(Uri.parse('$_apiBase/api/daily-info$params')).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body);
+      return data is Map ? Map<String, dynamic>.from(data) : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ========== START / END DAY ==========
