@@ -494,11 +494,6 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
                         ),
                       const SizedBox(height: 4),
                       Text(
-                        'Dress: ${ticket['dress_code'] ?? 'N/A'}',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.cyanAccent),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
                         'Ticket: ${ticket['ticket_code'] ?? 'N/A'}',
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary),
                       ),
