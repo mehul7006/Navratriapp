@@ -1,5 +1,5 @@
 @echo off
-title Navratri 2026 - Full Stack
+title Navratri 2026 - Nishitpark
 color 0A
 cls
 
@@ -9,75 +9,104 @@ echo ============================================
 echo.
 
 set "API_DIR=E:\Navratri App\navratri_app\api_server"
+set "WEB_DIR=E:\Navratri App\navratri_app\build\web"
 set "FLUTTER_SDK=E:\flutter\bin\cache\dart-sdk\bin"
+set "NGINX_DIR=E:\nginx-1.28.3"
 
-echo ============================================
-echo  [CLEANUP] Stopping all previous servers...
-echo ============================================
-
+:: ====== STOP EVERYTHING FIRST ======
+echo [CLEANUP] Stopping previous servers...
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
 taskkill /F /IM flutter.exe >nul 2>nul
-
-echo [OK] All previous servers stopped!
+timeout /t 2 /nobreak >nul
+echo [OK] Clean!
 echo.
 
-:: Wait for ports to be free
-timeout /t 2 /nobreak >nul
-
+:: ====== START API SERVER ======
 echo ============================================
-echo  [START] Starting fresh servers...
+echo [1/4] Starting API Server on port 8080...
 echo ============================================
+cd /d "%API_DIR%"
+start "Navratri API" /D "%API_DIR%" "%FLUTTER_SDK%\dart.exe" run bin\main.dart 8080
 
-echo [1/5] Starting API Server on port 8080...
-start "API Server" /D "%API_DIR%" "%FLUTTER_SDK%\dart.exe" run bin\main.dart 8080
-
-echo [2/5] Waiting 8s for API server to start...
+echo       Waiting 8s for DB connection...
 timeout /t 8 /nobreak >nul
 
-echo [3/5] Checking API server...
+:: Check API
 curl -s http://localhost:8080/api/daily-info >nul 2>nul
 if %errorlevel% equ 0 (
-    echo [OK] API server is running!
+    echo [OK] API Server + Database connected!
 ) else (
-    echo [WARNING] API server may not be ready yet.
+    echo [FAIL] API Server not responding. Check the API window for errors.
+    echo.
+    pause
+    exit /b 1
 )
 
-echo [4/5] Starting nginx on port 80...
-start "nginx" /D "E:\nginx-1.28.3" "E:\nginx-1.28.3\nginx.exe"
+:: ====== START NGINX ======
+echo.
+echo ============================================
+echo [2/4] Starting nginx on port 80...
+echo ============================================
+taskkill /F /IM nginx.exe >nul 2>nul
+timeout /t 1 /nobreak >nul
+start "Navratri nginx" /D "%NGINX_DIR%" "%NGINX_DIR%\nginx.exe"
 timeout /t 2 /nobreak >nul
-echo [OK] nginx started!
 
-echo [5/5] Starting ngrok tunnel on port 80...
-start "ngrok" "E:\ngrok.exe" http 80
-timeout /t 5 /nobreak >nul
-echo [OK] ngrok started!
+curl -s http://localhost/ >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [OK] nginx serving Flutter web!
+) else (
+    echo [FAIL] nginx not responding.
+)
 
+:: ====== START NGROK ======
+echo.
+echo ============================================
+echo [3/4] Starting ngrok tunnel...
+echo ============================================
+taskkill /F /IM ngrok.exe >nul 2>nul
+timeout /t 1 /nobreak >nul
+start "Navratri ngrok" "E:\ngrok.exe" http 80
+timeout /t 6 /nobreak >nul
+echo [OK] ngrok tunnel active!
+
+:: ====== SUMMARY ======
 echo.
 echo ============================================
 echo.
-echo   Local:   http://localhost
-echo   API:     http://localhost:8080
-echo   Public:  https://consuming-upriver-struck.ngrok-free.dev
+echo   ALL SERVICES STARTED!
+echo.
+echo   ------------------------------------------------
+echo   Local:      http://localhost
+echo   API:        http://localhost:8080
+echo   Public:     https://consuming-upriver-struck.ngrok-free.dev
+echo   ------------------------------------------------
 echo.
 echo   Share the Public URL with anyone!
 echo.
-echo   Press Enter to stop all servers.
+echo   TIPS:
+echo     - To rebuild web: flutter build web --release
+echo     - To rebuild APK: flutter build apk --release
+echo     - To stop: press Enter below
 echo.
 echo ============================================
 echo.
 
+:: ====== WAIT FOR USER ======
 pause
 
+:: ====== STOP EVERYTHING ======
 echo.
 echo ============================================
-echo  [STOP] Stopping servers...
+echo [STOP] Stopping all servers...
 echo ============================================
+cd /d "%NGINX_DIR%"
+"%NGINX_DIR%\nginx.exe" -s stop >nul 2>nul
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :80 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
+timeout /t 2 /nobreak >nul
 echo  All servers stopped!
 echo ============================================
