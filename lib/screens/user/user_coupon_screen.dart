@@ -61,7 +61,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
       setState(() {
         _tickets = tickets;
         _personNames = persons;
-        if (_selectedPerson.isEmpty && persons.length == 1) _selectedPerson = persons.first;
+        _selectedPerson = '';
         _isLoading = false;
       });
     } catch (e) {
