@@ -257,12 +257,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       return const SizedBox.shrink();
     }
 
-    String formatHouse(String h) {
-      final upper = h.toUpperCase();
-      if (upper.startsWith('HB') || upper.startsWith('H ')) return upper;
-      if (upper.startsWith('B') || upper.startsWith('A') || upper.startsWith('C') || upper.startsWith('D')) return 'H$upper';
-      return upper;
-    }
+    String formatHouse(String h) => 'House $h';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

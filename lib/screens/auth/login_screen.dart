@@ -381,7 +381,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Expanded(
                     child: Text(name, style: const TextStyle(fontSize: 18, color: Colors.white70), overflow: TextOverflow.ellipsis),
                   ),
-                  Text('H$house', style: TextStyle(fontSize: 16, color: AppTheme.goldPrimary)),
+                  Text('House $house', style: TextStyle(fontSize: 16, color: AppTheme.goldPrimary)),
                 ],
               ),
             );
@@ -430,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Icon(statusIcon, color: statusColor, size: 14),
                     const SizedBox(width: 6),
-                    Expanded(child: Text('$name (H$house)', style: const TextStyle(fontSize: 15, color: Colors.white70), overflow: TextOverflow.ellipsis)),
+                    Expanded(child: Text('$name (House $house)', style: const TextStyle(fontSize: 15, color: Colors.white70), overflow: TextOverflow.ellipsis)),
                     Text('#$bookingId', style: TextStyle(fontSize: 12, color: AppTheme.goldPrimary.withOpacity(0.6))),
                   ],
                 ),
@@ -451,7 +451,7 @@ class _LoginScreenState extends State<LoginScreen> {
               final house = s['house_number']?.toString() ?? '';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
-                child: Text('$buyer (H$house) - $snack', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                child: Text('$buyer (House $house) - $snack', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
             const SizedBox(height: 10),
@@ -469,7 +469,7 @@ class _LoginScreenState extends State<LoginScreen> {
               final house = g['house_number']?.toString() ?? '';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
-                child: Text('$donor (H$house) - $gift', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                child: Text('$donor (House $house) - $gift', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
           ],
