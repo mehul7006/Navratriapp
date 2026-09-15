@@ -278,8 +278,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           const SizedBox(height: 4),
           for (final o in todayOrders)
             _buildDetailItem(
-              '${o['person_name']?.toString() ?? o['house_number']?.toString() ?? ''} - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}',
-              'x${o['quantity'] ?? 1}',
+              '${o['person_name']?.toString().isNotEmpty == true ? o['person_name'].toString() : o['house_number']?.toString() ?? ''} - ${o['snack_name']?.toString().isNotEmpty == true ? o['snack_name'].toString() : 'Snack'}',
+              '',
               Colors.blue,
             ),
           const SizedBox(height: 8),
