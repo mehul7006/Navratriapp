@@ -2551,7 +2551,7 @@ Future<Response> _getDailyInfo(Request request) async {
                ab.status, ab.notes
         FROM aarti_bookings ab
         LEFT JOIN users u ON ab.user_id = u.id
-        WHERE ab.day_number = @day AND ab.status IN ('approved', 'pending')
+        WHERE ab.day_number = @day AND ab.status = 'approved'
         ORDER BY ab.created_at DESC
       '''),
       parameters: {'day': dayNumber},
@@ -2566,7 +2566,7 @@ Future<Response> _getDailyInfo(Request request) async {
         FROM gift_assignments ga
         LEFT JOIN gifts g ON ga.gift_id = g.id
         LEFT JOIN users u ON ga.user_id = u.id
-        WHERE ga.day_number = @day AND ga.status IN ('approved', 'pending')
+        WHERE ga.day_number = @day AND ga.status IN ('approved', 'assigned', 'delivered')
       '''),
       parameters: {'day': dayNumber},
     );
@@ -2580,7 +2580,7 @@ Future<Response> _getDailyInfo(Request request) async {
         FROM snack_orders so
         LEFT JOIN users u ON so.user_id = u.id
         LEFT JOIN snacks s ON so.snack_id = s.id
-        WHERE so.day_number = @day AND so.status IN ('approved', 'pending')
+        WHERE so.day_number = @day AND so.status IN ('approved')
       '''),
       parameters: {'day': dayNumber},
     );

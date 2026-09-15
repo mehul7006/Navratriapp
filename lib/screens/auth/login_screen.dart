@@ -448,10 +448,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ...snackOrders.take(3).map((s) {
               final buyer = s['buyer_name']?.toString() ?? '';
               final snack = s['snack_name']?.toString() ?? '';
-              final qty = s['quantity'] ?? 1;
+              final house = s['house_number']?.toString() ?? '';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
-                child: Text('$buyer - $snack x$qty', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                child: Text('$buyer (H$house) - $snack', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
             const SizedBox(height: 10),
@@ -466,9 +466,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ...giftAssignments.take(3).map((g) {
               final donor = g['donor_name']?.toString() ?? '';
               final gift = g['gift_name']?.toString() ?? '';
+              final house = g['house_number']?.toString() ?? '';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
-                child: Text('$donor - $gift', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                child: Text('$donor (H$house) - $gift', style: const TextStyle(fontSize: 16, color: Colors.white70), overflow: TextOverflow.ellipsis),
               );
             }),
           ],
