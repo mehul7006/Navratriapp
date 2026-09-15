@@ -16,10 +16,11 @@ echo ============================================
 echo  [CLEANUP] Stopping all previous servers...
 echo ============================================
 
-:: Kill all dart and nginx processes
+:: Kill all dart, nginx and ngrok processes
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM flutter.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
+taskkill /F /IM ngrok.exe >nul 2>nul
 
 :: Kill processes on all used ports
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
@@ -36,15 +37,15 @@ echo ============================================
 echo  [START] Starting fresh servers...
 echo ============================================
 
-echo [1/4] Starting API Server on port 8080...
+echo [1/5] Starting API Server on port 8080...
 cd /d "%PROJECT_DIR%\api_server"
 start /B cmd /c "dart run bin\main.dart > "%~dp0api_server.log" 2>&1"
 cd /d "%PROJECT_DIR%"
 
-echo [2/4] Waiting 8s for API server to start...
+echo [2/5] Waiting 8s for API server to start...
 timeout /t 8 /nobreak >nul
 
-echo [3/4] Checking API server...
+echo [3/5] Checking API server...
 curl -s http://localhost:8080/api/announcements >nul 2>nul
 if %errorlevel% equ 0 (
     echo [OK] API server is running!
@@ -52,19 +53,38 @@ if %errorlevel% equ 0 (
     echo [WARNING] API server may not be ready yet. Check api_server.log
 )
 
-echo [4/4] Starting nginx on port 80...
+echo [4/5] Starting nginx on port 80...
 cd /d "E:\nginx-1.28.3"
 start /B nginx.exe
 cd /d "%PROJECT_DIR%"
 timeout /t 2 /nobreak >nul
 echo [OK] nginx started!
+
+echo [5/5] Starting ngrok tunnel on port 80...
+start /B "" "E:\ngrok.exe" http 80
+timeout /t 5 /nobreak >nul
+
+:: Get ngrok public URL
 echo.
 echo ============================================
 echo.
-echo   App:  http://localhost
-echo   API:  http://localhost:8080
+for /f "tokens=*" %%u in ('curl -s http://127.0.0.1:4040/api/tunnels 2^>nul ^| findstr /C:"public_url"') do (
+    for /f "tokens=2 delims=:" %%a in ("%%u") do (
+        set "RAWURL=%%a"
+    )
+)
+:: Clean up the URL (remove quotes and spaces)
+set "PUBLIC_URL=%RAWURL: =%"
+set "PUBLIC_URL=%PUBLIC_URL:"=%"
+set "PUBLIC_URL=%PUBLIC_URL:,=%"
+
+echo   Local:   http://localhost
+echo   API:     http://localhost:8080
+echo   Public:  https://consuming-upriver-struck.ngrok-free.dev
 echo.
-echo   Press Ctrl+C to stop all servers.
+echo   Share the Public URL with anyone!
+echo.
+echo   Press Enter to stop all servers.
 echo.
 echo ============================================
 echo.
@@ -80,6 +100,7 @@ nginx.exe -s stop >nul 2>nul
 cd /d "%PROJECT_DIR%"
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
+taskkill /F /IM ngrok.exe >nul 2>nul
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :80 ^| findstr LISTENING') do taskkill /F /PID %%a >nul 2>nul
 echo  All servers stopped!
