@@ -16,6 +16,11 @@ echo ============================================
 echo  [CLEANUP] Stopping all previous servers...
 echo ============================================
 
+:: Kill named windows
+taskkill /FI "WindowTitle eq Navratri API Server" /T /F >nul 2>&1
+taskkill /FI "WindowTitle eq Navratri nginx" /T /F >nul 2>&1
+taskkill /FI "WindowTitle eq Navratri ngrok" /T /F >nul 2>&1
+
 :: Kill all dart, nginx and ngrok processes
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM flutter.exe >nul 2>nul
@@ -39,7 +44,7 @@ echo ============================================
 
 echo [1/5] Starting API Server on port 8080...
 cd /d "%PROJECT_DIR%\api_server"
-start /B cmd /c "dart run bin\main.dart > "%~dp0api_server.log" 2>&1"
+start "Navratri API Server" cmd /k "cd /d "%PROJECT_DIR%\api_server" && "E:\flutter\bin\cache\dart-sdk\bin\dart.exe" run bin\main.dart 8080"
 cd /d "%PROJECT_DIR%"
 
 echo [2/5] Waiting 8s for API server to start...
@@ -55,13 +60,13 @@ if %errorlevel% equ 0 (
 
 echo [4/5] Starting nginx on port 80...
 cd /d "E:\nginx-1.28.3"
-start /B nginx.exe
+start "Navratri nginx" cmd /k "cd /d E:\nginx-1.28.3 && nginx.exe"
 cd /d "%PROJECT_DIR%"
 timeout /t 2 /nobreak >nul
 echo [OK] nginx started!
 
 echo [5/5] Starting ngrok tunnel on port 80...
-start /B "" "E:\ngrok.exe" http 80
+start "Navratri ngrok" cmd /k "E:\ngrok.exe http 80"
 timeout /t 5 /nobreak >nul
 
 :: Get ngrok public URL
@@ -98,6 +103,9 @@ echo ============================================
 cd /d "E:\nginx-1.28.3"
 nginx.exe -s stop >nul 2>nul
 cd /d "%PROJECT_DIR%"
+taskkill /FI "WindowTitle eq Navratri API Server" /T /F >nul 2>&1
+taskkill /FI "WindowTitle eq Navratri nginx" /T /F >nul 2>&1
+taskkill /FI "WindowTitle eq Navratri ngrok" /T /F >nul 2>&1
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
