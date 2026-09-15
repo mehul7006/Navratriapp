@@ -22,11 +22,11 @@ Future<Connection> get db async {
   if (_db != null) return _db!;
   _db = await Connection.open(
     Endpoint(
-      host: 'localhost',
-      port: 5432,
-      database: 'navratri_2026',
-      username: 'postgres',
-      password: 'postgres',
+      host: Platform.environment['PG_HOST'] ?? 'localhost',
+      port: int.parse(Platform.environment['PG_PORT'] ?? '5432'),
+      database: Platform.environment['PG_DATABASE'] ?? 'navratri_2026',
+      username: Platform.environment['PG_USER'] ?? 'postgres',
+      password: Platform.environment['PG_PASSWORD'] ?? 'postgres',
     ),
     settings: const ConnectionSettings(
       sslMode: SslMode.disable,
