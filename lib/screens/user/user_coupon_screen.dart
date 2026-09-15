@@ -209,7 +209,7 @@ class _UserCouponScreenState extends State<UserCouponScreen> {
         scrollDirection: Axis.horizontal,
         children: [
           _buildDayChip(AppLocalizations.t('all_days'), 0),
-          ...List.generate(9, (index) => _buildDayChip('Day ${index + 1}', index + 1)),
+          ...List.generate(10, (index) => _buildDayChip('Day ${index + 1}', index + 1)),
         ],
       ),
     );
