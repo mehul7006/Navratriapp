@@ -28,7 +28,7 @@ class AppTheme {
   static const Color yellowLight = Color(0xFFFFE382);         // hub-live-card text
   
   // Card/Border Colors
-  static const Color cardBg = Color(0xE816042A);             // --card-bg: rgba(22, 4, 42, 0.88)
+  static const Color cardBg = Color(0x8F16042A);             // --card-bg: rgba(22, 4, 42, 0.56)
   static const Color cardBorder = Color(0x8CFFB703);         // --card-border: rgba(255, 183, 3, 0.55)
   
   // Gradients (Exact from CSS)
