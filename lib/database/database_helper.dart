@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const String _apiBase = 'http://localhost:8080';
+const String _apiBase = 'http://192.168.1.4:8080';
 
 class DatabaseHelper {
   static Future<void> connect() async {
