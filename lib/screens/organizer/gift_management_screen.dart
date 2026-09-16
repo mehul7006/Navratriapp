@@ -793,7 +793,8 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
     final tag = _extractExpenseTag(dist['notes']);
     if (tag == null) return;
     final isOrg = tag.startsWith('ORG:');
-    final data = tag.substring(isOrg ? 4 : 8);
+    if (!isOrg) return;
+    final data = tag.substring(4);
     final parts = data.split(':');
     if (parts.length < 1) return;
     final amount = double.tryParse(parts[0]) ?? 0;
@@ -802,27 +803,18 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
     final distName = info[0];
     final giftName = info[1];
     final dayNum = dist['day_number'] ?? 0;
-    final tagLabel = isOrg ? '[Organizer]' : '[Sponsor]';
-    final itemName = '$tagLabel Gift: ${giftName.isNotEmpty ? giftName : "Day $dayNum"} - $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
+    final itemName = '[Organizer] Gift: ${giftName.isNotEmpty ? giftName : "Day $dayNum"} - $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
     final noteText = 'Day $dayNum - ${giftName.isNotEmpty ? giftName : "Gift"} donated by $distName${houseNum.isNotEmpty ? " ($houseNum)" : ""}';
     try {
-      if (!isOrg) {
-        try {
-          await DatabaseHelper.execute(
-            "INSERT INTO expense_categories (id, name, description, is_active) SELECT 7, 'Sponsor Expense', 'Sponsored distributions', true WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE id = 7)",
-          );
-        } catch (_) {}
-      }
       await DatabaseHelper.execute(
-        'INSERT INTO expenses (category_id, item_name, amount, paid_to, expense_date, notes, paid_by) VALUES (@catId, @item, @amount, @paidTo, @date, @notes, @paidBy)',
+        'INSERT INTO expenses (category_id, item_name, amount, paid_to, expense_date, notes, paid_by) VALUES (5, @item, @amount, @paidTo, @date, @notes, @paidBy)',
         substitutionValues: {
-          'catId': isOrg ? 5 : 7,
           'item': itemName,
           'amount': amount,
           'paidTo': distName,
           'date': DateTime.now().toIso8601String(),
           'notes': noteText,
-          'paidBy': isOrg ? 'organizer' : 'sponsor',
+          'paidBy': 'organizer',
         },
       );
     } catch (e) {
