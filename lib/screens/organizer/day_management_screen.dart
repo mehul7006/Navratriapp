@@ -27,6 +27,11 @@ class _DayManagementScreenState extends State<DayManagementScreen> {
     setState(() => _isLoading = true);
     try {
       final days = await DatabaseHelper.getNavratriDays();
+      final activeDay = days.firstWhere(
+        (d) => d['is_active'] == true,
+        orElse: () => days.isNotEmpty ? days.first : {'day_number': 1},
+      );
+      _selectedDay = activeDay['day_number'] as int;
       final schedule = await DatabaseHelper.getDailySchedule(_selectedDay);
       setState(() {
         _days = days;
