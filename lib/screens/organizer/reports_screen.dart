@@ -81,7 +81,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       _sectionTitle('3. Balance Sheet'),
                       _buildBalanceSheet(),
                       const SizedBox(height: 16),
-                      _sectionTitle('4. Daily Activity (Day 1-9)'),
+                      _sectionTitle('4. Daily Activity (Day 1-10)'),
                       _buildDailyActivity(),
                       const SizedBox(height: 16),
                       _sectionTitle('5. Charts'),
@@ -275,18 +275,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const Text('Aarti Bookings', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
                 const SizedBox(height: 4),
                 ...aarti.map((a) {
-                  final status = (a['status'] ?? '').toString();
-                  final isApproved = status == 'approved';
                   final name = a['name'] ?? '';
+                  final house = a['house_number'] ?? '';
                   final slot = '${a['slot_time'] ?? ''} ${a['slot_label'] ?? ''}'.trim();
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('Aarti: $name ($slot)', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                          child: Text('$name ($house) - $slot', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                         ),
-                        _approvalBadge(isApproved),
+                        _approvalBadge(true),
                       ],
                     ),
                   );
@@ -295,21 +294,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
               if (foods.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Text('Food Orders', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue)),
+                const Text('Snack Distribution', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue)),
                 const SizedBox(height: 4),
                 ...foods.map((f) {
-                  final status = (f['status'] ?? '').toString();
-                  final isApproved = status == 'approved' || status == 'delivered';
                   final name = f['name'] ?? '';
+                  final house = f['house_number'] ?? '';
                   final item = f['snack_name'] ?? '';
+                  final paidBy = (f['paid_by'] ?? 'organizer').toString();
+                  final isSponsor = paidBy == 'sponsor';
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('Food Provider: $name ($item)', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                          child: Text('$name ($house) - $item', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                         ),
-                        _approvalBadge(isApproved),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSponsor ? Colors.purple.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(isSponsor ? 'Sponsor' : 'Organizer', style: TextStyle(fontSize: 9, color: isSponsor ? Colors.purpleAccent : Colors.greenAccent, fontWeight: FontWeight.w600)),
+                        ),
                       ],
                     ),
                   );
@@ -318,21 +325,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
               if (gifts.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Text('Gifts Provided', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple)),
+                const Text('Gift Distribution', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple)),
                 const SizedBox(height: 4),
                 ...gifts.map((g) {
-                  final status = (g['status'] ?? '').toString();
-                  final isApproved = status == 'approved' || status == 'delivered';
                   final name = g['name'] ?? '';
+                  final house = g['house_number'] ?? '';
                   final gift = g['gift_name'] ?? '';
+                  final paidBy = (g['paid_by'] ?? 'organizer').toString();
+                  final isSponsor = paidBy == 'sponsor';
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('Gift Provider: $name ($gift)', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                          child: Text('$name ($house) - $gift', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                         ),
-                        _approvalBadge(isApproved),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSponsor ? Colors.purple.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(isSponsor ? 'Sponsor' : 'Organizer', style: TextStyle(fontSize: 9, color: isSponsor ? Colors.purpleAccent : Colors.greenAccent, fontWeight: FontWeight.w600)),
+                        ),
                       ],
                     ),
                   );

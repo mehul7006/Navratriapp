@@ -2800,30 +2800,36 @@ Future<Response> _getDailyActivityReport(Request request) async {
       final dayNum = dayMap['day_number'];
 
       final aarti = await conn.execute(Sql.named('''
-        SELECT ab.house_number, u.name, a.slot_time, a.slot_label, ab.status
+        SELECT ab.house_number, COALESCE(u.name, 'Organizer') as name, a.slot_time, a.slot_label, ab.status
         FROM aarti_bookings ab
-        JOIN users u ON ab.user_id = u.id
-        JOIN aarti_slots a ON ab.slot_id = a.id
-        WHERE ab.day_number = @day AND ab.status != 'cancelled'
+        LEFT JOIN users u ON ab.user_id = u.id
+        LEFT JOIN aarti_slots a ON ab.slot_id = a.id
+        WHERE ab.day_number = @day AND ab.status = 'approved'
         ORDER BY a.slot_time
       '''), parameters: {'day': dayNum});
 
       final foods = await conn.execute(Sql.named('''
-        SELECT so.house_number, u.name, s.name as snack_name, so.quantity, so.total_price, so.status
+        SELECT so.house_number, COALESCE(u.name, 'Organizer') as name, s.name as snack_name, so.quantity, so.status,
+               CASE WHEN so.notes LIKE '%|ORG_EXPENSE:%' THEN 'organizer'
+                    WHEN so.notes LIKE '%|SPONSOR_EXPENSE:%' THEN 'sponsor'
+                    ELSE 'organizer' END as paid_by
         FROM snack_orders so
-        JOIN users u ON so.user_id = u.id
-        JOIN snacks s ON so.snack_id = s.id
-        WHERE so.day_number = @day AND so.status != 'cancelled'
-        ORDER BY u.house_number
+        LEFT JOIN users u ON so.user_id = u.id
+        LEFT JOIN snacks s ON so.snack_id = s.id
+        WHERE so.day_number = @day AND so.status = 'approved'
+        ORDER BY so.house_number
       '''), parameters: {'day': dayNum});
 
       final gifts = await conn.execute(Sql.named('''
-        SELECT ga.house_number, u.name, g.name as gift_name, ga.status
+        SELECT ga.house_number, COALESCE(u.name, 'Organizer') as name, g.name as gift_name, ga.status,
+               CASE WHEN ga.notes LIKE '%|ORG_EXPENSE:%' THEN 'organizer'
+                    WHEN ga.notes LIKE '%|SPONSOR_EXPENSE:%' THEN 'sponsor'
+                    ELSE 'organizer' END as paid_by
         FROM gift_assignments ga
-        JOIN users u ON ga.user_id = u.id
-        JOIN gifts g ON ga.gift_id = g.id
-        WHERE ga.day_number = @day AND ga.status != 'cancelled'
-        ORDER BY u.house_number
+        LEFT JOIN users u ON ga.user_id = u.id
+        LEFT JOIN gifts g ON ga.gift_id = g.id
+        WHERE ga.day_number = @day AND ga.status = 'approved'
+        ORDER BY ga.house_number
       '''), parameters: {'day': dayNum});
 
       activity.add({
