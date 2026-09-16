@@ -375,7 +375,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                       final isChosen = chosenDay == day;
 
                       return GestureDetector(
-                        onTap: completed || hasOrders
+                        onTap: completed
                             ? null
                             : () => setDialogState(() => chosenDay = day),
                         child: Container(
