@@ -362,9 +362,9 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 1.8,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 2.0,
                     ),
                     itemCount: 10,
                     itemBuilder: (context, index) {
