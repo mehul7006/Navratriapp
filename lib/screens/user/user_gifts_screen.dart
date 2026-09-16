@@ -370,8 +370,8 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
                       final hasAssignments = assignments.isNotEmpty;
                       final isChosen = chosenDay == day;
 
-                      return GestureDetector(
-                        onTap: completed || hasAssignments
+                       return GestureDetector(
+                        onTap: completed
                             ? null
                             : () => setDialogState(() => chosenDay = day),
                         child: Container(

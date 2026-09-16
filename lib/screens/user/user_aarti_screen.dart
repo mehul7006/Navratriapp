@@ -372,8 +372,8 @@ class _UserAartiScreenState extends State<UserAartiScreen> {
                       final hasBooking = bookings.isNotEmpty;
                       final isChosen = chosenDay == day;
 
-                      return GestureDetector(
-                        onTap: completed || hasBooking
+                       return GestureDetector(
+                        onTap: completed
                             ? null
                             : () => setDialogState(() => chosenDay = day),
                         child: Container(
