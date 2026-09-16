@@ -20,8 +20,10 @@ echo.
 
 echo  Stopping old servers...
 taskkill /F /IM dart.exe >nul 2>nul
+taskkill /F /IM dartvm.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
+taskkill /F /IM flutter.exe >nul 2>nul
 timeout /t 2 /nobreak >nul
 
 echo.
@@ -60,6 +62,10 @@ echo  [4/4] Starting ngrok tunnel...
 start /b "" cmd /c "E:\ngrok.exe http 80 > "%LOG_DIR%\ngrok.log" 2>&1"
 timeout /t 5 /nobreak >nul
 echo         [OK] ngrok started!
+
+echo.
+echo  Opening browser at http://localhost ...
+start http://localhost
 
 echo.
 echo ============================================
@@ -166,8 +172,10 @@ goto INPUT
 echo.
 echo  Stopping all servers...
 taskkill /F /IM dart.exe >nul 2>nul
+taskkill /F /IM dartvm.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
+taskkill /F /IM flutter.exe >nul 2>nul
 timeout /t 2 /nobreak >nul
 echo  All servers stopped!
 echo ============================================

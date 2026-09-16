@@ -29,9 +29,10 @@ void main() async {
     systemNavigationBarColor: AppTheme.purpleDark,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
-  runZonedGuarded(() {
-    runApp(const NavratriApp());
-  }, (error, stack) {});
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+  };
+  runApp(const NavratriApp());
 }
 
 class NavratriApp extends StatelessWidget {
