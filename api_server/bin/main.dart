@@ -2130,7 +2130,8 @@ Future<Response> _spinPrizeDraw(Request request) async {
         AND dt.user_id NOT IN (
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
-          AND drawn_at > NOW() - INTERVAL '3 days'
+          AND status = 'confirmed'
+          AND drawn_at > NOW() - INTERVAL '2 days'
         )
         ORDER BY RANDOM() LIMIT 1
       '''),
@@ -2185,7 +2186,7 @@ Future<Response> _spinDraw(Request request) async {
     if (spinsToday >= 6)
       return _errorResponse('Maximum 6 draws per day reached');
 
-    // Pick random assigned ticket for this day, excluding users who won in last 3 days
+    // Pick random assigned ticket for this day, excluding confirmed winners in last 2 days
     final ticketResult = await conn.execute(
       Sql.named('''
         SELECT dt.id, dt.ticket_code, dt.user_id, dt.house_number, u.name as user_name
@@ -2195,7 +2196,8 @@ Future<Response> _spinDraw(Request request) async {
         AND dt.user_id NOT IN (
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
-          AND drawn_at > NOW() - INTERVAL '3 days'
+          AND status = 'confirmed'
+          AND drawn_at > NOW() - INTERVAL '2 days'
         )
         ORDER BY RANDOM() LIMIT 1
       '''),
@@ -2299,7 +2301,7 @@ Future<Response> _getDrawTicketsForDay(Request request, String day) async {
           SELECT winner_id FROM daily_draws 
           WHERE winner_id IS NOT NULL 
           AND status = 'confirmed'
-          AND day_number = @day
+          AND drawn_at > NOW() - INTERVAL '2 days'
         )
         ORDER BY dt.id
       '''),
