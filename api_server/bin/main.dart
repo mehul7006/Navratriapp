@@ -1547,10 +1547,19 @@ Future<Response> _assignTicket(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
+
+    // Get the current active day
+    final activeDayResult = await conn.execute(
+      Sql.named("SELECT day_number FROM navratri_days WHERE is_active = TRUE LIMIT 1"),
+    );
+    final currentDay = activeDayResult.isNotEmpty
+        ? (activeDayResult.first.toColumnMap()['day_number'] as int)
+        : (body['day_number'] as int? ?? 1);
+
     await conn.execute(
       Sql.named('''
         UPDATE draw_tickets SET user_id = @userId, house_number = @house, 
-            is_assigned = TRUE, assigned_at = @now
+            is_assigned = TRUE, assigned_at = @now, day_number = @day
         WHERE ticket_code = @code
       '''),
       parameters: {
@@ -1558,9 +1567,10 @@ Future<Response> _assignTicket(Request request) async {
         'userId': body['user_id'],
         'house': body['house_number'],
         'now': DateTime.now().toUtc(),
+        'day': currentDay,
       },
     );
-    return _jsonResponse({'ok': true});
+    return _jsonResponse({'ok': true, 'day_number': currentDay});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
