@@ -7,10 +7,10 @@ set "API_DIR=E:\Navratri App\navratri_app\api_server"
 set "LOG_DIR=E:\Navratri App\navratri_app\logs"
 set "FLUTTER_SDK=E:\flutter\bin\cache\dart-sdk\bin"
 set "NGINX_DIR=E:\nginx-1.28.3"
+set "PG_SERVICE=postgresql-x64-18"
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
-:: ====== FULL START ======
 :START
 cls
 echo ============================================
@@ -22,13 +22,27 @@ echo  Stopping old servers...
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
-taskkill /F /IM flutter.exe >nul 2>nul
 timeout /t 2 /nobreak >nul
 
 echo.
-echo  [1/3] Starting API Server (port 8080)...
+echo  [1/4] Starting PostgreSQL Database...
+sc query "%PG_SERVICE%" | findstr "RUNNING" >nul 2>nul
+if %errorlevel% neq 0 (
+    net start "%PG_SERVICE%" >nul 2>nul
+    timeout /t 3 /nobreak >nul
+)
+"C:\Program Files\PostgreSQL\18\bin\pg_isready.exe" -h localhost -U postgres >nul 2>nul
+if %errorlevel% equ 0 (
+    echo         [OK] Database running!
+) else (
+    echo         [FAIL] Database not started. Run as Administrator.
+    pause
+    goto INPUT
+)
+
+echo  [2/4] Starting API Server (port 8080)...
 start /b "" cmd /c "cd /d "%API_DIR%" && "%FLUTTER_SDK%\dart.exe" run bin\main.dart 8080 > "%LOG_DIR%\api.log" 2>&1"
-echo         Waiting for DB...
+echo         Waiting for API...
 timeout /t 8 /nobreak >nul
 curl -s http://localhost:8080/api/daily-info >nul 2>nul
 if %errorlevel% equ 0 (
@@ -37,12 +51,12 @@ if %errorlevel% equ 0 (
     echo         [WARN] API not ready - check logs
 )
 
-echo  [2/3] Starting nginx (port 80)...
+echo  [3/4] Starting nginx (port 80)...
 start /b "" cmd /c "cd /d "%NGINX_DIR%" && nginx.exe > "%LOG_DIR%\nginx.log" 2>&1"
 timeout /t 2 /nobreak >nul
 echo         [OK] nginx started!
 
-echo  [3/3] Starting ngrok tunnel...
+echo  [4/4] Starting ngrok tunnel...
 start /b "" cmd /c "E:\ngrok.exe http 80 > "%LOG_DIR%\ngrok.log" 2>&1"
 timeout /t 5 /nobreak >nul
 echo         [OK] ngrok started!
@@ -57,10 +71,11 @@ echo.
 echo ============================================
 echo.
 echo   COMMANDS:
-echo     R  = Hot Restart  (restart API server only, keeps ngrok/nginx)
-echo     S  = Full Restart (stop everything and start fresh)
+echo     R  = Hot Restart  (restart API server only, keeps DB/nginx/ngrok)
+echo     F  = Full Restart (stop everything and start fresh)
+echo     H  = Hot Reload   (rebuild web + restart API)
 echo     L  = Show API logs
-echo     V  = Show status
+echo     S  = Show status
 echo     Q  = Quit (stop all)
 echo.
 echo ============================================
@@ -69,7 +84,7 @@ echo.
 :INPUT
 set /p "CHOICE=  > "
 
-:: R = HOT RESTART (only API server)
+:: R = HOT RESTART (API server only)
 if /I "%CHOICE%"=="R" (
     echo.
     echo  Hot restarting API server...
@@ -87,8 +102,33 @@ if /I "%CHOICE%"=="R" (
     goto INPUT
 )
 
-:: S = FULL RESTART
-if /I "%CHOICE%"=="S" goto START
+:: F = FULL RESTART
+if /I "%CHOICE%"=="F" goto START
+
+:: H = HOT RELOAD (rebuild web + restart API)
+if /I "%CHOICE%"=="H" (
+    echo.
+    echo  Rebuilding web and restarting API...
+    taskkill /F /IM dart.exe >nul 2>nul
+    echo  Building Flutter web...
+    cmd /c "E:\flutter\bin\flutter.bat build web --release --no-tree-shake-icons --no-pub" > "%LOG_DIR%\web_build.log" 2>&1
+    echo  Restarting nginx...
+    taskkill /F /IM nginx.exe >nul 2>nul
+    timeout /t 1 /nobreak >nul
+    start /b "" cmd /c "cd /d "%NGINX_DIR%" && nginx.exe > "%LOG_DIR%\nginx.log" 2>&1"
+    echo  Restarting API server...
+    start /b "" cmd /c "cd /d "%API_DIR%" && "%FLUTTER_SDK%\dart.exe" run bin\main.dart 8080 > "%LOG_DIR%\api.log" 2>&1"
+    timeout /t 6 /nobreak >nul
+    curl -s http://localhost:8080/api/daily-info >nul 2>nul
+    if %errorlevel% equ 0 (
+        echo  [OK] Web rebuilt + API + DB reconnected!
+    ) else (
+        echo  [WARN] API not ready yet...
+    )
+    echo  TIP: Hard refresh browser (Ctrl+Shift+R) to clear cache.
+    echo.
+    goto INPUT
+)
 
 :: L = SHOW LOGS
 if /I "%CHOICE%"=="L" (
@@ -103,14 +143,15 @@ if /I "%CHOICE%"=="L" (
     goto INPUT
 )
 
-:: V = STATUS
-if /I "%CHOICE%"=="V" (
+:: S = STATUS
+if /I "%CHOICE%"=="S" (
     echo.
     echo  === STATUS ===
+    sc query "%PG_SERVICE%" | findstr "RUNNING" >nul 2>nul && echo  [OK] PostgreSQL: RUNNING  || echo  [OFF] PostgreSQL: STOPPED
     tasklist /FI "IMAGENAME eq dart.exe" 2>nul | findstr dart >nul && echo  [OK] API Server: RUNNING  || echo  [OFF] API Server: STOPPED
     tasklist /FI "IMAGENAME eq nginx.exe" 2>nul | findstr nginx >nul && echo  [OK] nginx: RUNNING      || echo  [OFF] nginx: STOPPED
     tasklist /FI "IMAGENAME eq ngrok.exe" 2>nul | findstr ngrok >nul && echo  [OK] ngrok: RUNNING      || echo  [OFF] ngrok: STOPPED
-    curl -s http://localhost:8080/api/daily-info >nul 2>nul && echo  [OK] DB: CONNECTED       || echo  [OFF] DB: NOT CONNECTED
+    curl -s http://localhost:8080/api/daily-info >nul 2>nul && echo  [OK] API Health: OK       || echo  [OFF] API Health: FAIL
     echo.
     goto INPUT
 )
@@ -118,7 +159,7 @@ if /I "%CHOICE%"=="V" (
 :: Q = QUIT
 if /I "%CHOICE%"=="Q" goto STOP
 
-echo  Unknown command. Use R, S, L, V, or Q.
+echo  Unknown command. Use R, F, H, L, S, or Q.
 goto INPUT
 
 :STOP
@@ -127,7 +168,6 @@ echo  Stopping all servers...
 taskkill /F /IM dart.exe >nul 2>nul
 taskkill /F /IM nginx.exe >nul 2>nul
 taskkill /F /IM ngrok.exe >nul 2>nul
-taskkill /F /IM flutter.exe >nul 2>nul
 timeout /t 2 /nobreak >nul
 echo  All servers stopped!
 echo ============================================
