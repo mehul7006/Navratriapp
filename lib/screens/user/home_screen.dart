@@ -14,7 +14,7 @@ import 'user_schedule_screen.dart';
 import 'user_winners_screen.dart';
 import 'user_payment_history_screen.dart';
 import 'user_song_request_screen.dart';
-import 'user_shoutout_wall_screen.dart';
+import 'user_reports_screen.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -379,8 +379,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserPaymentHistoryScreen()))),
             _buildActionCard(icon: Icons.music_note, title: AppLocalizations.t('songs'), isDesktop: width > 600,
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSongRequestScreen()))),
-            _buildActionCard(icon: Icons.celebration, title: AppLocalizations.t('shoutout'), isDesktop: width > 600,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserShoutoutWallScreen()))),
+            _buildActionCard(icon: Icons.analytics, title: AppLocalizations.t('reports_analytics_title'), isDesktop: width > 600,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserReportsScreen()))),
           ],
         );
       },

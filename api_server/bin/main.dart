@@ -2802,13 +2802,13 @@ Future<Response> _getDailyActivityReport(Request request) async {
   try {
     final conn = await db;
     final days = await conn.execute(Sql.named('''
-      SELECT nd.day_number, nd.goddess_name, nd.date, nd.dress_code, nd.is_active, nd.is_completed
+      SELECT nd.day_number, nd.goddess_name, nd.date::text, nd.dress_code, nd.is_active, nd.is_completed
       FROM navratri_days nd ORDER BY nd.day_number
     '''));
 
     final activity = <Map<String, dynamic>>[];
     for (final dayRow in days) {
-      final dayMap = dayRow.toColumnMap();
+      final dayMap = _parseRow(dayRow);
       final dayNum = dayMap['day_number'];
 
       final aarti = await conn.execute(Sql.named('''
