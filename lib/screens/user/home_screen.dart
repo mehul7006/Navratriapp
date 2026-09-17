@@ -30,6 +30,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   List<Map<String, dynamic>> _myOrders = [];
   List<Map<String, dynamic>> _myGifts = [];
   List<Map<String, dynamic>> _days = [];
+  List<Map<String, dynamic>> _myPayments = [];
   Map<String, dynamic> _stats = {'bookings': 0, 'orders': 0, 'gifts': 0};
   Timer? _refreshTimer;
 
@@ -55,10 +56,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     List<Map<String, dynamic>> bookings = [];
     List<Map<String, dynamic>> orders = [];
     List<Map<String, dynamic>> gifts = [];
+    List<Map<String, dynamic>> payments = [];
     if (houseNumber.isNotEmpty) {
       bookings = await DatabaseHelper.getMyAartiBookings(houseNumber);
       orders = await DatabaseHelper.getMySnackOrders(houseNumber);
       gifts = await DatabaseHelper.getMyGifts(houseNumber);
+      payments = await DatabaseHelper.getPaymentsByHouse(houseNumber);
     }
     
     if (mounted) {
@@ -67,6 +70,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         _myBookings = bookings.where((b) => b['status'] != 'cancelled').toList();
         _myOrders = orders.where((o) => o['status'] != 'cancelled').toList();
         _myGifts = gifts;
+        _myPayments = payments;
         _days = days;
         _stats = {
           'bookings': _myBookings.length,
@@ -89,6 +93,35 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         elevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh, size: 20, color: AppTheme.goldPrimary), onPressed: _loadData),
+          IconButton(
+            icon: const Icon(Icons.logout, size: 20, color: AppTheme.goldPrimary),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        authProvider.logout();
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       child: RefreshIndicator(
         onRefresh: _loadData,
@@ -100,38 +133,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(icon: const Icon(Icons.refresh, size: 20, color: AppTheme.goldPrimary), onPressed: _loadData),
-                  IconButton(
-                    icon: const Icon(Icons.logout, size: 20, color: AppTheme.goldPrimary),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Logout'),
-                          content: const Text('Are you sure you want to logout?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                authProvider.logout();
-                                Navigator.pushReplacementNamed(context, '/login');
-                              },
-                              child: const Text('Logout'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
               _buildProfileCard(user),
               const SizedBox(height: 16),
               _buildCurrentDayBanner(),
@@ -154,6 +155,27 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 
   Widget _buildProfileCard(Map<String, dynamic>? user) {
+    String paymentStatus = 'unpaid';
+    double totalAmount = 0;
+    double paidAmount = 0;
+    for (var p in _myPayments) {
+      final amt = double.tryParse(p['amount'].toString()) ?? 0;
+      totalAmount += amt;
+      if (p['payment_status'] == 'paid') paidAmount += amt;
+      if (p['payment_status'] == 'pending' || p['payment_method']?.toString() == 'pay_later') paymentStatus = 'pay_later';
+    }
+    if (totalAmount > 0 && paidAmount >= totalAmount) paymentStatus = 'paid';
+    else if (paidAmount > 0 && paidAmount < totalAmount) paymentStatus = 'partial';
+
+    final Color statusColor;
+    final String statusLabel;
+    switch (paymentStatus) {
+      case 'paid': statusColor = Colors.green; statusLabel = 'Paid'; break;
+      case 'partial': statusColor = Colors.orange; statusLabel = 'Partial'; break;
+      case 'pay_later': statusColor = Colors.orange; statusLabel = 'Pay Later'; break;
+      default: statusColor = Colors.red; statusLabel = 'Unpaid'; break;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -187,6 +209,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   const SizedBox(width: 4),
                   Text('${user?['mobile_number'] ?? 'N/A'}', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                 ]),
+                if (_myPayments.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    Icon(Icons.payment, size: 13, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(statusLabel, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
+                    if (paymentStatus != 'paid') ...[
+                      const SizedBox(width: 8),
+                      Text('₹${paidAmount.toStringAsFixed(0)}/₹${totalAmount.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, color: statusColor.withOpacity(0.8))),
+                    ],
+                  ]),
+                ],
               ],
             ),
           ),

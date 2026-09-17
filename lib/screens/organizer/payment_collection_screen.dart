@@ -320,6 +320,16 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
               ),
             ),
           ],
+          if (!isDeleted && p['payment_method']?.toString() == 'pay_later' && p['tentative_date'] != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 12, color: statusColor),
+                const SizedBox(width: 4),
+                Text('Selected Date: ${p['tentative_date'].toString().split('T').first}', style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ],
           if (!isDeleted) ...[
             const SizedBox(height: 8),
             Row(
