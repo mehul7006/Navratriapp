@@ -295,7 +295,11 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                   children: [
                     Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDeleted ? Colors.red : Colors.white)),
                     const SizedBox(height: 2),
-                    Text('₹${p['amount']} • ${p['payment_method']?.toString().toUpperCase() ?? ''}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    Text(
+                      '₹${p['amount']} • ${p['payment_method']?.toString().toUpperCase() ?? ''}'
+                      '${(p['payment_method']?.toString() == 'pay_later' && p['tentative_date'] != null) ? ' • Date: ${p['tentative_date'].toString().split('T').first}' : ''}',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                    ),
                   ],
                 ),
               ),
@@ -318,16 +322,6 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                   Expanded(child: Text('Deleted: ${p['deleted_reason']}', style: const TextStyle(fontSize: 10, color: Colors.red))),
                 ],
               ),
-            ),
-          ],
-          if (!isDeleted && p['payment_method']?.toString() == 'pay_later' && p['tentative_date'] != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Icon(Icons.calendar_today, size: 12, color: statusColor),
-                const SizedBox(width: 4),
-                Text('Selected Date: ${p['tentative_date'].toString().split('T').first}', style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w500)),
-              ],
             ),
           ],
           if (!isDeleted) ...[
