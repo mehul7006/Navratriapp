@@ -5,16 +5,18 @@ echo ============================================================
 echo   NAVRATRI 2026 - DATABASE CLEAR (User Entries Only)
 echo ============================================================
 echo.
-echo This will REMOVE all user-made entries but KEEP:
-echo   - Users table (all logins safe)
+echo This will REMOVE all user-made entries and preset data:
+echo.
+echo KEPT (safe):
 echo   - Navratri Days (goddess, dress codes, dates)
-echo   - Aarti Slots (slot definitions)
 echo   - Expense Categories
-echo   - Snacks (menu items)
-echo   - Gifts (catalog)
+echo   - Admin/S-Admin/U-Admin logins only
 echo   - Table structures, API endpoints, site logic
 echo.
-echo Entries to be REMOVED:
+echo REMOVED:
+echo   - All users EXCEPT admin, SP-ADMIN, U-ADMIN
+echo   - Aarti Slots (per day booking, no preset slots)
+echo   - Snacks (direct distribution, no preset menu)
 echo   - Fund Collections (payments)
 echo   - Expenses
 echo   - Aarti Bookings
@@ -22,13 +24,9 @@ echo   - Snack Orders (distributions)
 echo   - Gift Assignments (distributions)
 echo   - Draw Tickets (generated)
 echo   - Daily Draws (lucky draw history)
-echo   - Song Requests
-echo   - Song Suggestions
-echo   - Song Upvotes
-echo   - Shoutouts
-echo   - Shoutout Reactions
-echo   - Announcements
-echo   - Broadcasts
+echo   - Song Requests / Suggestions / Upvotes
+echo   - Shoutouts / Reactions
+echo   - Announcements / Broadcasts
 echo   - Daily Schedules
 echo   - Sponsors
 echo.
@@ -43,25 +41,34 @@ if /I not "%confirm%"=="YES" (
     exit /b
 )
 echo.
-echo Clearing user entries...
+echo Step 1: Removing all users except admin, SP-ADMIN, U-ADMIN...
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d navratri_2026 -c "DELETE FROM users WHERE house_number NOT IN ('admin', 'SP-ADMIN', 'U-ADMIN');"
 
-"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d navratri_2026 -c "TRUNCATE TABLE shoutout_reactions CASCADE; TRUNCATE TABLE shoutouts CASCADE; TRUNCATE TABLE song_upvotes CASCADE; TRUNCATE TABLE song_suggestions CASCADE; TRUNCATE TABLE song_requests CASCADE; TRUNCATE TABLE daily_draws CASCADE; TRUNCATE TABLE draw_tickets CASCADE; TRUNCATE TABLE gift_assignments CASCADE; TRUNCATE TABLE snack_orders CASCADE; TRUNCATE TABLE aarti_bookings CASCADE; TRUNCATE TABLE expenses CASCADE; TRUNCATE TABLE fund_collections CASCADE; TRUNCATE TABLE broadcasts CASCADE; TRUNCATE TABLE announcements CASCADE; TRUNCATE TABLE daily_schedules CASCADE; TRUNCATE TABLE sponsors CASCADE;"
+echo Step 2: Clearing Aarti Slots (no preset slots)...
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d navratri_2026 -c "TRUNCATE TABLE aarti_bookings CASCADE; TRUNCATE TABLE aarti_slots CASCADE;"
+
+echo Step 3: Clearing Snacks (direct distribution, no preset menu)...
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d navratri_2026 -c "TRUNCATE TABLE snack_orders CASCADE; TRUNCATE TABLE snacks CASCADE;"
+
+echo Step 4: Clearing all remaining user entries...
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d navratri_2026 -c "TRUNCATE TABLE shoutout_reactions CASCADE; TRUNCATE TABLE shoutouts CASCADE; TRUNCATE TABLE song_upvotes CASCADE; TRUNCATE TABLE song_suggestions CASCADE; TRUNCATE TABLE song_requests CASCADE; TRUNCATE TABLE daily_draws CASCADE; TRUNCATE TABLE draw_tickets CASCADE; TRUNCATE TABLE gift_assignments CASCADE; TRUNCATE TABLE expenses CASCADE; TRUNCATE TABLE fund_collections CASCADE; TRUNCATE TABLE broadcasts CASCADE; TRUNCATE TABLE announcements CASCADE; TRUNCATE TABLE daily_schedules CASCADE; TRUNCATE TABLE sponsors CASCADE;"
 
 if %errorlevel% equ 0 (
     echo.
     echo ============================================================
-    echo   SUCCESS! All user entries cleared.
+    echo   SUCCESS! Database cleared.
     echo ============================================================
     echo.
-    echo   SAFE (still working):
-    echo     - Login (all users preserved)
-    echo     - Day schedule (goddess, dress codes)
-    echo     - Aarti slot definitions
-    echo     - Snack menu items
-    echo     - Gift catalog
-    echo     - Expense categories
+    echo   PRESERVED:
+    echo     - Admin logins: admin, SP-ADMIN, U-ADMIN
+    echo     - Navratri Days (10 days, goddess, dress codes)
+    echo     - Expense Categories (7)
+    echo     - All table structures and API endpoints
     echo.
-    echo   EMPTY (cleared, ready for new data):
+    echo   CLEARED (0 rows):
+    echo     - Users: only admin/SP-ADMIN/U-ADMIN remain
+    echo     - Aarti Slots: 0 (user adds per day)
+    Snacks: 0 (user distributes directly)
     echo     - Payments: 0
     echo     - Expenses: 0
     echo     - Aarti Bookings: 0
