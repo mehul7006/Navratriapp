@@ -297,7 +297,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                     const SizedBox(height: 2),
                     Text(
                       '₹${p['amount']} • ${p['payment_method']?.toString().toUpperCase() ?? ''}'
-                      '${(p['payment_method']?.toString() == 'pay_later' && p['tentative_date'] != null) ? ' • Date: ${p['tentative_date'].toString().split('T').first}' : ''}',
+                      '${(p['payment_method']?.toString() == 'pending' && p['tentative_date'] != null) ? ' • Date: ${p['tentative_date'].toString().split('T').first}' : ''}',
                       style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                     ),
                   ],
@@ -697,7 +697,8 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
       }
       final status = _paymentStatus == 'pay_later' ? 'pending' : 'paid';
       final paidDate = _paymentStatus == 'pay_later' ? _paymentDate : DateTime.now();
-      await DatabaseHelper.addPayment(userId: userId, houseNumber: house, amount: double.parse(_amountController.text), paymentMethod: _paymentMethod, paymentStatus: status, payerName: payerName.isNotEmpty ? payerName : null, paidDate: paidDate);
+      final tentativeDate = _paymentStatus == 'pay_later' ? _paymentDate : null;
+      await DatabaseHelper.addPayment(userId: userId, houseNumber: house, amount: double.parse(_amountController.text), paymentMethod: _paymentMethod, paymentStatus: status, payerName: payerName.isNotEmpty ? payerName : null, paidDate: paidDate, tentativeDate: tentativeDate);
       widget.onPaymentAdded();
       if (mounted) Navigator.pop(context);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'pending' ? 'Payment recorded (Pay Later)' : AppLocalizations.t('payment_added')), backgroundColor: Colors.green));
