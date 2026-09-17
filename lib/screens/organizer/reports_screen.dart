@@ -259,15 +259,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('DAY $dayNum : $goddess', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
-                    if (date.isNotEmpty) Text(date, style: const TextStyle(fontSize: 18, color: AppTheme.textMuted)),
+                    Text('DAY $dayNum : $goddess', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
+                    if (date.isNotEmpty) Text(date, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                   ],
                 ),
               ),
 
               if (aarti.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Text('Aarti Bookings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
+                const Text('Aarti Bookings', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange)),
                 const SizedBox(height: 4),
                 ...aarti.map((a) {
                   final name = a['name'] ?? '';
@@ -278,7 +278,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('$name ($house) - $slot', style: const TextStyle(fontSize: 17, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                          child: Text('$name ($house) - $slot', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                         ),
                         _approvalBadge(true),
                       ],
@@ -289,7 +289,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
               if (foods.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Text('Snack Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+                const Text('Snack Distribution', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue)),
                 const SizedBox(height: 4),
                 ...foods.map((f) {
                   final name = f['name'] ?? '';
@@ -302,7 +302,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('$name ($house) - $item', style: const TextStyle(fontSize: 17, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                          child: Text('$name ($house) - $item', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -310,7 +310,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             color: isSponsor ? Colors.purple.withOpacity(0.3) : Colors.green.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(isSponsor ? 'Sponsor' : 'Organizer', style: TextStyle(fontSize: 14, color: isSponsor ? Colors.purpleAccent : Colors.greenAccent, fontWeight: FontWeight.w600)),
+                          child: Text(isSponsor ? 'Sponsor' : 'Organizer', style: TextStyle(fontSize: 9, color: isSponsor ? Colors.purpleAccent : Colors.greenAccent, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -320,7 +320,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
               if (gifts.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                const Text('Gift Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple)),
+                const Text('Gift Distribution', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple)),
                 const SizedBox(height: 4),
                 ...gifts.map((g) {
                   final name = g['name'] ?? '';
@@ -333,7 +333,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('$name ($house) - $gift', style: const TextStyle(fontSize: 17, color: Colors.white70), overflow: TextOverflow.ellipsis),
+                          child: Text('$name ($house) - $gift', style: const TextStyle(fontSize: 11, color: Colors.white70), overflow: TextOverflow.ellipsis),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -341,7 +341,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             color: isSponsor ? Colors.purple.withOpacity(0.3) : Colors.green.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(isSponsor ? 'Sponsor' : 'Organizer', style: TextStyle(fontSize: 14, color: isSponsor ? Colors.purpleAccent : Colors.greenAccent, fontWeight: FontWeight.w600)),
+                          child: Text(isSponsor ? 'Sponsor' : 'Organizer', style: TextStyle(fontSize: 9, color: isSponsor ? Colors.purpleAccent : Colors.greenAccent, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -352,7 +352,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               if (aarti.isEmpty && foods.isEmpty && gifts.isEmpty)
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(AppLocalizations.t('no_activity_day'), style: TextStyle(color: AppTheme.textMuted, fontSize: 18)),
+                  child: Text(AppLocalizations.t('no_activity_day'), style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                 ),
             ],
           ),
