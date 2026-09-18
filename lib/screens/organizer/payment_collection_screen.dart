@@ -670,8 +670,8 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
     if (upperHouse.isEmpty) { setState(() { _houseMembers = []; _showMembers = false; }); return; }
     try {
       final members = await DatabaseHelper.getMembersByHouse(upperHouse);
-      setState(() { _houseMembers = members; _showMembers = members.isNotEmpty; });
-    } catch (e) { setState(() { _houseMembers = []; _showMembers = false; }); }
+      setState(() { _houseMembers = members; _showMembers = true; });
+    } catch (e) { setState(() { _houseMembers = []; _showMembers = true; }); }
   }
 
   void _selectMember(Map<String, dynamic> m) { setState(() { _nameController.text = m['name'] ?? ''; _showMembers = false; }); }
@@ -720,7 +720,13 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
             children: [
               Text(AppLocalizations.t('add_payment'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.goldPrimary)),
               const SizedBox(height: 16),
-              _buildField(_houseController, AppLocalizations.t('house_number'), Icons.home, onChanged: _loadHouseMembers, textCapitalization: TextCapitalization.characters),
+              _buildField(_houseController, AppLocalizations.t('house_number'), Icons.home, onChanged: _loadHouseMembers, textCapitalization: TextCapitalization.characters, validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Enter house number';
+                final upper = v.trim().toUpperCase();
+                final validHouse = RegExp(r'^[A-Z]+\d+([A-Z ]+[A-Z]+)?$');
+                if (!validHouse.hasMatch(upper)) return 'Invalid format (e.g. B439 or B439 Navin)';
+                return null;
+              }),
               if (_showMembers && _houseMembers.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
@@ -741,6 +747,27 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
                         );
                       }).toList(),
                     ),
+                  ),
+                ),
+              ],
+              if (_showMembers && _houseMembers.isEmpty) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: AppTheme.purpleDark, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))),
+                  child: Column(
+                    children: [
+                      Text('No member found for ${_houseController.text.toUpperCase()}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => setState(() => _showMembers = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.goldPrimary)),
+                          child: const Text('Add New Member', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -785,7 +812,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
     );
   }
 
-  Widget _buildField(TextEditingController ctrl, String label, IconData icon, {TextInputType? keyboardType, ValueChanged<String>? onChanged, TextCapitalization? textCapitalization}) {
+  Widget _buildField(TextEditingController ctrl, String label, IconData icon, {TextInputType? keyboardType, ValueChanged<String>? onChanged, TextCapitalization? textCapitalization, FormFieldValidator<String>? validator}) {
     return TextFormField(
       controller: ctrl, keyboardType: keyboardType, style: const TextStyle(color: Colors.white), onChanged: onChanged, textCapitalization: textCapitalization ?? TextCapitalization.none,
       decoration: InputDecoration(
@@ -795,7 +822,7 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
       ),
-      validator: (v) => v == null || v.isEmpty ? AppLocalizations.t('required') : null,
+      validator: validator ?? ((v) => v == null || v.isEmpty ? AppLocalizations.t('required') : null),
     );
   }
 

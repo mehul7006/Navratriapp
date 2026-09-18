@@ -626,7 +626,7 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                   if (val != upper) houseNumberController.value = houseNumberController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
                   setModalState(() {
                     if (upper.length >= 2) {
-                      filteredMembers = allMembers.where((m) => (m['house_number'] ?? '').toString().toUpperCase().contains(upper)).toList();
+                      filteredMembers = allMembers.where((m) => (m['house_number'] ?? '').toString().toUpperCase().contains(upper) || (m['name'] ?? '').toString().toUpperCase().contains(upper)).toList();
                     } else {
                       filteredMembers = [];
                     }

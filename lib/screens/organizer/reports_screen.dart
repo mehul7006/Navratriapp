@@ -110,26 +110,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     if (payments.isEmpty) return _emptyCard(AppLocalizations.t('no_payment_data'));
 
-    final sortedPayments = List<Map<String, dynamic>>.from(payments)
+    final paidOnly = List<Map<String, dynamic>>.from(payments)
+      .where((p) => (p['payment_status'] ?? '').toString() == 'paid' && _parseAmount(p['total_amount']) > 0)
+      .toList()
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
+
+    if (paidOnly.isEmpty) return _emptyCard('No paid income data');
 
     return Column(
       children: [
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House', 'Owner Name', 'Amount', 'Status']),
-              ...sortedPayments.asMap().entries.map((entry) {
+              _tableHeader(['#', 'House', 'Name', 'Amount']),
+              ...paidOnly.asMap().entries.map((entry) {
                 final p = entry.value;
                 final amount = _parseAmount(p['total_amount']);
-                final status = (p['payment_status'] ?? 'unpaid').toString();
-                final isPaid = status == 'paid';
+                final name = (p['payer_name'] ?? p['owner_name'] ?? '').toString();
                 return _tableRow([
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
-                  '${p['owner_name'] ?? ''}',
+                  name,
                   '₹${amount.toStringAsFixed(0)}',
-                  isPaid ? 'Paid' : 'Unpaid',
                 ]);
               }),
               _divider(),
@@ -535,7 +537,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['#', 'House', 'Owner Name', 'Amount (₹)', 'Status'],
+          headers: ['#', 'House', 'Name', 'Amount (₹)'],
           data: _buildIncomeTableRows(),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -627,20 +629,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<List<String>> _buildIncomeTableRows() {
     final payments = _paymentReport?['payments'] as List? ?? [];
-    final sortedPayments = List<Map<String, dynamic>>.from(payments)
+    final paidOnly = List<Map<String, dynamic>>.from(payments)
+      .where((p) => (p['payment_status'] ?? '').toString() == 'paid' && _parseAmount(p['total_amount']) > 0)
+      .toList()
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
     final rows = <List<String>>[];
     int idx = 1;
-    for (final p in sortedPayments) {
+    for (final p in paidOnly) {
       final amount = _parseAmount(p['total_amount']);
-      final status = (p['payment_status'] ?? 'unpaid').toString();
-      final isPaid = status == 'paid';
+      final name = (p['payer_name'] ?? p['owner_name'] ?? '').toString();
       rows.add([
         '${idx++}',
         '${p['house_number'] ?? ''}',
-        '${p['owner_name'] ?? ''}',
+        name,
         '₹${amount.toStringAsFixed(0)}',
-        isPaid ? 'Paid' : 'Unpaid',
       ]);
     }
     return rows;

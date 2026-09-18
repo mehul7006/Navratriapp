@@ -497,7 +497,7 @@ Future<Response> _getMembersByHouse(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named(
-          'SELECT * FROM users WHERE house_number ILIKE @house || \'%\' AND is_active = true ORDER BY name'),
+          'SELECT * FROM users WHERE (house_number ILIKE \'%\' || @house || \'%\' OR name ILIKE \'%\' || @house || \'%\') AND is_active = true ORDER BY house_number, name'),
       parameters: {'house': house},
     );
     return _jsonResponse(_parseResults(results));
@@ -2748,12 +2748,14 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
       SELECT u.house_number, u.name as owner_name, 
              COALESCE(SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END), 0) as total_amount,
              MAX(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.payment_method ELSE NULL END) as payment_method,
-             CASE WHEN SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END) > 0 THEN 'paid' ELSE 'unpaid' END as payment_status,
-             COUNT(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.id END) as payment_count
+             'paid' as payment_status,
+             COUNT(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.id END) as payment_count,
+             MAX(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.payer_name ELSE NULL END) as payer_name
       FROM users u
       LEFT JOIN fund_collections fc ON fc.user_id = u.id
       WHERE u.member_type = 'main' AND u.user_type != 'organizer' AND u.is_active = TRUE
       GROUP BY u.id, u.house_number, u.name
+      HAVING SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END) > 0
       ORDER BY u.house_number ASC
     '''));
     final total = await conn.execute(Sql.named(
