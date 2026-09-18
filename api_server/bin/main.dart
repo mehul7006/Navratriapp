@@ -497,7 +497,7 @@ Future<Response> _getMembersByHouse(Request request, String house) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named(
-          'SELECT * FROM users WHERE house_number = @house AND is_active = true ORDER BY name'),
+          'SELECT * FROM users WHERE house_number ILIKE @house || \'%\' AND is_active = true ORDER BY name'),
       parameters: {'house': house},
     );
     return _jsonResponse(_parseResults(results));
