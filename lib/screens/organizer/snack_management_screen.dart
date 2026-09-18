@@ -498,7 +498,7 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
               children: [
                 Icon(Icons.restaurant, size: 18, color: AppTheme.goldPrimary),
                 const SizedBox(width: 6),
-                Text(snackName.isNotEmpty ? snackName : 'Snack Day ${dist['day_number'] ?? ''}', style: const TextStyle(fontSize: 15, color: Colors.white)),
+                Text(snackName.isNotEmpty ? snackName : (dist['snack_name']?.toString().isNotEmpty == true ? dist['snack_name'].toString() : 'Snack Day ${dist['day_number'] ?? ''}'), style: const TextStyle(fontSize: 15, color: Colors.white)),
                 if (distBadge.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Container(
@@ -572,6 +572,12 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
       return [parts[0], parts.sublist(1).join(' - '), houseNum];
     }
     if (raw.isNotEmpty) return [raw, '', houseNum];
+    final dbSnackName = dist['snack_name']?.toString() ?? '';
+    final dbHouse = dist['house_number']?.toString() ?? '';
+    final dbName = dist['user_name']?.toString() ?? '';
+    if (dbName.isNotEmpty || dbHouse.isNotEmpty || dbSnackName.isNotEmpty) {
+      return [dbName.isNotEmpty ? dbName : (dbHouse.isNotEmpty ? dbHouse : 'Distributor'), dbSnackName, dbHouse];
+    }
     return [dist['user_name'] ?? 'Distributor', '', houseNum];
   }
 

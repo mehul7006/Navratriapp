@@ -320,7 +320,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
             width: 36, height: 36,
             decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(8)),
             child: Center(
-              child:               Text(house, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+              child: Text(house, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
             ),
           ),
           const SizedBox(width: 10),
