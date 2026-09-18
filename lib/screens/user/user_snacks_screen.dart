@@ -259,7 +259,7 @@ class _UserSnacksScreenState extends State<UserSnacksScreen> {
             ),
           ),
           Icon(statusIcon, color: statusColor, size: 24),
-          if (isMyOrder && status != 'cancelled') ...[
+          if (isMyOrder && status != 'cancelled' && status != 'rejected') ...[
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () => _cancelOrder(order),

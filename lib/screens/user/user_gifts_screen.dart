@@ -188,9 +188,10 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
         statusLabel = 'Awaiting Approval';
         break;
       case 'cancelled':
+      case 'rejected':
         statusColor = Colors.red;
         statusIcon = Icons.cancel;
-        statusLabel = 'Cancelled';
+        statusLabel = 'Rejected';
         break;
       default:
         statusColor = Colors.orange;
@@ -255,7 +256,7 @@ class _UserGiftsScreenState extends State<UserGiftsScreen> {
             ),
           ),
           Icon(statusIcon, color: statusColor, size: 24),
-          if (isMyAssignment && status != 'cancelled') ...[
+          if (isMyAssignment && status != 'cancelled' && status != 'rejected') ...[
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () => _cancelAssignment(assignment),
