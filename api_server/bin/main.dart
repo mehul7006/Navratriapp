@@ -1248,7 +1248,7 @@ Future<Response> _orderSnack(Request request) async {
       parameters: {
         'userId': body['user_id'],
         'house': body['house_number'],
-        'snackId': body['snack_id'] ?? 1,
+        'snackId': body['snack_id'],
         'day': body['day_number'],
         'qty': body['quantity'] ?? 1,
         'notes': body['notes'] ?? '',
