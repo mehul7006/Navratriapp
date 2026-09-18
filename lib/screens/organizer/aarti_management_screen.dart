@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
-import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class AartiManagementScreen extends StatefulWidget {
@@ -12,11 +11,11 @@ class AartiManagementScreen extends StatefulWidget {
 }
 
 class _AartiManagementScreenState extends State<AartiManagementScreen> {
-  List<Map<String, dynamic>> _bookings = [];
+  List<Map<String, dynamic>> _allBookings = [];
   List<Map<String, dynamic>> _days = [];
   bool _isLoading = true;
-  int _selectedDay = 1;
-  int _selectedTab = 0; // 0=Book, 1=Pending, 2=Confirmed
+  int _selectedDay = 0;
+  String? _selectedStatus;
 
   @override
   void initState() {
@@ -25,40 +24,43 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   }
 
   Future<void> _initData() async {
-    _days = await DatabaseHelper.getNavratriDays();
     final activeDay = await DatabaseHelper.getCurrentActiveDay();
     if (activeDay != null) _selectedDay = activeDay;
     await _loadData();
   }
 
-  bool _isDayCompleted(int day) {
-    final d = _days.firstWhere((d) => d['day_number'] == day, orElse: () => {});
-    return d['is_completed'] == true;
-  }
-
-  bool _isDayActive(int day) {
-    final d = _days.firstWhere((d) => d['day_number'] == day, orElse: () => {});
-    return d['is_active'] == true;
-  }
-
-  int get _runningDay {
-    for (final d in _days) {
-      if (d['is_active'] == true) return d['day_number'] as int;
-    }
-    return 1;
+  bool _isDayCompleted(int dayNumber) {
+    final day = _days.firstWhere((d) => d['day_number'] == dayNumber, orElse: () => {});
+    if (day.isEmpty) return false;
+    return day['is_completed'] == true || day['is_completed'] == 1;
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    _bookings = await DatabaseHelper.getAartiBookings(dayNumber: _selectedDay);
+    _days = await DatabaseHelper.getNavratriDays();
+    _allBookings = await DatabaseHelper.getAartiBookings();
     if (mounted) setState(() => _isLoading = false);
   }
 
-  List<Map<String, dynamic>> get _pendingBookings =>
-      _bookings.where((b) => b['status'] == 'pending').toList();
+  List<Map<String, dynamic>> get _filteredBookings {
+    var list = _selectedDay == 0 ? _allBookings : _allBookings.where((d) => d['day_number'] == _selectedDay).toList();
+    if (_selectedStatus != null) {
+      if (_selectedStatus == 'cancelled') {
+        list = list.where((d) => d['status'] == 'cancelled' || d['status'] == 'rejected').toList();
+      } else {
+        list = list.where((d) => d['status'] == _selectedStatus).toList();
+      }
+    }
+    return list;
+  }
 
-  List<Map<String, dynamic>> get _confirmedBookings =>
-      _bookings.where((b) => b['status'] == 'approved').toList();
+  int _getCount(int dayNumber) {
+    return _allBookings.where((d) => d['day_number'] == dayNumber && d['status'] != 'cancelled' && d['status'] != 'rejected').length;
+  }
+
+  int _getPendingCount(int dayNumber) {
+    return _allBookings.where((d) => d['day_number'] == dayNumber && (d['status'] ?? 'pending') == 'pending').length;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,16 +69,14 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
         children: [
           Column(
             children: [
-              _buildDaySelector(),
-              _buildTabBar(),
+              _buildHeader(),
+              _buildDayChips(),
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _selectedTab == 0
-                        ? _buildBookAartiTab()
-                        : _selectedTab == 1
-                            ? _buildPendingTab()
-                            : _buildConfirmedTab(),
+                    : _selectedDay == 0
+                        ? _buildAllDaysView()
+                        : _buildDayBookingsList(),
               ),
             ],
           ),
@@ -94,157 +94,342 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
     );
   }
 
-  Widget _buildDaySelector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
-        children: List.generate(10, (index) {
-          final day = index + 1;
-          final isSelected = _selectedDay == day;
-          final isCompleted = _isDayCompleted(day);
-          final isActive = _isDayActive(day);
-          return Expanded(
-            child: GestureDetector(
-              onTap: isCompleted ? null : () { setState(() => _selectedDay = day); _loadData(); },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? Colors.grey.withOpacity(0.3)
-                      : isSelected
-                          ? AppTheme.goldPrimary
-                          : isActive
-                              ? AppTheme.goldPrimary.withOpacity(0.15)
-                              : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isCompleted
-                        ? Colors.grey.withOpacity(0.5)
-                        : AppTheme.goldPrimary.withOpacity(0.5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (isCompleted)
-                      Icon(Icons.lock, size: 10, color: Colors.grey)
-                    else
-                      Text('D$day', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
+  Widget _buildHeader() {
+    final total = _allBookings.length;
+    final pending = _allBookings.where((d) => (d['status'] ?? 'pending') == 'pending').length;
+    final approved = _allBookings.where((d) => d['status'] == 'approved').length;
+    final cancelled = _allBookings.where((d) => d['status'] == 'cancelled' || d['status'] == 'rejected').length;
 
-  Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: AppTheme.hubItemDecoration,
       child: Row(
         children: [
-          _buildTab('Book Aarti', 0),
+          Expanded(child: _buildStatChip(Icons.pending_actions, '$pending', 'Pending', Colors.orange, isSelected: _selectedStatus == 'pending', onTap: () => setState(() => _selectedStatus = _selectedStatus == 'pending' ? null : 'pending'))),
           const SizedBox(width: 6),
-          _buildTab('Pending (${_pendingBookings.length})', 1),
+          Expanded(child: _buildStatChip(Icons.check_circle, '$approved', 'Approved', Colors.green, isSelected: _selectedStatus == 'approved', onTap: () => setState(() => _selectedStatus = _selectedStatus == 'approved' ? null : 'approved'))),
           const SizedBox(width: 6),
-          _buildTab('Confirmed (${_confirmedBookings.length})', 2),
+          Expanded(child: _buildStatChip(Icons.cancel, '$cancelled', 'Cancelled', Colors.red, isSelected: _selectedStatus == 'cancelled', onTap: () => setState(() => _selectedStatus = _selectedStatus == 'cancelled' ? null : 'cancelled'))),
+          const SizedBox(width: 6),
+          Expanded(child: _buildStatChip(Icons.bookmark, '$total', 'Total', AppTheme.goldPrimary, isSelected: _selectedStatus == null, onTap: () => setState(() => _selectedStatus = null))),
         ],
       ),
     );
   }
 
-  Widget _buildTab(String label, int index) {
-    final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedTab = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.5)),
-          ),
-          child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : AppTheme.textMuted)),
+  Widget _buildStatChip(IconData icon, String count, String label, Color color, {bool isSelected = false, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.2) : color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(isSelected ? 0.6 : 0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 2),
+            Text(count, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: TextStyle(fontSize: 10, color: color.withOpacity(0.7))),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildBookAartiTab() {
-    if (_bookings.isEmpty) {
+  Widget _buildDayChips() {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _buildChip(0, 'All', _allBookings.where((d) => d['status'] != 'cancelled' && d['status'] != 'rejected').length),
+          for (int day = 1; day <= 10; day++)
+            _buildChip(day, 'Day $day', _getCount(day)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(int day, String label, int count) {
+    final isSelected = _selectedDay == day;
+    final completed = day > 0 && _isDayCompleted(day);
+    final pending = day > 0 ? _getPendingCount(day) : _allBookings.where((d) => (d['status'] ?? 'pending') == 'pending').length;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedDay = day),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.goldPrimary : AppTheme.goldPrimary.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: completed ? Colors.red.withOpacity(0.6) : AppTheme.goldPrimary.withOpacity(0.7),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? AppTheme.purpleDark : Colors.white.withOpacity(0.9))),
+            if (count > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.purpleDark.withOpacity(0.2) : AppTheme.goldPrimary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('$count', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? AppTheme.purpleDark : AppTheme.goldPrimary)),
+              ),
+            ],
+            if (pending > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(8)),
+                child: Text('$pending', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAllDaysView() {
+    final filtered = _filteredBookings;
+    final byDay = <int, List<Map<String, dynamic>>>{};
+    for (final d in filtered) {
+      final day = d['day_number'] ?? 0;
+      byDay.putIfAbsent(day, () => []).add(d);
+    }
+    final sortedDays = byDay.keys.toList()..sort();
+
+    if (sortedDays.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wb_sunny_outlined, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+            Icon(Icons.self_improvement, size: 48, color: AppTheme.textMuted),
             const SizedBox(height: 12),
-            Text('No bookings for Day $_selectedDay', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
-            const SizedBox(height: 8),
-            Text('Tap + to book aarti', style: TextStyle(color: AppTheme.goldPrimary.withOpacity(0.5), fontSize: 12)),
+            Text('No aarti bookings yet', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
           ],
         ),
       );
     }
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _bookings.length,
-      itemBuilder: (context, index) => _buildBookingCard(_bookings[index]),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      itemCount: sortedDays.length,
+      itemBuilder: (context, index) {
+        final day = sortedDays[index];
+        final dayItems = byDay[day]!;
+        final dayData = _days.firstWhere((d) => d['day_number'] == day, orElse: () => {});
+        final goddess = dayData['goddess_name'] ?? '';
+        final completed = _isDayCompleted(day);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: AppTheme.hubItemDecoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => _selectedDay = day),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(
+                          gradient: completed ? null : AppTheme.goldGradient,
+                          color: completed ? Colors.red.withOpacity(0.2) : null,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text('D$day', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: completed ? Colors.red : AppTheme.purpleDark)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(goddess.isNotEmpty ? goddess : 'Day $day', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                            Text('${dayItems.length} bookings', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+                          ],
+                        ),
+                      ),
+                      if (completed)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                          child: const Text('COMPLETED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.red)),
+                        )
+                      else
+                        Icon(Icons.chevron_right, color: AppTheme.goldPrimary),
+                    ],
+                  ),
+                ),
+              ),
+              ...dayItems.take(3).map((d) => _buildBookingTile(d)),
+              if (dayItems.length > 3)
+                GestureDetector(
+                  onTap: () => setState(() => _selectedDay = day),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    child: Center(
+                      child: Text('View all ${dayItems.length} bookings \u2192', style: TextStyle(fontSize: 13, color: AppTheme.goldPrimary, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildPendingTab() {
-    if (_pendingBookings.isEmpty) {
+  Widget _buildBookingTile(Map<String, dynamic> booking) {
+    final status = booking['status'] ?? 'pending';
+    final statusColor = status == 'approved' ? Colors.green : (status == 'rejected' || status == 'cancelled' ? Colors.red : Colors.orange);
+    final name = booking['user_name']?.toString() ?? '';
+    final house = booking['house_number']?.toString() ?? '';
+    final dayNum = booking['day_number'] ?? '';
+
+    IconData statusIcon;
+    if (status == 'approved') {
+      statusIcon = Icons.check_circle;
+    } else if (status == 'cancelled' || status == 'rejected') {
+      statusIcon = Icons.cancel;
+    } else {
+      statusIcon = Icons.hourglass_empty;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(8)),
+            child: Center(
+              child: Text(house.length >= 3 ? house.substring(0, 3) : house, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name.isNotEmpty ? name : house, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                Text('H:$house \u2022 Day $dayNum', style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+              ],
+            ),
+          ),
+          Icon(statusIcon, color: statusColor, size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayBookingsList() {
+    final dayItems = _filteredBookings;
+
+    if (dayItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.pending_actions, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
+            Icon(Icons.self_improvement, size: 48, color: AppTheme.textMuted),
             const SizedBox(height: 12),
-            Text('No pending bookings', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+            Text(_selectedStatus != null ? 'No ${_selectedStatus} bookings' : 'No bookings for Day $_selectedDay', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
           ],
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _pendingBookings.length,
-      itemBuilder: (context, index) => _buildBookingCard(_pendingBookings[index], showActions: true),
-    );
-  }
 
-  Widget _buildConfirmedTab() {
-    if (_confirmedBookings.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline, size: 48, color: AppTheme.goldPrimary.withOpacity(0.3)),
-            const SizedBox(height: 12),
-            Text('No confirmed bookings', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
-          ],
-        ),
+    if (_selectedStatus != null) {
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        itemCount: dayItems.length,
+        itemBuilder: (context, index) {
+          final d = dayItems[index];
+          final showActions = (d['status'] ?? 'pending') == 'pending';
+          final showCancel = d['status'] == 'approved';
+          return _buildBookingCard(d, showActions: showActions, showCancel: showCancel);
+        },
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _confirmedBookings.length,
-      itemBuilder: (context, index) => _buildBookingCard(_confirmedBookings[index], showActions: true),
+
+    final pending = dayItems.where((d) => (d['status'] ?? 'pending') == 'pending').toList();
+    final approved = dayItems.where((d) => d['status'] == 'approved').toList();
+    final cancelled = dayItems.where((d) => d['status'] == 'cancelled' || d['status'] == 'rejected').toList();
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      children: [
+        if (pending.isNotEmpty) ...[
+          _buildSectionHeader('Pending Approval', Colors.orange, pending.length),
+          ...pending.map((d) => _buildBookingCard(d, showActions: true)),
+          const SizedBox(height: 12),
+        ],
+        if (approved.isNotEmpty) ...[
+          _buildSectionHeader('Approved', Colors.green, approved.length),
+          ...approved.map((d) => _buildBookingCard(d, showCancel: true)),
+          const SizedBox(height: 12),
+        ],
+        if (cancelled.isNotEmpty) ...[
+          _buildSectionHeader('Cancelled / Rejected', Colors.red, cancelled.length),
+          ...cancelled.map((d) => _buildBookingCard(d)),
+        ],
+      ],
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking, {bool showActions = false}) {
+  Widget _buildSectionHeader(String title, Color color, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(width: 3, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 8),
+          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+            child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingCard(Map<String, dynamic> booking, {bool showActions = false, bool showCancel = false}) {
     final status = booking['status'] ?? 'pending';
     final statusColor = status == 'approved' ? Colors.green : (status == 'rejected' ? Colors.red : Colors.orange);
     final name = booking['user_name']?.toString() ?? '';
     final house = booking['house_number']?.toString() ?? '';
     final bookingId = booking['id']?.toString() ?? '';
 
+    IconData statusIcon;
+    if (status == 'approved') {
+      statusIcon = Icons.check_circle;
+    } else if (status == 'cancelled' || status == 'rejected') {
+      statusIcon = Icons.cancel;
+    } else {
+      statusIcon = Icons.hourglass_empty;
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: AppTheme.hubItemDecoration,
       child: Column(
@@ -253,8 +438,8 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
           Row(
             children: [
               Container(
-                width: 50, height: 50,
-                decoration: const BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.all(Radius.circular(12))),
+                width: 48, height: 48,
+                decoration: const BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.all(Radius.circular(10))),
                 child: Center(
                   child: Text(house.length >= 3 ? house.substring(0, 3) : house, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark)),
                 ),
@@ -264,35 +449,27 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name.isNotEmpty ? name : house, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                    Text(name.isNotEmpty ? name : house, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
                     const SizedBox(height: 2),
-                    Text('House: $house', style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    Text('House: $house', style: const TextStyle(fontSize: 15, color: AppTheme.textMuted)),
                     const SizedBox(height: 2),
                     Text('Booking #$bookingId', style: TextStyle(fontSize: 11, color: AppTheme.goldPrimary.withOpacity(0.7))),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),
-                child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
-              ),
-              if (showActions && status == 'approved') ...[
-                const SizedBox(width: 6),
+              Icon(statusIcon, color: statusColor, size: 24),
+              if (showCancel) ...[
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () async {
                     await DatabaseHelper.cancelAartiBooking(booking['id']);
                     _loadData();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange),
-                      );
-                    }
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.orange));
                   },
                   child: Container(
-                    width: 28, height: 28,
-                    decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), shape: BoxShape.circle, border: Border.all(color: Colors.orange)),
-                    child: const Icon(Icons.close, color: Colors.orange, size: 16),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.withOpacity(0.5))),
+                    child: const Icon(Icons.close, color: Colors.red, size: 18),
                   ),
                 ),
               ],
@@ -303,36 +480,54 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
+                  child: GestureDetector(
+                    onTap: () async {
                       await DatabaseHelper.updateBookingStatus(booking['id'], 'approved');
                       _loadData();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Booking confirmed'), backgroundColor: Colors.green),
-                        );
-                      }
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking confirmed'), backgroundColor: Colors.green));
                     },
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check, color: Colors.green, size: 16),
+                          const SizedBox(width: 6),
+                          const Text('CONFIRM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green)),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
+                  child: GestureDetector(
+                    onTap: () async {
                       await DatabaseHelper.updateBookingStatus(booking['id'], 'rejected');
                       _loadData();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Booking rejected'), backgroundColor: Colors.red),
-                        );
-                      }
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking rejected'), backgroundColor: Colors.red));
                     },
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.redAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 10)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.close, color: Colors.red, size: 16),
+                          const SizedBox(width: 6),
+                          const Text('REJECT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red)),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -346,7 +541,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
   void _showAddBookingDialog() {
     final houseController = TextEditingController();
     final nameController = TextEditingController();
-    int formDay = _runningDay;
+    int formDay = _selectedDay == 0 ? (_days.firstWhere((d) => d['is_active'] == true, orElse: () => {'day_number': 1})['day_number'] as int) : _selectedDay;
     List<Map<String, dynamic>> members = [];
     bool isSearching = false;
     void Function(VoidCallback)? sheetSetState;
@@ -382,17 +577,9 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 2),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: isCompleted
-                                ? Colors.grey.withOpacity(0.3)
-                                : isFormSelected
-                                    ? AppTheme.goldPrimary
-                                    : Colors.transparent,
+                            color: isCompleted ? Colors.grey.withOpacity(0.3) : isFormSelected ? AppTheme.goldPrimary : Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isCompleted
-                                  ? Colors.grey.withOpacity(0.5)
-                                  : AppTheme.goldPrimary.withOpacity(0.5),
-                            ),
+                            border: Border.all(color: isCompleted ? Colors.grey.withOpacity(0.5) : AppTheme.goldPrimary.withOpacity(0.5)),
                           ),
                           child: isCompleted
                               ? Icon(Icons.lock, size: 10, color: Colors.grey)
@@ -413,10 +600,7 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                 if (members.isNotEmpty)
                   Container(
                     constraints: const BoxConstraints(maxHeight: 150),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3)),
-                    ),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))),
                     child: Material(
                       color: AppTheme.purpleDark,
                       borderRadius: BorderRadius.circular(8),
@@ -456,25 +640,12 @@ class _AartiManagementScreenState extends State<AartiManagementScreen> {
                           break;
                         }
                       }
-                      await DatabaseHelper.bookAartiSlot(
-                        userId: userId,
-                        houseNumber: houseController.text.trim().toUpperCase(),
-                        dayNumber: formDay,
-                        slotId: 0,
-                      );
+                      await DatabaseHelper.bookAartiSlot(userId: userId, houseNumber: houseController.text.trim().toUpperCase(), dayNumber: formDay, slotId: 0);
                       if (ctx.mounted) Navigator.pop(ctx);
                       _loadData();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Booking created for Day $formDay'), backgroundColor: Colors.green),
-                        );
-                      }
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking created for Day $formDay'), backgroundColor: Colors.green));
                     } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
-                        );
-                      }
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
                     }
                   },
                   style: ElevatedButton.styleFrom(
