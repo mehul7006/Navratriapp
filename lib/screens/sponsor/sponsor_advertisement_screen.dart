@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -107,14 +106,22 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                 const SizedBox(height: 16),
                 GestureDetector(
                   onTap: () async {
-                    final picker = ImagePicker();
-                    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                    if (picked != null) {
-                      final bytes = await File(picked.path).readAsBytes();
-                      setDialogState(() {
-                        pickedFile = picked;
-                        base64Image = base64Encode(bytes);
-                      });
+                    try {
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                      if (picked != null) {
+                        final bytes = await picked.readAsBytes();
+                        setDialogState(() {
+                          pickedFile = picked;
+                          base64Image = base64Encode(bytes);
+                        });
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Image picker error: $e'), backgroundColor: Colors.red),
+                        );
+                      }
                     }
                   },
                   child: Container(
