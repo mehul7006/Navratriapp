@@ -286,14 +286,23 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
       ),
       child: Row(
         children: [
-          Expanded(
+              Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(req['song_name'] ?? '', style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold,
-                  color: isPlaying ? Colors.green : Colors.white,
-                )),
+                GestureDetector(
+                  onTap: (req['youtube_link'] == null || (req['youtube_link'] as String).isEmpty)
+                      ? () {
+                          final name = Uri.encodeComponent(req['song_name'] ?? '');
+                          _launchYoutube('https://www.youtube.com/results?search_query=$name');
+                        }
+                      : null,
+                  child: Text(req['song_name'] ?? '', style: TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.bold,
+                    color: isPlaying ? Colors.green : ((req['youtube_link'] == null || (req['youtube_link'] as String).isEmpty) ? Colors.blue : Colors.white),
+                    decoration: (req['youtube_link'] == null || (req['youtube_link'] as String).isEmpty) ? TextDecoration.underline : null,
+                  )),
+                ),
                 const SizedBox(height: 2),
                 Text('${req['user_name'] ?? 'Unknown'} • ${req['house_number'] ?? ''}',
                     style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
@@ -303,6 +312,8 @@ class _DjConsoleScreenState extends State<DjConsoleScreen> {
                     onTap: () => _launchYoutube(req['youtube_link']),
                     child: const Text('🔗 YouTube link', style: TextStyle(fontSize: 10, color: Colors.blue)),
                   ),
+                if (req['youtube_link'] == null || (req['youtube_link'] as String).isEmpty)
+                  const Text('🔍 Tap song name to search YouTube', style: TextStyle(fontSize: 10, color: Colors.blue)),
               ],
             ),
           ),

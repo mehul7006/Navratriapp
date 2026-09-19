@@ -360,7 +360,8 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
         children: [
           Row(
             children: [
-              Expanded(
+              Flexible(
+                flex: 3,
                 child: TextField(
                   controller: _songNameController,
                   style: const TextStyle(color: Colors.white),
@@ -378,13 +379,13 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(
-                width: 100,
+              Flexible(
+                flex: 1,
                 child: TextField(
                   controller: _youtubeController,
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.t('hint_youtube_link'),
+                    hintText: 'YT Link (opt)',
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
                     fillColor: AppTheme.purpleCard,
