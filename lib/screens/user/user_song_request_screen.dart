@@ -265,7 +265,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
                     if (req['youtube_link'] != null && (req['youtube_link'] as String).isNotEmpty)
                       GestureDetector(
                         onTap: () => _launchYoutube(req['youtube_link']),
-                        child: Text(req['youtube_link'], style: const TextStyle(fontSize: 10, color: Colors.blue, decoration: TextDecoration.underline)),
+                        child: const Text('🔗 YouTube Link', style: TextStyle(fontSize: 11, color: Colors.blue, decoration: TextDecoration.underline)),
                       ),
                   ],
                 ),
@@ -329,6 +329,11 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
                     const SizedBox(height: 2),
                     Text('by ${sug['user_name'] ?? 'Unknown'}',
                         style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    if (sug['youtube_link'] != null && (sug['youtube_link'] as String).isNotEmpty)
+                      GestureDetector(
+                        onTap: () => _launchYoutube(sug['youtube_link']),
+                        child: const Text('🔗 YouTube Link', style: TextStyle(fontSize: 11, color: Colors.blue, decoration: TextDecoration.underline)),
+                      ),
                   ],
                 ),
               ),
@@ -361,7 +366,7 @@ class _UserSongRequestScreenState extends State<UserSongRequestScreen> {
           Row(
             children: [
               Flexible(
-                flex: 3,
+                flex: 1,
                 child: TextField(
                   controller: _songNameController,
                   style: const TextStyle(color: Colors.white),
