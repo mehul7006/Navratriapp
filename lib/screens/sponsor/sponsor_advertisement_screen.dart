@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
+import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class SponsorAdvertisementScreen extends StatefulWidget {
   const SponsorAdvertisementScreen({super.key});
@@ -222,7 +223,9 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BackgroundScaffold(
+      backgroundImage: 'assets/images/LOGIN_BG.jpg',
+      backgroundColor: const Color(0xA60C0117),
       appBar: AppBar(
         title: const Text('My Advertisements', style: TextStyle(color: Colors.white)),
         backgroundColor: AppTheme.purpleDeep,
@@ -231,7 +234,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
           IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _loadAds),
         ],
       ),
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : Column(
               children: [

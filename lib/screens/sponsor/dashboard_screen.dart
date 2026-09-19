@@ -55,6 +55,8 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
     final user = authProvider.currentUser;
 
     return BackgroundScaffold(
+      backgroundImage: 'assets/images/LOGIN_BG.jpg',
+      backgroundColor: const Color(0xA60C0117),
       appBar: AppBar(
         title: Text(AppLocalizations.t('sponsor_dashboard')),
         backgroundColor: AppTheme.purpleDeep,
@@ -131,7 +133,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.redAccent.withValues(alpha: 0.8), AppTheme.purpleCard.withValues(alpha: 0.95)],
+          colors: [AppTheme.redAccent.withValues(alpha: 0.6), AppTheme.purpleCard.withValues(alpha: 0.6)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.goldPrimary),
@@ -169,7 +171,11 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: AppTheme.hubItemDecoration,
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.cardBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -209,7 +215,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
         subtitle: Text(subtitle, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
         trailing: const Icon(Icons.arrow_forward_ios, color: AppTheme.goldPrimary, size: 16),
         onTap: onTap,
-        tileColor: AppTheme.purpleCard.withValues(alpha: 0.5),
+        tileColor: AppTheme.purpleCard.withValues(alpha: 0.6),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
