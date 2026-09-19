@@ -18,7 +18,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
   List<Map<String, dynamic>> _allAds = [];
   bool _isLoading = true;
   int _selectedDay = 0;
-  String _activeTab = 'active';
+  String _activeTab = 'pending';
 
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
   }
 
   List<Map<String, dynamic>> get _filteredAds {
-    var list = _allAds.where((a) => _activeTab == 'active' ? (a['is_visible'] == true) : (a['is_visible'] != true)).toList();
+    var list = _allAds.where((a) => a['status'] == _activeTab).toList();
     if (_selectedDay > 0) {
       list = list.where((a) => a['day_number'] == _selectedDay || a['day_number'] == null).toList();
     }
@@ -293,8 +293,9 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
       ),
       child: Row(
         children: [
-          Expanded(child: _buildTab('active', 'Active Ads')),
-          Expanded(child: _buildTab('inactive', 'Inactive Ads')),
+          Expanded(child: _buildTab('pending', 'Pending')),
+          Expanded(child: _buildTab('confirmed', 'Confirmed')),
+          Expanded(child: _buildTab('rejected', 'Rejected')),
         ],
       ),
     );
@@ -328,7 +329,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
             Icon(Icons.ad_units, size: 48, color: Colors.white24),
             const SizedBox(height: 12),
             Text(
-              _activeTab == 'active' ? 'No active advertisements' : 'No inactive advertisements',
+              'No $_activeTab advertisements',
               style: const TextStyle(color: Colors.white38, fontSize: 16),
             ),
             const SizedBox(height: 4),
@@ -360,8 +361,8 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: SizedBox(
-                      width: 80,
-                      height: 60,
+                      width: 240,
+                      height: 180,
                       child: Image.memory(
                         base64Decode(ad['image_data'] ?? ''),
                         fit: BoxFit.contain,
@@ -392,22 +393,40 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isVisible ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
+                        color: _statusColor(ad['status']).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        isVisible ? 'Visible Now' : 'Scheduled',
+                        _statusLabel(ad['status']),
                         style: TextStyle(
-                          color: isVisible ? Colors.green : Colors.red,
+                          color: _statusColor(ad['status']),
                           fontSize: 11, fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+                    if (isVisible) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text('Visible Now',
+                          style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                     const Spacer(),
+                    if (ad['status'] == 'pending' || ad['status'] == 'confirmed')
+                      IconButton(
+                        icon: const Icon(Icons.cancel, color: Colors.orange, size: 20),
+                        onPressed: () => _rejectAd(ad['id']),
+                        tooltip: 'Cancel Ad',
+                      ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                       onPressed: () => _deleteAd(ad['id']),
@@ -421,5 +440,34 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
         );
       },
     );
+  }
+
+  Color _statusColor(String? status) {
+    switch (status) {
+      case 'confirmed': return Colors.green;
+      case 'rejected': return Colors.red;
+      default: return Colors.orange;
+    }
+  }
+
+  String _statusLabel(String? status) {
+    switch (status) {
+      case 'confirmed': return 'Confirmed';
+      case 'rejected': return 'Rejected';
+      default: return 'Pending';
+    }
+  }
+
+  Future<void> _rejectAd(int id) async {
+    try {
+      await DatabaseHelper.rejectSponsorAd(id);
+      _loadAds();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }

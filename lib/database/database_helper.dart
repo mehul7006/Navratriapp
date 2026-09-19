@@ -1035,4 +1035,20 @@ class DatabaseHelper {
   static Future<void> toggleSponsorAd(int id, bool isActive) async {
     await _put('/api/sponsor-ads/$id/toggle', {'is_active': isActive});
   }
+
+  static Future<void> confirmSponsorAd(int id) async {
+    await _put('/api/sponsor-ads/$id/confirm', {});
+  }
+
+  static Future<void> rejectSponsorAd(int id) async {
+    await _put('/api/sponsor-ads/$id/reject', {});
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllSponsorAdsForOrganizer() async {
+    return _get('/api/sponsor-ads/all/ads');
+  }
+
+  static Future<List<Map<String, dynamic>>> getConfirmedAdsForLogin() async {
+    return _get('/api/sponsor-ads/confirmed/ads');
+  }
 }

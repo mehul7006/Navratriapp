@@ -140,6 +140,7 @@ Future<Connection> get db async {
       image_data TEXT NOT NULL, day_number INTEGER,
       is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW()
     )''');
+    try { await _db!.execute("ALTER TABLE sponsor_advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'"); } catch (_) {}
   } catch (_) {}
   return _db!;
 }
@@ -259,10 +260,14 @@ final router = Router()
   ..delete('/api/shoutouts/<id>/react', _removeShoutoutReaction)
   ..delete('/api/shoutouts/<id>', _deleteShoutout)
   // ========== SPONSOR ADVERTISEMENTS ==========
+  ..get('/api/sponsor-ads/confirmed/ads', _getConfirmedAdsForLogin)
+  ..get('/api/sponsor-ads/all/ads', _getAllSponsorAdsForOrganizer)
   ..get('/api/sponsor-ads/<userId>', _getSponsorAds)
   ..post('/api/sponsor-ads', _createSponsorAd)
   ..delete('/api/sponsor-ads/<id>', _deleteSponsorAd)
   ..put('/api/sponsor-ads/<id>/toggle', _toggleSponsorAd)
+  ..put('/api/sponsor-ads/<id>/confirm', _confirmSponsorAd)
+  ..put('/api/sponsor-ads/<id>/reject', _rejectSponsorAd)
   ..get('/api/reports/summary', _getReportSummary)
   ..get('/api/reports/payments-by-house', _getPaymentsByHouseReport)
   ..get('/api/reports/expenses-by-date', _getExpensesByDateReport)
@@ -3278,7 +3283,7 @@ Future<Response> _createSponsorAd(Request request) async {
     final imageData = body['image_data'];
     final dayNumber = body['day_number'];
     final results = await conn.execute(
-      Sql.named('INSERT INTO sponsor_advertisements (user_id, image_data, day_number) VALUES (@userId, @imageData, @dayNumber) RETURNING id'),
+      Sql.named('INSERT INTO sponsor_advertisements (user_id, image_data, day_number, status) VALUES (@userId, @imageData, @dayNumber, \'pending\') RETURNING id'),
       parameters: {'userId': userId, 'imageData': imageData, 'dayNumber': dayNumber},
     );
     return _jsonResponse({'id': _parseRow(results.first)['id'], 'ok': true});
@@ -3310,6 +3315,72 @@ Future<Response> _toggleSponsorAd(Request request, String id) async {
       parameters: {'isActive': isActive, 'id': int.parse(id)},
     );
     return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _confirmSponsorAd(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named("UPDATE sponsor_advertisements SET status = 'confirmed' WHERE id = @id"),
+      parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _rejectSponsorAd(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named("UPDATE sponsor_advertisements SET status = 'rejected' WHERE id = @id"),
+      parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getConfirmedAdsForLogin(Request request) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('''
+        SELECT sa.*, u.name as sponsor_name
+        FROM sponsor_advertisements sa
+        JOIN users u ON u.id = sa.user_id
+        WHERE sa.status = 'confirmed' AND sa.is_active = TRUE
+        AND (
+          (sa.day_number IS NOT NULL AND EXISTS(SELECT 1 FROM navratri_days nd WHERE nd.day_number = sa.day_number AND nd.is_active = TRUE AND nd.is_completed IS NOT TRUE))
+          OR
+          (sa.day_number IS NULL AND EXISTS(SELECT 1 FROM navratri_days nd WHERE nd.is_active = TRUE AND nd.is_completed IS NOT TRUE))
+        )
+        ORDER BY sa.created_at DESC
+      '''),
+    );
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getAllSponsorAdsForOrganizer(Request request) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('''
+        SELECT sa.*, u.name as sponsor_name, u.house_number as sponsor_house
+        FROM sponsor_advertisements sa
+        JOIN users u ON u.id = sa.user_id
+        ORDER BY sa.status ASC, sa.created_at DESC
+      '''),
+    );
+    return _jsonResponse(_parseResults(results));
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

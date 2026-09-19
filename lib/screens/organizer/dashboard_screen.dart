@@ -18,6 +18,7 @@ import 'draw_history_screen.dart';
 import 'lucky_draw_screen.dart';
 import 'broadcast_management_screen.dart';
 import 'dj_console_screen.dart';
+import 'ad_confirmation_screen.dart';
 import 'garba_participation_screen.dart';
 import '../../widgets/language_toggle.dart';
 import '../../l10n/app_localizations.dart';
@@ -251,6 +252,9 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
             }),
             _buildQuickAction(AppLocalizations.t('sponsors'), Icons.business, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SponsorManagementScreen()));
+            }),
+            _buildQuickAction('Ad Confirmation', Icons.approval, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdConfirmationScreen()));
             }),
             _buildQuickAction(AppLocalizations.t('reports_analytics'), Icons.analytics, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
