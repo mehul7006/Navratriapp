@@ -3249,7 +3249,19 @@ Future<Response> _getSponsorAds(Request request, String userId) async {
   try {
     final conn = await db;
     final results = await conn.execute(
-      Sql.named('SELECT * FROM sponsor_advertisements WHERE user_id = @userId ORDER BY day_number NULLS LAST, created_at DESC'),
+      Sql.named('''
+        SELECT sa.*,
+          CASE
+            WHEN sa.day_number IS NOT NULL AND sa.is_active = TRUE THEN
+              EXISTS(SELECT 1 FROM navratri_days nd WHERE nd.day_number = sa.day_number AND nd.is_active = TRUE AND nd.is_completed IS NOT TRUE)
+            WHEN sa.day_number IS NULL AND sa.is_active = TRUE THEN
+              EXISTS(SELECT 1 FROM navratri_days nd WHERE nd.is_active = TRUE AND nd.is_completed IS NOT TRUE)
+            ELSE FALSE
+          END as is_visible
+        FROM sponsor_advertisements sa
+        WHERE sa.user_id = @userId
+        ORDER BY sa.day_number NULLS LAST, sa.created_at DESC
+      '''),
       parameters: {'userId': int.parse(userId)},
     );
     return _jsonResponse(_parseResults(results));

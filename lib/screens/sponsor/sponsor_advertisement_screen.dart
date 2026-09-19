@@ -42,7 +42,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
   }
 
   List<Map<String, dynamic>> get _filteredAds {
-    var list = _allAds.where((a) => _activeTab == 'active' ? (a['is_active'] == true) : (a['is_active'] != true)).toList();
+    var list = _allAds.where((a) => _activeTab == 'active' ? (a['is_visible'] == true) : (a['is_visible'] != true)).toList();
     if (_selectedDay > 0) {
       list = list.where((a) => a['day_number'] == _selectedDay || a['day_number'] == null).toList();
     }
@@ -59,7 +59,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.purpleCard,
+          backgroundColor: AppTheme.purpleCard.withValues(alpha: 0.6),
           title: const Text('Add Advertisement', style: TextStyle(color: Colors.white, fontSize: 18)),
           content: SingleChildScrollView(
             child: Column(
@@ -267,7 +267,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.goldPrimary : AppTheme.purpleCard,
+                color: isSelected ? AppTheme.goldPrimary : AppTheme.purpleCard.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: isSelected ? AppTheme.goldPrimary : AppTheme.cardBorder),
               ),
@@ -288,7 +288,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.purpleCard,
+        color: AppTheme.purpleCard.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -343,28 +343,34 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
       itemBuilder: (context, index) {
         final ad = ads[index];
         final dayNum = ad['day_number'];
-        final isActive = ad['is_active'] == true;
+        final isVisible = ad['is_visible'] == true;
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: AppTheme.purpleCard.withOpacity(0.6),
+            color: AppTheme.purpleCard.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isActive ? AppTheme.goldPrimary.withOpacity(0.4) : Colors.red.withOpacity(0.3)),
+            border: Border.all(color: isVisible ? AppTheme.goldPrimary.withValues(alpha: 0.4) : Colors.red.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                child: Image.memory(
-                  base64Decode(ad['image_data'] ?? ''),
-                  height: 180,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 180,
-                    color: AppTheme.purpleDark,
-                    child: const Center(child: Icon(Icons.broken_image, color: Colors.white24, size: 40)),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 80,
+                      height: 60,
+                      child: Image.memory(
+                        base64Decode(ad['image_data'] ?? ''),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: AppTheme.purpleDark,
+                          child: const Center(child: Icon(Icons.broken_image, color: Colors.white24, size: 24)),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -375,7 +381,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: dayNum == null ? Colors.blue.withOpacity(0.2) : AppTheme.goldPrimary.withOpacity(0.2),
+                        color: dayNum == null ? Colors.blue.withValues(alpha: 0.2) : AppTheme.goldPrimary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -390,26 +396,18 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                        color: isVisible ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        isActive ? 'Active' : 'Inactive',
+                        isVisible ? 'Visible Now' : 'Scheduled',
                         style: TextStyle(
-                          color: isActive ? Colors.green : Colors.red,
+                          color: isVisible ? Colors.green : Colors.red,
                           fontSize: 11, fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     const Spacer(),
-                    IconButton(
-                      icon: Icon(
-                        isActive ? Icons.visibility_off : Icons.visibility,
-                        color: isActive ? Colors.orange : Colors.green, size: 20,
-                      ),
-                      onPressed: () => _toggleAd(ad['id'], isActive),
-                      tooltip: isActive ? 'Deactivate' : 'Activate',
-                    ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                       onPressed: () => _deleteAd(ad['id']),
