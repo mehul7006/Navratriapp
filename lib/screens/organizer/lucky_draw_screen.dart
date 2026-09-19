@@ -95,19 +95,19 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   Future<void> _loadTickets() async {
     setState(() {
       _isLoading = true;
-      _drawnTicket = null;
-      _isRevealed = false;
     });
     try {
       final daysFuture = DatabaseHelper.getNavratriDays();
       final ticketsFuture = DatabaseHelper.getDrawTicketsForDay(_selectedDay);
       final countFuture = DatabaseHelper.getConfirmedWinnerCount(_selectedDay);
       final badgeFuture = DatabaseHelper.getNextBadge(_selectedDay);
+      final pendingFuture = DatabaseHelper.getPendingDraw(_selectedDay);
 
       final days = await daysFuture;
       final tickets = await ticketsFuture;
       final count = await countFuture;
       final badgeData = await badgeFuture;
+      final pendingDraw = await pendingFuture;
 
       if (mounted) {
         setState(() {
@@ -117,7 +117,29 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           _maxWinners = _getDayMaxWinners(_selectedDay);
           _nextBadge = badgeData['next_badge'] as int?;
           _isLoading = false;
+          if (pendingDraw != null && _drawnTicket == null) {
+            _currentDrawId = pendingDraw['id'];
+            _drawnTicket = {
+              'id': pendingDraw['ticket_id'],
+              'ticket_code': pendingDraw['ticket_code'],
+              'user_id': pendingDraw['winner_id'],
+              'house_number': pendingDraw['house_number'],
+              'user_name': pendingDraw['user_name'],
+            };
+            _isRevealed = true;
+          } else if (pendingDraw == null && _drawnTicket != null && !_isProcessing) {
+            _drawnTicket = null;
+            _isRevealed = false;
+            _currentDrawId = null;
+          }
         });
+        if (pendingDraw != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _drawnTicket != null && _currentDrawId != null) {
+              _showAvailabilityDialog();
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -145,7 +167,14 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   bool get _isMaxWinnersReached => _confirmedCount >= _maxWinners;
 
   Future<void> _drawTicket() async {
-    if (_isDrawing || _potTickets.isEmpty || !_isDayBookable(_selectedDay) || _isMaxWinnersReached) return;
+    if (_isDrawing || !_isDayBookable(_selectedDay) || _isMaxWinnersReached) return;
+
+    if (_drawnTicket != null && _currentDrawId != null) {
+      _showAvailabilityDialog();
+      return;
+    }
+
+    if (_potTickets.isEmpty) return;
 
     setState(() => _isDrawing = true);
     _startShake();
@@ -200,39 +229,43 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.cardBg,
-        title: const Text('Is person available?', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$userName (House: $houseNumber)',
-              style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+      builder: (ctx) => PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {},
+        child: AlertDialog(
+          backgroundColor: AppTheme.cardBg,
+          title: const Text('Is person available?', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$userName (House: $houseNumber)',
+                style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Is this person present at the lucky draw?',
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _disqualifyPerson();
+              },
+              child: const Text('Not Available', style: TextStyle(color: Colors.red)),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Is this person present at the lucky draw?',
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _confirmPerson();
+              },
+              child: const Text('Available', style: TextStyle(color: Colors.green)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _disqualifyPerson();
-            },
-            child: const Text('Not Available', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _confirmPerson();
-            },
-            child: const Text('Available', style: TextStyle(color: Colors.green)),
-          ),
-        ],
       ),
     );
   }
@@ -582,12 +615,14 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: GestureDetector(
-              onTap: bookable
+              onTap: (bookable && _drawnTicket == null)
                   ? () {
                       setState(() => _selectedDay = day);
                       _loadTickets();
                     }
-                  : null,
+                  : (_drawnTicket != null ? () {
+                      _showAvailabilityDialog();
+                    } : null),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
@@ -677,7 +712,15 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           ),
         // Pot with tickets
         GestureDetector(
-          onTap: (bookable && !_isMaxWinnersReached) ? _drawTicket : null,
+          onTap: (bookable && !_isMaxWinnersReached)
+              ? () {
+                  if (_drawnTicket != null && _currentDrawId != null) {
+                    _showAvailabilityDialog();
+                  } else {
+                    _drawTicket();
+                  }
+                }
+              : null,
           child: Transform.translate(
             offset: Offset(_shakeOffset.toDouble(), 0),
             child: Container(
@@ -867,7 +910,27 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             ),
           ),
         const SizedBox(height: 8),
-        if (bookable && _potTickets.isNotEmpty && !_isDrawing && !_isMaxWinnersReached)
+        if (_drawnTicket != null && _currentDrawId != null && !_isProcessing)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.withOpacity(0.5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber, color: Colors.orange, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  'Answer availability for ${_drawnTicket!['user_name'] ?? 'this person'} first',
+                  style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          )
+        else if (bookable && _potTickets.isNotEmpty && !_isDrawing && !_isMaxWinnersReached)
           Text(
             'Tap the pot to draw a ticket',
             style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),

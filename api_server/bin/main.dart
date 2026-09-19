@@ -222,6 +222,7 @@ final router = Router()
   ..get('/api/daily-draws/count', _getDailyDrawCount)
   ..get('/api/daily-draws/confirmed-count/<day>', _getConfirmedWinnerCount)
   ..get('/api/daily-draws/tickets/<day>', _getDrawTicketsForDay)
+  ..get('/api/daily-draws/pending/<day>', _getPendingDraw)
   ..post('/api/daily-draws/confirm', _confirmDraw)
   ..post('/api/daily-draws/disqualify', _disqualifyDraw)
   ..post('/api/daily-draws/create', _createDraw)
@@ -2283,6 +2284,28 @@ Future<Response> _getConfirmedWinnerCount(Request request, String day) async {
       parameters: {'day': int.parse(day)},
     );
     return _jsonResponse({'count': results.first.toColumnMap()['cnt'] ?? 0});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getPendingDraw(Request request, String day) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('''
+        SELECT dd.id, dd.ticket_code, dd.winner_id, dd.house_number, dd.day_number,
+               dd.draw_number, dd.status, dd.drawn_at, dd.drawn_by,
+               u.name as user_name
+        FROM daily_draws dd
+        LEFT JOIN users u ON dd.winner_id = u.id
+        WHERE dd.day_number = @day AND dd.status = 'drawn'
+        ORDER BY dd.drawn_at DESC LIMIT 1
+      '''),
+      parameters: {'day': int.parse(day)},
+    );
+    if (results.isEmpty) return _jsonResponse({'pending': null});
+    return _jsonResponse({'pending': _parseRow(results.first)});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

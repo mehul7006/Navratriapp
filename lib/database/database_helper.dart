@@ -852,6 +852,17 @@ class DatabaseHelper {
     return _get('/api/daily-draws/tickets/$dayNumber');
   }
 
+  static Future<Map<String, dynamic>?> getPendingDraw(int dayNumber) async {
+    try {
+      final response = await http.get(Uri.parse('$_apiBase/api/daily-draws/pending/$dayNumber')).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body);
+      return data['pending'] as Map<String, dynamic>?;
+    } catch (e) {
+      return null;
+    }
+  }
+
   static Future<int> getConfirmedWinnerCount(int dayNumber) async {
     final response = await http.get(Uri.parse('$_apiBase/api/daily-draws/confirmed-count/$dayNumber')).timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) return 0;
