@@ -1017,4 +1017,22 @@ class DatabaseHelper {
   static Future<void> deleteShoutout(int id) async {
     await _delete('/api/shoutouts/$id');
   }
+
+  // ========== SPONSOR ADVERTISEMENTS ==========
+
+  static Future<List<Map<String, dynamic>>> getSponsorAds(int userId) async {
+    return _get('/api/sponsor-ads/$userId');
+  }
+
+  static Future<Map<String, dynamic>?> createSponsorAd({required int userId, required String imageData, int? dayNumber}) async {
+    return _post('/api/sponsor-ads', {'user_id': userId, 'image_data': imageData, 'day_number': dayNumber});
+  }
+
+  static Future<void> deleteSponsorAd(int id) async {
+    await _delete('/api/sponsor-ads/$id');
+  }
+
+  static Future<void> toggleSponsorAd(int id, bool isActive) async {
+    await _put('/api/sponsor-ads/$id/toggle', {'is_active': isActive});
+  }
 }

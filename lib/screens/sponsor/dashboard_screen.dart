@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
+import 'sponsor_advertisement_screen.dart';
 
 class SponsorDashboardScreen extends StatefulWidget {
   const SponsorDashboardScreen({super.key});
@@ -19,6 +20,7 @@ class SponsorDashboardScreen extends StatefulWidget {
 class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
   Map<String, dynamic>? _sponsorData;
   List<Map<String, dynamic>> _gifts = [];
+  List<Map<String, dynamic>> _allAds = [];
   bool _isLoading = true;
 
   @override
@@ -30,13 +32,16 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
   Future<void> _loadData() async {
     final authProvider = context.read<AuthProvider>();
     final houseNumber = authProvider.houseNumber ?? '';
+    final userId = authProvider.currentUser?['id'] ?? 0;
     try {
       final sponsors = await DatabaseHelper.getAllSponsors();
       final match = sponsors.where((s) => s['house_number'] == houseNumber).toList();
       final gifts = await DatabaseHelper.getMyGifts(houseNumber);
+      final ads = await DatabaseHelper.getSponsorAds(userId);
       setState(() {
         _sponsorData = match.isNotEmpty ? match.first : null;
         _gifts = gifts;
+        _allAds = ads;
         _isLoading = false;
       });
     } catch (e) {
@@ -98,12 +103,10 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
                   _buildActionCard(
                     icon: Icons.upload,
                     title: AppLocalizations.t('my_advertisement'),
-                    subtitle: _sponsorData?['advertisement_image']?.toString().isNotEmpty == true
-                        ? AppLocalizations.t('image_uploaded')
-                        : (_sponsorData?['advertisement_text']?.toString().isNotEmpty == true
-                            ? _sponsorData!['advertisement_text']
-                            : AppLocalizations.t('no_advertisement')),
-                    onTap: () => _showAdDialog(),
+                    subtitle: '${_allAds.length} ads posted',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const SponsorAdvertisementScreen(),
+                    )).then((_) => _loadData()),
                   ),
                   _buildActionCard(
                     icon: Icons.card_giftcard,

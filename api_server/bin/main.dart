@@ -135,6 +135,11 @@ Future<Connection> get db async {
       reaction VARCHAR(5) NOT NULL, created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(shoutout_id, user_id, reaction)
     )''');
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS sponsor_advertisements (
+      id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      image_data TEXT NOT NULL, day_number INTEGER,
+      is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW()
+    )''');
   } catch (_) {}
   return _db!;
 }
@@ -253,6 +258,11 @@ final router = Router()
   ..post('/api/shoutouts/<id>/react', _reactShoutout)
   ..delete('/api/shoutouts/<id>/react', _removeShoutoutReaction)
   ..delete('/api/shoutouts/<id>', _deleteShoutout)
+  // ========== SPONSOR ADVERTISEMENTS ==========
+  ..get('/api/sponsor-ads/<userId>', _getSponsorAds)
+  ..post('/api/sponsor-ads', _createSponsorAd)
+  ..delete('/api/sponsor-ads/<id>', _deleteSponsorAd)
+  ..put('/api/sponsor-ads/<id>/toggle', _toggleSponsorAd)
   ..get('/api/reports/summary', _getReportSummary)
   ..get('/api/reports/payments-by-house', _getPaymentsByHouseReport)
   ..get('/api/reports/expenses-by-date', _getExpensesByDateReport)
@@ -3231,6 +3241,66 @@ Future<Response> _optionsHandler(Request request) async {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
+}
+
+// ========== SPONSOR ADVERTISEMENTS ==========
+
+Future<Response> _getSponsorAds(Request request, String userId) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('SELECT * FROM sponsor_advertisements WHERE user_id = @userId ORDER BY day_number NULLS LAST, created_at DESC'),
+      parameters: {'userId': int.parse(userId)},
+    );
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _createSponsorAd(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final userId = body['user_id'];
+    final imageData = body['image_data'];
+    final dayNumber = body['day_number'];
+    final results = await conn.execute(
+      Sql.named('INSERT INTO sponsor_advertisements (user_id, image_data, day_number) VALUES (@userId, @imageData, @dayNumber) RETURNING id'),
+      parameters: {'userId': userId, 'imageData': imageData, 'dayNumber': dayNumber},
+    );
+    return _jsonResponse({'id': _parseRow(results.first)['id'], 'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _deleteSponsorAd(Request request, String id) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named('DELETE FROM sponsor_advertisements WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _toggleSponsorAd(Request request, String id) async {
+  try {
+    final body = await _getBody(request);
+    final conn = await db;
+    final isActive = body['is_active'] ?? true;
+    await conn.execute(
+      Sql.named('UPDATE sponsor_advertisements SET is_active = @isActive WHERE id = @id'),
+      parameters: {'isActive': isActive, 'id': int.parse(id)},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
 }
 
 // ========== MAIN ==========

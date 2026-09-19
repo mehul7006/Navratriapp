@@ -63,6 +63,18 @@ CREATE TABLE IF NOT EXISTS sponsors (
 );
 
 -- ============================================
+-- SPONSOR ADVERTISEMENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS sponsor_advertisements (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    image_data TEXT NOT NULL,
+    day_number INTEGER,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
 -- EXPENSE CATEGORIES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS expense_categories (
