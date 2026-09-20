@@ -24,6 +24,7 @@ import 'garba_participation_screen.dart';
 import '../../widgets/language_toggle.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
+import 'package:navratri_app/widgets/notification_bell.dart';
 
 class OrganizerDashboardScreen extends StatefulWidget {
   const OrganizerDashboardScreen({super.key});
@@ -127,6 +128,7 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
                 )
               : null,
           actions: [
+            const NotificationBell(),
             const LanguageToggle(),
             IconButton(
               icon: const Icon(Icons.refresh),

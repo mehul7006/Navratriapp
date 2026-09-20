@@ -9,6 +9,7 @@ import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
 import 'package:navratri_app/widgets/login_ad_popup.dart';
+import 'package:navratri_app/widgets/notification_bell.dart';
 import 'sponsor_advertisement_screen.dart';
 
 class SponsorDashboardScreen extends StatefulWidget {
@@ -65,6 +66,7 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
         foregroundColor: AppTheme.goldPrimary,
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         actions: [
+          const NotificationBell(),
           IconButton(icon: const Icon(Icons.refresh, color: AppTheme.goldPrimary), onPressed: _loadData),
           IconButton(
             icon: const Icon(Icons.logout),

@@ -141,6 +141,18 @@ Future<Connection> get db async {
       is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW()
     )''');
     try { await _db!.execute("ALTER TABLE sponsor_advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'"); } catch (_) {}
+    // ========== NOTIFICATIONS ==========
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INT NOT NULL,
+      user_type VARCHAR(20) NOT NULL DEFAULT 'user',
+      title VARCHAR(200) NOT NULL,
+      message TEXT NOT NULL,
+      type VARCHAR(50) NOT NULL DEFAULT 'general',
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT NOW()
+    )''');
+    try { await _db!.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, user_type, is_read)"); } catch (_) {}
   } catch (_) {}
   return _db!;
 }
@@ -273,7 +285,14 @@ final router = Router()
   ..get('/api/reports/expenses-by-date', _getExpensesByDateReport)
   ..get('/api/reports/daily-activity', _getDailyActivityReport)
   ..post('/api/query', _genericQuery)
-  ..post('/api/execute', _genericExecute);
+  ..post('/api/execute', _genericExecute)
+  // ========== NOTIFICATIONS ==========
+  ..get('/api/notifications/<userId>/<userType>', _getNotifications)
+  ..get('/api/notifications/unread-count/<userId>/<userType>', _getUnreadCount)
+  ..post('/api/notifications', _createNotification)
+  ..put('/api/notifications/<id>/read', _markAsRead)
+  ..put('/api/notifications/read-all/<userId>/<userType>', _markAllAsRead)
+  ..delete('/api/notifications/<id>', _deleteNotification);
 
 Map<String, dynamic> _parseRow(ResultRow row) {
   final map = row.toColumnMap();
@@ -710,6 +729,11 @@ Future<Response> _addPayment(Request request) async {
         'payerName': body['payer_name'],
       },
     );
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'Payment Received', '${body['house_number']} - ₹${body['amount']} via ${body['payment_method']}', 'payment');
+    }
     return _jsonResponse({'id': results.first.toColumnMap()['id']});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1087,10 +1111,23 @@ Future<Response> _bookAartiSlot(Request request) async {
         'notes': '[${body['house_number']}] ${body['name'] ?? ''}|day:$dayNumber|booked_by:organizer',
       },
     );
-    return _jsonResponse({'id': results.first.toColumnMap()['id']});
+    final bookingId = results.first.toColumnMap()['id'] as int;
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'New Aarti Booking', '${body['house_number']} booked aarti for Day $dayNumber', 'aarti_booking');
+    }
+    return _jsonResponse({'id': bookingId});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
+}
+
+Future<int?> _getOrganizerUserId(Connection conn) async {
+  try {
+    final r = await conn.execute(Sql.named("SELECT id FROM users WHERE user_type = 'organizer' LIMIT 1"));
+    return r.isNotEmpty ? r.first.toColumnMap()['id'] as int : null;
+  } catch (_) { return null; }
 }
 
 Future<Response> _updateBookingStatus(Request request, String id) async {
@@ -1109,6 +1146,23 @@ Future<Response> _updateBookingStatus(Request request, String id) async {
         'now': DateTime.now().toUtc()
       },
     );
+    if (body['status'] == 'approved' || body['status'] == 'rejected') {
+      final booking = await conn.execute(
+        Sql.named('SELECT user_id, house_number, day_number FROM aarti_bookings WHERE id = @id'),
+        parameters: {'id': int.parse(id)},
+      );
+      if (booking.isNotEmpty) {
+        final b = booking.first.toColumnMap();
+        final statusText = body['status'] == 'approved' ? 'approved' : 'rejected';
+        final emoji = body['status'] == 'approved' ? '✅' : '❌';
+        await _sendNotification(
+          b['user_id'] as int, 'user',
+          '$emoji Aarti Booking $statusText',
+          'Your aarti booking for Day ${b['day_number']} has been $statusText.',
+          'aarti_booking',
+        );
+      }
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1272,6 +1326,11 @@ Future<Response> _orderSnack(Request request) async {
       },
     );
     final orderId = results.first.toColumnMap()['id'] as int;
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'New Snack Order', '${body['house_number']} ordered ${body['snack_name'] ?? 'snack'} for Day $dayNumber', 'snack_booking');
+    }
     return _jsonResponse({'id': orderId});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1426,6 +1485,15 @@ Future<Response> _assignGift(Request request) async {
       },
     );
     final assignmentId = results.first.toColumnMap()['id'] as int;
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'New Gift Assignment', '${body['house_number']} assigned gift for Day $dayNumber', 'gift_booking');
+    }
+    // Notify user if assigned
+    if (userId != null && userId != 0) {
+      await _sendNotification(userId as int, 'user', 'Gift Assigned', 'A gift has been assigned to your house for Day $dayNumber', 'gift_booking');
+    }
     return _jsonResponse({'id': assignmentId});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -1586,6 +1654,11 @@ Future<Response> _assignTicket(Request request) async {
         'day': currentDay,
       },
     );
+    // Notify user about ticket assignment
+    final userId = body['user_id'] as int?;
+    if (userId != null) {
+      await _sendNotification(userId, 'user', 'Ticket Assigned', 'A lucky draw ticket has been assigned to your house ($currentDay)', 'ticket_assigned');
+    }
     return _jsonResponse({'ok': true, 'day_number': currentDay});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2467,6 +2540,23 @@ Future<Response> _confirmDraw(Request request) async {
       parameters: {'id': drawId},
     );
 
+    // Notify winner
+    final drawInfo = await conn.execute(
+      Sql.named('SELECT winner_id, house_number FROM daily_draws WHERE id = @id'),
+      parameters: {'id': drawId},
+    );
+    if (drawInfo.isNotEmpty) {
+      final d = drawInfo.first.toColumnMap();
+      if (d['winner_id'] != null) {
+        await _sendNotification(d['winner_id'] as int, 'user', '🎉 You Won!', 'Congratulations! You won Badge #$badgeNumber in Day $dayNumber lucky draw!', 'lucky_draw');
+      }
+    }
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'Lucky Draw Confirmed', 'Winner confirmed for Day $dayNumber - Badge #$badgeNumber', 'lucky_draw');
+    }
+
     return _jsonResponse({'ok': true, 'prize_level': badgeNumber, 'badge_number': badgeNumber});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2716,6 +2806,11 @@ Future<Response> _endDay(Request request, String day) async {
         parameters: {'day': nextDay},
       );
     }
+    // Notify organizer - day ended
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'Day $day Ended', 'Day $day has been ended. ${nextDay <= 10 ? "Day $nextDay is now active." : "Festival completed!"}', 'day_end');
+    }
     return _jsonResponse(
         {'ok': true, 'next_day': nextDay <= 10 ? nextDay : null});
   } catch (e) {
@@ -2920,6 +3015,11 @@ Future<Response> _createSongRequest(Request request) async {
       'dayNumber': body['day_number'] ?? 1,
       'requestType': body['request_type'] ?? 'live',
     });
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'New Song Request', '"${body['song_name']}" requested by user', 'song_request');
+    }
     return _jsonResponse(_parseRow(result.first));
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -3286,6 +3386,11 @@ Future<Response> _createSponsorAd(Request request) async {
       Sql.named('INSERT INTO sponsor_advertisements (user_id, image_data, day_number, status) VALUES (@userId, @imageData, @dayNumber, \'pending\') RETURNING id'),
       parameters: {'userId': userId, 'imageData': imageData, 'dayNumber': dayNumber},
     );
+    // Notify organizer
+    final orgId = await _getOrganizerUserId(conn);
+    if (orgId != null) {
+      await _sendNotification(orgId, 'organizer', 'New Sponsor Ad', 'New advertisement submitted for Day $dayNumber - pending approval', 'sponsor_ad');
+    }
     return _jsonResponse({'id': _parseRow(results.first)['id'], 'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -3327,6 +3432,15 @@ Future<Response> _confirmSponsorAd(Request request, String id) async {
       Sql.named("UPDATE sponsor_advertisements SET status = 'confirmed' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
+    // Notify sponsor
+    final adInfo = await conn.execute(
+      Sql.named('SELECT user_id FROM sponsor_advertisements WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
+    if (adInfo.isNotEmpty) {
+      final sponsorUserId = adInfo.first.toColumnMap()['user_id'] as int;
+      await _sendNotification(sponsorUserId, 'sponsor', 'Ad Confirmed ✅', 'Your advertisement has been approved by the organizer!', 'ad_confirmed');
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -3340,6 +3454,15 @@ Future<Response> _rejectSponsorAd(Request request, String id) async {
       Sql.named("UPDATE sponsor_advertisements SET status = 'rejected' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
+    // Notify sponsor
+    final adInfo = await conn.execute(
+      Sql.named('SELECT user_id FROM sponsor_advertisements WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
+    if (adInfo.isNotEmpty) {
+      final sponsorUserId = adInfo.first.toColumnMap()['user_id'] as int;
+      await _sendNotification(sponsorUserId, 'sponsor', 'Ad Rejected ❌', 'Your advertisement has been rejected by the organizer.', 'ad_rejected');
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -3384,6 +3507,117 @@ Future<Response> _getAllSponsorAdsForOrganizer(Request request) async {
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }
+}
+
+// ========== NOTIFICATION HANDLERS ==========
+
+Future<Response> _getNotifications(Request request) async {
+  try {
+    final userId = int.parse(request.params['userId']!);
+    final userType = request.params['userType']!;
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('SELECT * FROM notifications WHERE user_id = @uid AND user_type = @ut ORDER BY created_at DESC LIMIT 100'),
+      substitutionValues: {'uid': userId, 'ut': userType},
+    );
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getUnreadCount(Request request) async {
+  try {
+    final userId = int.parse(request.params['userId']!);
+    final userType = request.params['userType']!;
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('SELECT COUNT(*) as count FROM notifications WHERE user_id = @uid AND user_type = @ut AND is_read = FALSE'),
+      substitutionValues: {'uid': userId, 'ut': userType},
+    );
+    final count = results.first.toColumnMap()['count'] ?? 0;
+    return _jsonResponse({'count': count});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _createNotification(Request request) async {
+  try {
+    final body = jsonDecode(await request.read().join()) as Map<String, dynamic>;
+    final userId = body['user_id'] as int;
+    final userType = body['user_type'] as String;
+    final title = body['title'] as String;
+    final message = body['message'] as String;
+    final type = body['type'] as String? ?? 'general';
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('''
+        INSERT INTO notifications (user_id, user_type, title, message, type)
+        VALUES (@uid, @ut, @title, @msg, @type) RETURNING *
+      '''),
+      substitutionValues: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
+    );
+    return _jsonResponse(_parseRow(results.first));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _markAsRead(Request request) async {
+  try {
+    final id = int.parse(request.params['id']!);
+    final conn = await db;
+    await conn.execute(
+      Sql.named('UPDATE notifications SET is_read = TRUE WHERE id = @id'),
+      substitutionValues: {'id': id},
+    );
+    return _jsonResponse({'success': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _markAllAsRead(Request request) async {
+  try {
+    final userId = int.parse(request.params['userId']!);
+    final userType = request.params['userType']!;
+    final conn = await db;
+    await conn.execute(
+      Sql.named('UPDATE notifications SET is_read = TRUE WHERE user_id = @uid AND user_type = @ut AND is_read = FALSE'),
+      substitutionValues: {'uid': userId, 'ut': userType},
+    );
+    return _jsonResponse({'success': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _deleteNotification(Request request) async {
+  try {
+    final id = int.parse(request.params['id']!);
+    final conn = await db;
+    await conn.execute(
+      Sql.named('DELETE FROM notifications WHERE id = @id'),
+      substitutionValues: {'id': id},
+    );
+    return _jsonResponse({'success': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<void> _sendNotification(int userId, String userType, String title, String message, String type) async {
+  try {
+    final conn = await db;
+    await conn.execute(
+      Sql.named('''
+        INSERT INTO notifications (user_id, user_type, title, message, type)
+        VALUES (@uid, @ut, @title, @msg, @type)
+      '''),
+      substitutionValues: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
+    );
+  } catch (_) {}
 }
 
 // ========== MAIN ==========

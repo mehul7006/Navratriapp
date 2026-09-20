@@ -1051,4 +1051,50 @@ class DatabaseHelper {
   static Future<List<Map<String, dynamic>>> getConfirmedAdsForLogin() async {
     return _get('/api/sponsor-ads/confirmed/ads');
   }
+
+  // ========== NOTIFICATIONS ==========
+
+  static Future<List<Map<String, dynamic>>> getNotifications(int userId, String userType) async {
+    return _get('/api/notifications/$userId/$userType');
+  }
+
+  static Future<int> getUnreadCount(int userId, String userType) async {
+    try {
+      final uri = Uri.parse('$_apiBase/api/notifications/unread-count/$userId/$userType');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return 0;
+      final data = jsonDecode(response.body);
+      return (data['count'] ?? 0) as int;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createNotification({
+    required int userId,
+    required String userType,
+    required String title,
+    required String message,
+    required String type,
+  }) async {
+    return _post('/api/notifications', {
+      'user_id': userId,
+      'user_type': userType,
+      'title': title,
+      'message': message,
+      'type': type,
+    });
+  }
+
+  static Future<void> markNotificationAsRead(int id) async {
+    await _put('/api/notifications/$id/read', {});
+  }
+
+  static Future<void> markAllNotificationsAsRead(int userId, String userType) async {
+    await _put('/api/notifications/read-all/$userId/$userType', {});
+  }
+
+  static Future<void> deleteNotification(int id) async {
+    await _delete('/api/notifications/$id');
+  }
 }

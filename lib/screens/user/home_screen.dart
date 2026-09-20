@@ -17,6 +17,7 @@ import 'user_song_request_screen.dart';
 import 'user_reports_screen.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
 import 'package:navratri_app/widgets/login_ad_popup.dart';
+import 'package:navratri_app/widgets/notification_bell.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -96,6 +97,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         iconTheme: const IconThemeData(color: AppTheme.goldPrimary),
         elevation: 0,
         actions: [
+          const NotificationBell(),
           IconButton(icon: const Icon(Icons.refresh, size: 20, color: AppTheme.goldPrimary), onPressed: _loadData),
           IconButton(
             icon: const Icon(Icons.logout, size: 20, color: AppTheme.goldPrimary),
