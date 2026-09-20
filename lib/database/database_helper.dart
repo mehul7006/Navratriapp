@@ -1121,4 +1121,27 @@ class DatabaseHelper {
       ).timeout(const Duration(seconds: 10));
     } catch (_) {}
   }
+
+  static Future<void> setConfig(String key, String value) async {
+    try {
+      final uri = Uri.parse('$_apiBase/api/config/$key');
+      await http.put(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'value': value}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {}
+  }
+
+  static Future<String> getConfig(String key) async {
+    try {
+      final uri = Uri.parse('$_apiBase/api/config/$key');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['value'] ?? '') as String;
+      }
+    } catch (_) {}
+    return '';
+  }
 }

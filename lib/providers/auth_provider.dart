@@ -68,7 +68,7 @@ class AuthProvider extends ChangeNotifier {
       if (result != null) {
         _currentUser = result;
         await _saveSession(result);
-        FcmService.init();
+        await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _isLoading = false;
         notifyListeners();
@@ -112,7 +112,7 @@ class AuthProvider extends ChangeNotifier {
       if (result != null) {
         _currentUser = result;
         await _saveSession(result);
-        FcmService.init();
+        await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _isLoading = false;
         notifyListeners();
@@ -156,7 +156,7 @@ class AuthProvider extends ChangeNotifier {
       if (result != null) {
         _currentUser = result;
         await _saveSession(result);
-        FcmService.init();
+        await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _isLoading = false;
         notifyListeners();

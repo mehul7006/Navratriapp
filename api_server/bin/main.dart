@@ -161,6 +161,11 @@ Future<Connection> get db async {
       user_type VARCHAR(20),
       created_at TIMESTAMP DEFAULT NOW()
     )''');
+    // ========== APP CONFIG ==========
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS app_config (
+      key VARCHAR(100) PRIMARY KEY,
+      value TEXT NOT NULL
+    )''');
   } catch (_) {}
   return _db!;
 }
@@ -304,7 +309,9 @@ final router = Router()
   // ========== FCM TOKENS ==========
   ..post('/api/fcm-tokens', _saveFcmToken)
   ..put('/api/fcm-tokens/<userId>/<userType>', _updateFcmTokenUser)
-  ..post('/api/fcm-tokens/<userId>/<userType>/bind', _bindFcmToken);
+  ..post('/api/fcm-tokens/<userId>/<userType>/bind', _bindFcmToken)
+  ..put('/api/config/<key>', _setConfig)
+  ..get('/api/config/<key>', _getConfig);
 
 Map<String, dynamic> _parseRow(ResultRow row) {
   final map = row.toColumnMap();
@@ -3715,7 +3722,12 @@ Future<void> _sendPushToUserType(String userType, String title, String body) asy
 
 Future<void> _sendFcmPush(String token, String title, String body) async {
   try {
-    final serverKey = Platform.environment['FIREBASE_SERVER_KEY'] ?? '';
+    final conn = await db;
+    final keyResult = await conn.execute(
+      Sql.named("SELECT value FROM app_config WHERE key = 'fcm_server_key'"),
+    );
+    if (keyResult.isEmpty) return;
+    final serverKey = keyResult.first.toColumnMap()['value'] as String;
     if (serverKey.isEmpty) return;
     final request = await HttpClient().postUrl(Uri.parse('https://fcm.googleapis.com/fcm/send'))
       ..headers.set('Authorization', 'key=$serverKey')
@@ -3726,7 +3738,39 @@ Future<void> _sendFcmPush(String token, String title, String body) async {
       'data': {'click_action': 'FLUTTER_NOTIFICATION_CLICK'},
     }));
     await request.close();
-  } catch (_) {}
+    print('FCM: Push sent to ${token.substring(0, 20)}...');
+  } catch (e) {
+    print('FCM: Push error = $e');
+  }
+}
+
+Future<Response> _setConfig(Request request, String key) async {
+  try {
+    final body = await _getBody(request);
+    final value = body['value'] as String;
+    final conn = await db;
+    await conn.execute(
+      Sql.named('INSERT INTO app_config (key, value) VALUES (@key, @value) ON CONFLICT (key) DO UPDATE SET value = @value'),
+      parameters: {'key': key, 'value': value},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getConfig(Request request, String key) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('SELECT value FROM app_config WHERE key = @key'),
+      parameters: {'key': key},
+    );
+    if (results.isEmpty) return _jsonResponse({'value': ''});
+    return _jsonResponse({'value': results.first.toColumnMap()['value']});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
 }
 
 // ========== MAIN ==========
