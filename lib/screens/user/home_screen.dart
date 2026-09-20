@@ -16,6 +16,7 @@ import 'user_payment_history_screen.dart';
 import 'user_song_request_screen.dart';
 import 'user_reports_screen.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
+import 'package:navratri_app/widgets/login_ad_popup.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -86,8 +87,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
 
-    return BackgroundScaffold(
-      appBar: AppBar(
+    return LoginAdPopup(
+      child: BackgroundScaffold(
+        appBar: AppBar(
         title: Text(AppLocalizations.t('navratri_2026_short'), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.purpleDeep,
         foregroundColor: AppTheme.goldPrimary,
@@ -151,6 +153,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

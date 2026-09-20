@@ -19,6 +19,7 @@ import 'lucky_draw_screen.dart';
 import 'broadcast_management_screen.dart';
 import 'dj_console_screen.dart';
 import 'ad_confirmation_screen.dart';
+import 'package:navratri_app/widgets/login_ad_popup.dart';
 import 'garba_participation_screen.dart';
 import '../../widgets/language_toggle.dart';
 import '../../l10n/app_localizations.dart';
@@ -105,7 +106,8 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
-    return PopScope(
+    return LoginAdPopup(
+      child: PopScope(
       canPop: _selectedIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && _selectedIndex != 0) {
@@ -142,7 +144,8 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
         child: _buildBody(),
         bottomNavigationBar: _buildBottomNav(),
       ),
-    );
+    ),
+  );
   }
 
   String _getTabTitle() {
