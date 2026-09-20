@@ -7,9 +7,10 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isLoading = false;
   String? _error;
+  late final Future<void> sessionReady;
 
   AuthProvider() {
-    _restoreSession();
+    sessionReady = _restoreSession();
   }
 
   // Getters

@@ -37,35 +37,39 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Timer(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        final auth = context.read<AuthProvider>();
-        if (auth.isLoggedIn) {
-          final userType = auth.currentUser?['user_type'];
-          switch (userType) {
-            case 'organizer':
-              Navigator.of(context).pushReplacementNamed('/organizer/dashboard');
-              break;
-            case 'sponsor':
-              Navigator.of(context).pushReplacementNamed('/sponsor/dashboard');
-              break;
-            default:
-              Navigator.of(context).pushReplacementNamed('/user/home');
-          }
-        } else {
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  const LoginScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              transitionDuration: const Duration(milliseconds: 100),
-            ),
-          );
-        }
+    _navigateAfterDelay();
+  }
+
+  Future<void> _navigateAfterDelay() async {
+    final auth = context.read<AuthProvider>();
+    await auth.sessionReady;
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    if (auth.isLoggedIn) {
+      final userType = auth.currentUser?['user_type'];
+      switch (userType) {
+        case 'organizer':
+          Navigator.of(context).pushReplacementNamed('/organizer/dashboard');
+          break;
+        case 'sponsor':
+          Navigator.of(context).pushReplacementNamed('/sponsor/dashboard');
+          break;
+        default:
+          Navigator.of(context).pushReplacementNamed('/user/home');
       }
-    });
+    } else {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 100),
+        ),
+      );
+    }
   }
 
   @override
