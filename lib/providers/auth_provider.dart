@@ -1,10 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 
 class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isLoading = false;
   String? _error;
+
+  AuthProvider() {
+    _restoreSession();
+  }
 
   // Getters
   Map<String, dynamic>? get currentUser => _currentUser;
@@ -15,6 +21,31 @@ class AuthProvider extends ChangeNotifier {
   bool get isUser => _currentUser?['user_type'] == 'user';
   bool get isSponsor => _currentUser?['user_type'] == 'sponsor';
   String? get houseNumber => _currentUser?['house_number'];
+
+  Future<void> _restoreSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedUser = prefs.getString('logged_in_user');
+      if (savedUser != null && savedUser.isNotEmpty) {
+        _currentUser = jsonDecode(savedUser);
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveSession(Map<String, dynamic> user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('logged_in_user', jsonEncode(user));
+    } catch (_) {}
+  }
+
+  Future<void> _clearSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('logged_in_user');
+    } catch (_) {}
+  }
 
   // User Login: House Number = ID, Mobile = Password
   Future<bool> loginUser({
@@ -33,6 +64,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (result != null) {
         _currentUser = result;
+        await _saveSession(result);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -74,6 +106,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (result != null) {
         _currentUser = result;
+        await _saveSession(result);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -115,6 +148,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (result != null) {
         _currentUser = result;
+        await _saveSession(result);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -191,6 +225,7 @@ class AuthProvider extends ChangeNotifier {
   void logout() {
     _currentUser = null;
     _error = null;
+    _clearSession();
     notifyListeners();
   }
 

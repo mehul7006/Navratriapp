@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 import 'auth/login_screen.dart';
 import '../widgets/background_scaffold.dart';
 
@@ -37,16 +39,31 @@ class _SplashScreenState extends State<SplashScreen>
 
     Timer(const Duration(milliseconds: 500), () {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const LoginScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 100),
-          ),
-        );
+        final auth = context.read<AuthProvider>();
+        if (auth.isLoggedIn) {
+          final userType = auth.currentUser?['user_type'];
+          switch (userType) {
+            case 'organizer':
+              Navigator.of(context).pushReplacementNamed('/organizer/dashboard');
+              break;
+            case 'sponsor':
+              Navigator.of(context).pushReplacementNamed('/sponsor/dashboard');
+              break;
+            default:
+              Navigator.of(context).pushReplacementNamed('/user/home');
+          }
+        } else {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const LoginScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 100),
+            ),
+          );
+        }
       }
     });
   }
