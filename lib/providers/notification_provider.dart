@@ -7,15 +7,19 @@ class NotificationProvider extends ChangeNotifier {
   int _unreadCount = 0;
   bool _isLoading = false;
   Timer? _pollTimer;
+  int? _currentUserId;
+  String? _currentUserType;
 
   List<Map<String, dynamic>> get notifications => _notifications;
   int get unreadCount => _unreadCount;
   bool get isLoading => _isLoading;
 
   void startPolling(int userId, String userType) {
+    _currentUserId = userId;
+    _currentUserType = userType;
     _pollTimer?.cancel();
     _refresh(userId, userType);
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _refresh(userId, userType);
     });
   }
@@ -25,15 +29,19 @@ class NotificationProvider extends ChangeNotifier {
     _pollTimer = null;
   }
 
+  void refreshNow() {
+    if (_currentUserId != null && _currentUserType != null) {
+      _refresh(_currentUserId!, _currentUserType!);
+    }
+  }
+
   Future<void> _refresh(int userId, String userType) async {
     try {
       final notifs = await DatabaseHelper.getNotifications(userId, userType);
       final count = await DatabaseHelper.getUnreadCount(userId, userType);
-      if (_notifications.length != notifs.length || _unreadCount != count) {
-        _notifications = notifs;
-        _unreadCount = count;
-        notifyListeners();
-      }
+      _notifications = notifs;
+      _unreadCount = count;
+      notifyListeners();
     } catch (_) {}
   }
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../database/database_helper.dart';
 import 'user_coupon_screen.dart';
 import 'user_aarti_screen.dart';
@@ -41,6 +42,15 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     super.initState();
     _loadData();
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.currentUser != null) {
+        context.read<NotificationProvider>().startPolling(
+          auth.currentUser!['id'] as int,
+          auth.currentUser!['user_type'] as String,
+        );
+      }
+    });
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
@@ -29,6 +30,15 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.currentUser != null) {
+        context.read<NotificationProvider>().startPolling(
+          auth.currentUser!['id'] as int,
+          auth.currentUser!['user_type'] as String,
+        );
+      }
+    });
   }
 
   Future<void> _loadData() async {

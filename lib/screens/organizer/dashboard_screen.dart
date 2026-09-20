@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../database/database_helper.dart';
 import 'member_management_screen.dart';
 import 'payment_collection_screen.dart';
@@ -50,6 +51,15 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
   void initState() {
     super.initState();
     _loadStats();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.currentUser != null) {
+        context.read<NotificationProvider>().startPolling(
+          auth.currentUser!['id'] as int,
+          auth.currentUser!['user_type'] as String,
+        );
+      }
+    });
   }
 
   Future<void> _loadStats() async {
