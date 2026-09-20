@@ -13,6 +13,7 @@ class LoginAdPopup extends StatefulWidget {
 }
 
 class _LoginAdPopupState extends State<LoginAdPopup> {
+  static bool _adShownThisSession = false;
   List<Map<String, dynamic>> _confirmedAds = [];
   bool _showAdPopup = false;
   Timer? _adCountdownTimer;
@@ -33,10 +34,12 @@ class _LoginAdPopupState extends State<LoginAdPopup> {
   }
 
   Future<void> _loadConfirmedAds() async {
+    if (_adShownThisSession) return;
     try {
       final ads = await DatabaseHelper.getConfirmedAdsForLogin();
       if (mounted && ads.isNotEmpty) {
         setState(() => _confirmedAds = ads);
+        _adShownThisSession = true;
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) _openAdPopup();
       }
