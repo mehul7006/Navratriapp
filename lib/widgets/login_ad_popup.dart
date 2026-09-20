@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../database/database_helper.dart';
@@ -16,6 +17,7 @@ class _LoginAdPopupState extends State<LoginAdPopup> {
   static bool _adShownThisSession = false;
   List<Map<String, dynamic>> _confirmedAds = [];
   bool _showAdPopup = false;
+  int _currentAdIndex = 0;
   Timer? _adCountdownTimer;
   final ValueNotifier<int> _adCountdown = ValueNotifier(15);
   bool _adCloseEnabled = false;
@@ -50,12 +52,16 @@ class _LoginAdPopupState extends State<LoginAdPopup> {
     if (_confirmedAds.isEmpty || !mounted) return;
     _adCountdown.value = 15;
     _adCloseEnabled = false;
-    setState(() => _showAdPopup = true);
+    setState(() {
+      _currentAdIndex = Random().nextInt(_confirmedAds.length);
+      _showAdPopup = true;
+    });
 
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) setState(() => _adCloseEnabled = true);
     });
 
+    _adCountdownTimer?.cancel();
     _adCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_adCountdown.value <= 1) {
         timer.cancel();
@@ -83,7 +89,7 @@ class _LoginAdPopupState extends State<LoginAdPopup> {
 
   Widget _buildAdPopup() {
     if (_confirmedAds.isEmpty) return const SizedBox.shrink();
-    final ad = _confirmedAds.first;
+    final ad = _confirmedAds[_currentAdIndex];
     final imageData = ad['image_data'] ?? '';
     final sponsorName = ad['sponsor_name'] ?? '';
 
