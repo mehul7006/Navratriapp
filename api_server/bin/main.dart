@@ -3518,7 +3518,7 @@ Future<Response> _getNotifications(Request request) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('SELECT * FROM notifications WHERE user_id = @uid AND user_type = @ut ORDER BY created_at DESC LIMIT 100'),
-      substitutionValues: {'uid': userId, 'ut': userType},
+      parameters: {'uid': userId, 'ut': userType},
     );
     return _jsonResponse(_parseResults(results));
   } catch (e) {
@@ -3533,7 +3533,7 @@ Future<Response> _getUnreadCount(Request request) async {
     final conn = await db;
     final results = await conn.execute(
       Sql.named('SELECT COUNT(*) as count FROM notifications WHERE user_id = @uid AND user_type = @ut AND is_read = FALSE'),
-      substitutionValues: {'uid': userId, 'ut': userType},
+      parameters: {'uid': userId, 'ut': userType},
     );
     final count = results.first.toColumnMap()['count'] ?? 0;
     return _jsonResponse({'count': count});
@@ -3556,7 +3556,7 @@ Future<Response> _createNotification(Request request) async {
         INSERT INTO notifications (user_id, user_type, title, message, type)
         VALUES (@uid, @ut, @title, @msg, @type) RETURNING *
       '''),
-      substitutionValues: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
+      parameters: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
     );
     return _jsonResponse(_parseRow(results.first));
   } catch (e) {
@@ -3570,7 +3570,7 @@ Future<Response> _markAsRead(Request request) async {
     final conn = await db;
     await conn.execute(
       Sql.named('UPDATE notifications SET is_read = TRUE WHERE id = @id'),
-      substitutionValues: {'id': id},
+      parameters: {'id': id},
     );
     return _jsonResponse({'success': true});
   } catch (e) {
@@ -3585,7 +3585,7 @@ Future<Response> _markAllAsRead(Request request) async {
     final conn = await db;
     await conn.execute(
       Sql.named('UPDATE notifications SET is_read = TRUE WHERE user_id = @uid AND user_type = @ut AND is_read = FALSE'),
-      substitutionValues: {'uid': userId, 'ut': userType},
+      parameters: {'uid': userId, 'ut': userType},
     );
     return _jsonResponse({'success': true});
   } catch (e) {
@@ -3599,7 +3599,7 @@ Future<Response> _deleteNotification(Request request) async {
     final conn = await db;
     await conn.execute(
       Sql.named('DELETE FROM notifications WHERE id = @id'),
-      substitutionValues: {'id': id},
+      parameters: {'id': id},
     );
     return _jsonResponse({'success': true});
   } catch (e) {
@@ -3615,7 +3615,7 @@ Future<void> _sendNotification(int userId, String userType, String title, String
         INSERT INTO notifications (user_id, user_type, title, message, type)
         VALUES (@uid, @ut, @title, @msg, @type)
       '''),
-      substitutionValues: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
+      parameters: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
     );
   } catch (_) {}
 }
