@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showAdPopup = false;
   Timer? _adCloseTimer;
   Timer? _adCountdownTimer;
-  int _adCountdown = 15;
+  final ValueNotifier<int> _adCountdown = ValueNotifier(15);
   bool _adCloseEnabled = false;
 
   @override
@@ -52,6 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _marqueeTimer?.cancel();
     _adCloseTimer?.cancel();
     _adCountdownTimer?.cancel();
+    _adCountdown.dispose();
     super.dispose();
   }
 
@@ -92,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _openAdPopup() {
     if (_confirmedAds.isEmpty || !mounted) return;
     _currentAdIndex = 0;
-    _adCountdown = 15;
+    _adCountdown.value = 15;
     _adCloseEnabled = false;
     setState(() => _showAdPopup = true);
 
@@ -101,11 +102,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     _adCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_adCountdown <= 1) {
+      if (_adCountdown.value <= 1) {
         timer.cancel();
         _dismissAd();
       } else {
-        setState(() => _adCountdown--);
+        _adCountdown.value--;
       }
     });
   }
@@ -718,22 +719,25 @@ class _LoginScreenState extends State<LoginScreen> {
               Positioned(
                 top: 32,
                 right: 32,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.timer, color: _adCountdown <= 5 ? Colors.red : AppTheme.goldPrimary, size: 14),
-                      const SizedBox(width: 4),
-                      Text('$_adCountdown s', style: TextStyle(
-                        color: _adCountdown <= 5 ? Colors.red : Colors.white,
-                        fontSize: 13, fontWeight: FontWeight.bold,
-                      )),
-                    ],
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _adCountdown,
+                  builder: (context, countdown, _) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timer, color: countdown <= 5 ? Colors.red : AppTheme.goldPrimary, size: 14),
+                        const SizedBox(width: 4),
+                        Text('$countdown s', style: TextStyle(
+                          color: countdown <= 5 ? Colors.red : Colors.white,
+                          fontSize: 13, fontWeight: FontWeight.bold,
+                        )),
+                      ],
+                    ),
                   ),
                 ),
               ),
