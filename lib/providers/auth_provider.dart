@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
+import '../services/fcm_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentUser;
@@ -29,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
       final savedUser = prefs.getString('logged_in_user');
       if (savedUser != null && savedUser.isNotEmpty) {
         _currentUser = jsonDecode(savedUser);
+        FcmService.init();
         notifyListeners();
       }
     } catch (_) {}
@@ -66,6 +68,8 @@ class AuthProvider extends ChangeNotifier {
       if (result != null) {
         _currentUser = result;
         await _saveSession(result);
+        FcmService.init();
+        FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -108,6 +112,8 @@ class AuthProvider extends ChangeNotifier {
       if (result != null) {
         _currentUser = result;
         await _saveSession(result);
+        FcmService.init();
+        FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -150,6 +156,8 @@ class AuthProvider extends ChangeNotifier {
       if (result != null) {
         _currentUser = result;
         await _saveSession(result);
+        FcmService.init();
+        FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _isLoading = false;
         notifyListeners();
         return true;

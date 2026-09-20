@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "707988211188",
+    "project_id": "navratriapp-2026",
+    "storage_bucket": "navratriapp-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:707988211188:android:a9f29664a4e337a8e065a1",
+        "android_client_info": {
+          "package_name": "com.nishitpark.navratri"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_abuR8ir9dZyejFTQgS9vSz6J4NDgBzc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

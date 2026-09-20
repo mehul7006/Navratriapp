@@ -1097,4 +1097,28 @@ class DatabaseHelper {
   static Future<void> deleteNotification(int id) async {
     await _delete('/api/notifications/$id');
   }
+
+  // ========== FCM TOKENS ==========
+
+  static Future<void> saveFcmToken(String token) async {
+    try {
+      final uri = Uri.parse('$_apiBase/api/fcm-tokens');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {}
+  }
+
+  static Future<void> bindFcmToken(int userId, String userType, String token) async {
+    try {
+      final uri = Uri.parse('$_apiBase/api/fcm-tokens/$userId/$userType/bind');
+      await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {}
+  }
 }

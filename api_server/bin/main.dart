@@ -153,6 +153,14 @@ Future<Connection> get db async {
       created_at TIMESTAMP DEFAULT NOW()
     )''');
     try { await _db!.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, user_type, is_read)"); } catch (_) {}
+    // ========== FCM TOKENS ==========
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS fcm_tokens (
+      id SERIAL PRIMARY KEY,
+      token TEXT NOT NULL UNIQUE,
+      user_id INT,
+      user_type VARCHAR(20),
+      created_at TIMESTAMP DEFAULT NOW()
+    )''');
   } catch (_) {}
   return _db!;
 }
@@ -292,7 +300,11 @@ final router = Router()
   ..post('/api/notifications', _createNotification)
   ..put('/api/notifications/<id>/read', _markAsRead)
   ..put('/api/notifications/read-all/<userId>/<userType>', _markAllAsRead)
-  ..delete('/api/notifications/<id>', _deleteNotification);
+  ..delete('/api/notifications/<id>', _deleteNotification)
+  // ========== FCM TOKENS ==========
+  ..post('/api/fcm-tokens', _saveFcmToken)
+  ..put('/api/fcm-tokens/<userId>/<userType>', _updateFcmTokenUser)
+  ..post('/api/fcm-tokens/<userId>/<userType>/bind', _bindFcmToken);
 
 Map<String, dynamic> _parseRow(ResultRow row) {
   final map = row.toColumnMap();
@@ -3617,6 +3629,103 @@ Future<void> _sendNotification(int userId, String userType, String title, String
       '''),
       parameters: {'uid': userId, 'ut': userType, 'title': title, 'msg': message, 'type': type},
     );
+    // Also send push notification to device
+    _sendPushToUser(userId, title, message);
+  } catch (_) {}
+}
+
+// ========== FCM TOKEN HANDLERS ==========
+
+Future<Response> _saveFcmToken(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final token = body['token'] as String;
+    final conn = await db;
+    await conn.execute(
+      Sql.named('INSERT INTO fcm_tokens (token) VALUES (@token) ON CONFLICT (token) DO UPDATE SET token = @token'),
+      parameters: {'token': token},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _updateFcmTokenUser(Request request, String userId, String userType) async {
+  try {
+    final body = await _getBody(request);
+    final token = body['token'] as String;
+    final conn = await db;
+    await conn.execute(
+      Sql.named('UPDATE fcm_tokens SET user_id = @uid, user_type = @ut WHERE token = @token'),
+      parameters: {'uid': int.parse(userId), 'ut': userType, 'token': token},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _bindFcmToken(Request request, String userId, String userType) async {
+  try {
+    final body = await _getBody(request);
+    final token = body['token'] as String;
+    final conn = await db;
+    await conn.execute(
+      Sql.named('''
+        INSERT INTO fcm_tokens (token, user_id, user_type)
+        VALUES (@token, @uid, @ut)
+        ON CONFLICT (token) DO UPDATE SET user_id = @uid, user_type = @ut
+      '''),
+      parameters: {'token': token, 'uid': int.parse(userId), 'ut': userType},
+    );
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<void> _sendPushToUser(int userId, String title, String body) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('SELECT token FROM fcm_tokens WHERE user_id = @uid'),
+      parameters: {'uid': userId},
+    );
+    for (final row in results) {
+      final token = row.toColumnMap()['token'] as String;
+      await _sendFcmPush(token, title, body);
+    }
+  } catch (_) {}
+}
+
+Future<void> _sendPushToUserType(String userType, String title, String body) async {
+  try {
+    final conn = await db;
+    final results = await conn.execute(
+      Sql.named('SELECT token FROM fcm_tokens WHERE user_type = @ut'),
+      parameters: {'ut': userType},
+    );
+    for (final row in results) {
+      final token = row.toColumnMap()['token'] as String;
+      await _sendFcmPush(token, title, body);
+    }
+  } catch (_) {}
+}
+
+Future<void> _sendFcmPush(String token, String title, String body) async {
+  try {
+    final serverKey = Platform.environment['FIREBASE_SERVER_KEY'] ?? '';
+    if (serverKey.isEmpty) return;
+    final request = await HttpClient().postUrl(Uri.parse('https://fcm.googleapis.com/fcm/send'))
+      ..headers.set('Authorization', 'key=$serverKey')
+      ..headers.set('Content-Type', 'application/json');
+    request.write(jsonEncode({
+      'to': token,
+      'notification': {'title': title, 'body': body},
+      'data': {'click_action': 'FLUTTER_NOTIFICATION_CLICK'},
+    }));
+    await request.close();
   } catch (_) {}
 }
 
