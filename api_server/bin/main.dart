@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
 import 'package:postgres/postgres.dart';
+import 'package:pointycastle/export.dart';
+import 'package:crypto/crypto.dart';
 
 const Duration istOffset = Duration(hours: 5, minutes: 30);
 
@@ -3720,27 +3723,167 @@ Future<void> _sendPushToUserType(String userType, String title, String body) asy
   } catch (_) {}
 }
 
+String? _cachedAccessToken;
+DateTime? _tokenExpiry;
+
+Future<String?> _getAccessToken() async {
+  if (_cachedAccessToken != null && _tokenExpiry != null && DateTime.now().isBefore(_tokenExpiry!)) {
+    return _cachedAccessToken;
+  }
+  try {
+    final saFile = File('service_account.json');
+    if (!saFile.existsSync()) {
+      print('FCM: service_account.json not found');
+      return null;
+    }
+    final sa = jsonDecode(await saFile.readAsString()) as Map<String, dynamic>;
+    final privateKeyPem = sa['private_key'] as String;
+    final clientEmail = sa['client_email'] as String;
+    final tokenUri = sa['token_uri'] as String;
+
+    final now = DateTime.now().toUtc();
+    final header = base64UrlEncode(utf8.encode(jsonEncode({'alg': 'RS256', 'typ': 'JWT'})));
+    final claimPayload = {
+      'iss': clientEmail,
+      'scope': 'https://www.googleapis.com/auth/firebase.messaging',
+      'aud': 'https://oauth2.googleapis.com/token',
+      'iat': now.millisecondsSinceEpoch ~/ 1000,
+      'exp': now.add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+    };
+    final payload = base64UrlEncode(utf8.encode(jsonEncode(claimPayload)));
+
+    final signingInput = '$header.$payload';
+    final signature = _signRS256(signingInput, privateKeyPem);
+    final jwt = '$signingInput.$signature';
+
+    final client = HttpClient();
+    final req = await client.postUrl(Uri.parse(tokenUri));
+    req.headers.set('Content-Type', 'application/x-www-form-urlencoded');
+    req.write('grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=$jwt');
+    final resp = await req.close();
+    final body = await resp.transform(utf8.decoder).join();
+    final data = jsonDecode(body) as Map<String, dynamic>;
+
+    if (data.containsKey('access_token')) {
+      _cachedAccessToken = data['access_token'] as String;
+      _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+      print('FCM: Access token obtained successfully');
+      return _cachedAccessToken;
+    } else {
+      print('FCM: Token error = $body');
+      return null;
+    }
+  } catch (e) {
+    print('FCM: Token generation error = $e');
+    return null;
+  }
+}
+
+BigInt _bytesToBigInt(List<int> bytes) {
+  var result = BigInt.from(0);
+  for (final b in bytes) {
+    result = (result << 8) | BigInt.from(b);
+  }
+  return result;
+}
+
+RSAPrivateKey _parsePrivateKeyFromPem(String pem) {
+  final lines = pem.split('\n').where((l) => !l.startsWith('-----') && l.trim().isNotEmpty).join();
+  final derBytes = base64Decode(lines);
+
+  int offset = 0;
+  int readLength() {
+    int length = derBytes[offset++];
+    if ((length & 0x80) != 0) {
+      int numBytes = length & 0x7F;
+      length = 0;
+      for (int i = 0; i < numBytes; i++) {
+        length = (length << 8) | derBytes[offset++];
+      }
+    }
+    return length;
+  }
+
+  void readTag(int expectedTag) {
+    if (derBytes[offset++] != expectedTag) throw Exception('Invalid PKCS8 tag');
+  }
+
+  BigInt readInteger() {
+    readTag(0x02);
+    final len = readLength();
+    final bytes = derBytes.sublist(offset, offset + len);
+    offset += len;
+    return _bytesToBigInt(bytes);
+  }
+
+  void readSequence() {
+    readTag(0x30);
+    readLength();
+  }
+
+  offset = 0;
+  readSequence();
+  readSequence();
+  readTag(0x04);
+  final innerLen = readLength();
+
+  final innerStart = offset;
+  readSequence();
+  final n = readInteger();
+  final e = readInteger();
+  final d = readInteger();
+  final p = readInteger();
+  final q = readInteger();
+  final dp = readInteger();
+  final dq = readInteger();
+  final qInv = readInteger();
+
+  return RSAPrivateKey(n, d, p, q);
+}
+
+String _signRS256(String input, String privateKeyPem) {
+  final key = _parsePrivateKeyFromPem(privateKeyPem);
+  final signer = Signer('SHA-256/RSA');
+  signer.init(true, PrivateKeyParameter<RSAPrivateKey>(key));
+  final sig = signer.generateSignature(Uint8List.fromList(utf8.encode(input)));
+  final sigBytes = (sig as RSASignature).bytes;
+  return base64UrlEncode(sigBytes);
+}
+
 Future<void> _sendFcmPush(String token, String title, String body) async {
   try {
-    final conn = await db;
-    final keyResult = await conn.execute(
-      Sql.named("SELECT value FROM app_config WHERE key = 'fcm_server_key'"),
-    );
-    if (keyResult.isEmpty) return;
-    final serverKey = keyResult.first.toColumnMap()['value'] as String;
-    if (serverKey.isEmpty) return;
-    final request = await HttpClient().postUrl(Uri.parse('https://fcm.googleapis.com/fcm/send'))
-      ..headers.set('Authorization', 'key=$serverKey')
-      ..headers.set('Content-Type', 'application/json');
-    request.write(jsonEncode({
-      'to': token,
-      'notification': {'title': title, 'body': body},
-      'data': {'click_action': 'FLUTTER_NOTIFICATION_CLICK'},
-    }));
-    await request.close();
-    print('FCM: Push sent to ${token.substring(0, 20)}...');
+    final accessToken = await _getAccessToken();
+    if (accessToken == null) return;
+
+    final projectId = 'navratriapp-2026';
+    final url = 'https://fcm.googleapis.com/v1/projects/$projectId/messages:send';
+
+    final message = {
+      'message': {
+        'token': token,
+        'notification': {
+          'title': title,
+          'body': body,
+        },
+        'android': {
+          'priority': 'high',
+          'notification': {
+            'channel_id': 'navratri_notifications',
+            'sound': 'default',
+          },
+        },
+      },
+    };
+
+    final request = await HttpClient().postUrl(Uri.parse(url));
+    request.headers.set('Authorization', 'Bearer $accessToken');
+    request.headers.set('Content-Type', 'application/json');
+    request.write(jsonEncode(message));
+    final response = await request.close();
+    final responseBody = await response.transform(utf8.decoder).join();
+    print('FCM v1: Status=${response.statusCode} Body=$responseBody');
   } catch (e) {
-    print('FCM: Push error = $e');
+    print('FCM v1: Push error = $e');
   }
 }
 
