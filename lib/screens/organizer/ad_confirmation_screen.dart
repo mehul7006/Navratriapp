@@ -65,6 +65,7 @@ class _AdConfirmationScreenState extends State<AdConfirmationScreen> {
     final pendingCount = _allAds.where((a) => a['status'] == 'pending').length;
     final confirmedCount = _allAds.where((a) => a['status'] == 'confirmed').length;
     final rejectedCount = _allAds.where((a) => a['status'] == 'rejected').length;
+    final cancelledCount = _allAds.where((a) => a['status'] == 'cancelled').length;
 
     return BackgroundScaffold(
       backgroundImage: 'assets/images/BGIMAGE.jpg',
@@ -79,7 +80,7 @@ class _AdConfirmationScreenState extends State<AdConfirmationScreen> {
       ),
       child: Column(
         children: [
-          _buildTabBar(pendingCount, confirmedCount, rejectedCount),
+          _buildTabBar(pendingCount, confirmedCount, rejectedCount, cancelledCount),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
@@ -96,7 +97,7 @@ class _AdConfirmationScreenState extends State<AdConfirmationScreen> {
     );
   }
 
-  Widget _buildTabBar(int pending, int confirmed, int rejected) {
+  Widget _buildTabBar(int pending, int confirmed, int rejected, int cancelled) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -108,6 +109,7 @@ class _AdConfirmationScreenState extends State<AdConfirmationScreen> {
           _buildTab('pending', 'Pending', pending, Colors.orange),
           _buildTab('confirmed', 'Confirmed', confirmed, Colors.green),
           _buildTab('rejected', 'Rejected', rejected, Colors.red),
+          _buildTab('cancelled', 'Cancelled', cancelled, Colors.grey),
         ],
       ),
     );
@@ -150,11 +152,13 @@ class _AdConfirmationScreenState extends State<AdConfirmationScreen> {
     final isPending = status == 'pending';
     final isConfirmed = status == 'confirmed';
     final isRejected = status == 'rejected';
+    final isCancelled = status == 'cancelled';
 
     Color statusColor;
     String statusLabel;
     if (isPending) { statusColor = Colors.orange; statusLabel = 'Pending Review'; }
     else if (isConfirmed) { statusColor = Colors.green; statusLabel = 'Confirmed'; }
+    else if (isCancelled) { statusColor = Colors.grey; statusLabel = 'Cancelled'; }
     else { statusColor = Colors.red; statusLabel = 'Rejected'; }
 
     return Container(

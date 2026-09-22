@@ -1044,6 +1044,10 @@ class DatabaseHelper {
     await _put('/api/sponsor-ads/$id/reject', {});
   }
 
+  static Future<void> cancelSponsorAd(int id) async {
+    await _put('/api/sponsor-ads/$id/cancel', {});
+  }
+
   static Future<List<Map<String, dynamic>>> getAllSponsorAdsForOrganizer() async {
     return _get('/api/sponsor-ads/all/ads');
   }

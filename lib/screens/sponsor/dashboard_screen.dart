@@ -12,6 +12,9 @@ import 'package:navratri_app/widgets/background_scaffold.dart';
 import 'package:navratri_app/widgets/login_ad_popup.dart';
 import 'package:navratri_app/widgets/notification_bell.dart';
 import 'sponsor_advertisement_screen.dart';
+import 'sponsor_gifts_screen.dart';
+import 'sponsor_payment_history_screen.dart';
+import 'sponsor_reports_screen.dart';
 
 class SponsorDashboardScreen extends StatefulWidget {
   const SponsorDashboardScreen({super.key});
@@ -128,13 +131,25 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
                     icon: Icons.card_giftcard,
                     title: AppLocalizations.t('my_gift_contributions'),
                     subtitle: '${_gifts.length} gifts distributed',
-                    onTap: () {},
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const SponsorGiftsScreen(),
+                    )).then((_) => _loadData()),
                   ),
                   _buildActionCard(
                     icon: Icons.payment,
                     title: AppLocalizations.t('payment_status'),
                     subtitle: 'Status: ${(_sponsorData?['payment_status'] ?? 'pending').toString().toUpperCase()}',
-                    onTap: () {},
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const SponsorPaymentHistoryScreen(),
+                    )).then((_) => _loadData()),
+                  ),
+                  _buildActionCard(
+                    icon: Icons.assessment,
+                    title: AppLocalizations.t('reports_analytics_title'),
+                    subtitle: 'View reports and analytics',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const SponsorReportsScreen(),
+                    )),
                   ),
                 ],
               ),

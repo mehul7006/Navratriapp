@@ -296,6 +296,7 @@ final router = Router()
   ..put('/api/sponsor-ads/<id>/toggle', _toggleSponsorAd)
   ..put('/api/sponsor-ads/<id>/confirm', _confirmSponsorAd)
   ..put('/api/sponsor-ads/<id>/reject', _rejectSponsorAd)
+  ..put('/api/sponsor-ads/<id>/cancel', _cancelSponsorAd)
   ..get('/api/reports/summary', _getReportSummary)
   ..get('/api/reports/payments-by-house', _getPaymentsByHouseReport)
   ..get('/api/reports/expenses-by-date', _getExpensesByDateReport)
@@ -1176,10 +1177,10 @@ Future<Response> _updateBookingStatus(Request request, String id) async {
       if (booking.isNotEmpty) {
         final b = booking.first.toColumnMap();
         final statusText = body['status'] == 'approved' ? 'approved' : 'rejected';
-        final emoji = body['status'] == 'approved' ? '✅' : '❌';
+        final emoji = body['status'] == 'approved' ? '[APPROVED]' : '[REJECTED]';
         await _sendNotification(
           b['user_id'] as int, 'user',
-          '$emoji Aarti Booking $statusText',
+          'Aarti Booking $statusText',
           'Your aarti booking for Day ${b['day_number']} has been $statusText.',
           'aarti_booking',
         );
@@ -1367,6 +1368,26 @@ Future<Response> _updateSnackOrderStatus(Request request, String id) async {
       Sql.named('UPDATE snack_orders SET status = @status WHERE id = @id'),
       parameters: {'status': body['status'], 'id': int.parse(id)},
     );
+    if (body['status'] == 'approved' || body['status'] == 'rejected') {
+      final order = await conn.execute(
+        Sql.named('SELECT user_id, house_number, day_number, snack_name FROM snack_orders WHERE id = @id'),
+        parameters: {'id': int.parse(id)},
+      );
+      if (order.isNotEmpty) {
+        final o = order.first.toColumnMap();
+        final userId = o['user_id'];
+        if (userId != null) {
+          final statusText = body['status'] == 'approved' ? 'approved' : 'rejected';
+          final emoji = body['status'] == 'approved' ? '[APPROVED]' : '[REJECTED]';
+          await _sendNotification(
+            userId as int, 'user',
+            'Snack Order $statusText',
+            'Your snack order${o['snack_name'] != null ? " (${o['snack_name']})" : ''} for Day ${o['day_number']} has been $statusText.',
+            'snack_booking',
+          );
+        }
+      }
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2153,11 +2174,27 @@ Future<Response> _deleteBroadcast(Request request, String id) async {
 Future<Response> _cancelAartiBooking(Request request, String id) async {
   try {
     final conn = await db;
+    final booking = await conn.execute(
+      Sql.named('SELECT user_id, house_number, day_number FROM aarti_bookings WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
     await conn.execute(
       Sql.named(
           "UPDATE aarti_bookings SET status = 'cancelled' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
+    if (booking.isNotEmpty) {
+      final b = booking.first.toColumnMap();
+      final userId = b['user_id'];
+      if (userId != null) {
+        await _sendNotification(
+          userId as int, 'user',
+          'Aarti Booking Cancelled',
+          'Your aarti booking for Day ${b['day_number']} has been cancelled.',
+          'aarti_booking',
+        );
+      }
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2167,10 +2204,26 @@ Future<Response> _cancelAartiBooking(Request request, String id) async {
 Future<Response> _cancelSnackOrder(Request request, String id) async {
   try {
     final conn = await db;
+    final order = await conn.execute(
+      Sql.named('SELECT user_id, house_number, day_number, snack_name FROM snack_orders WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
     await conn.execute(
       Sql.named("UPDATE snack_orders SET status = 'cancelled' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
+    if (order.isNotEmpty) {
+      final o = order.first.toColumnMap();
+      final userId = o['user_id'];
+      if (userId != null) {
+        await _sendNotification(
+          userId as int, 'user',
+          'Snack Order Cancelled',
+          'Your snack order${o['snack_name'] != null ? " (${o['snack_name']})" : ''} for Day ${o['day_number']} has been cancelled.',
+          'snack_booking',
+        );
+      }
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2180,11 +2233,27 @@ Future<Response> _cancelSnackOrder(Request request, String id) async {
 Future<Response> _cancelGiftAssignment(Request request, String id) async {
   try {
     final conn = await db;
+    final assignment = await conn.execute(
+      Sql.named('SELECT user_id, house_number, day_number, gift_name FROM gift_assignments WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
     await conn.execute(
       Sql.named(
           "UPDATE gift_assignments SET status = 'cancelled' WHERE id = @id"),
       parameters: {'id': int.parse(id)},
     );
+    if (assignment.isNotEmpty) {
+      final a = assignment.first.toColumnMap();
+      final userId = a['user_id'];
+      if (userId != null) {
+        await _sendNotification(
+          userId as int, 'user',
+          'Gift Assignment Cancelled',
+          'Your gift assignment for Day ${a['day_number']}${a['gift_name'] != null ? " (${a['gift_name']})" : ''} has been cancelled.',
+          'gift_booking',
+        );
+      }
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2199,6 +2268,26 @@ Future<Response> _updateGiftAssignmentStatus(Request request, String id) async {
       Sql.named('UPDATE gift_assignments SET status = @status WHERE id = @id'),
       parameters: {'status': body['status'], 'id': int.parse(id)},
     );
+    if (body['status'] == 'approved' || body['status'] == 'delivered' || body['status'] == 'rejected') {
+      final assignment = await conn.execute(
+        Sql.named('SELECT user_id, house_number, day_number, gift_name FROM gift_assignments WHERE id = @id'),
+        parameters: {'id': int.parse(id)},
+      );
+      if (assignment.isNotEmpty) {
+        final a = assignment.first.toColumnMap();
+        final userId = a['user_id'];
+        if (userId != null) {
+          final statusText = body['status'] == 'rejected' ? 'rejected' : body['status'] == 'delivered' ? 'delivered' : 'approved';
+          final emoji = body['status'] == 'rejected' ? '[REJECTED]' : '[UPDATE]';
+          await _sendNotification(
+            userId as int, 'user',
+            'Gift ${body['status'] == 'delivered' ? 'Delivered' : 'Update'}',
+            'Your gift assignment for Day ${a['day_number']}${a['gift_name'] != null ? " (${a['gift_name']})" : ''} has been $statusText.',
+            'gift_booking',
+          );
+        }
+      }
+    }
     return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
@@ -2570,7 +2659,7 @@ Future<Response> _confirmDraw(Request request) async {
     if (drawInfo.isNotEmpty) {
       final d = drawInfo.first.toColumnMap();
       if (d['winner_id'] != null) {
-        await _sendNotification(d['winner_id'] as int, 'user', '🎉 You Won!', 'Congratulations! You won Badge #$badgeNumber in Day $dayNumber lucky draw!', 'lucky_draw');
+        await _sendNotification(d['winner_id'] as int, 'user', 'Congratulations! You Won!', 'You won Badge #$badgeNumber in Day $dayNumber lucky draw!', 'lucky_draw');
       }
     }
     // Notify organizer
@@ -3461,7 +3550,7 @@ Future<Response> _confirmSponsorAd(Request request, String id) async {
     );
     if (adInfo.isNotEmpty) {
       final sponsorUserId = adInfo.first.toColumnMap()['user_id'] as int;
-      await _sendNotification(sponsorUserId, 'sponsor', 'Ad Confirmed ✅', 'Your advertisement has been approved by the organizer!', 'ad_confirmed');
+      await _sendNotification(sponsorUserId, 'sponsor', 'Ad Confirmed', 'Your advertisement has been approved by the organizer!', 'ad_confirmed');
     }
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -3483,7 +3572,32 @@ Future<Response> _rejectSponsorAd(Request request, String id) async {
     );
     if (adInfo.isNotEmpty) {
       final sponsorUserId = adInfo.first.toColumnMap()['user_id'] as int;
-      await _sendNotification(sponsorUserId, 'sponsor', 'Ad Rejected ❌', 'Your advertisement has been rejected by the organizer.', 'ad_rejected');
+      await _sendNotification(sponsorUserId, 'sponsor', 'Ad Rejected', 'Your advertisement has been rejected by the organizer.', 'ad_rejected');
+    }
+    return _jsonResponse({'ok': true});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _cancelSponsorAd(Request request, String id) async {
+  try {
+    final conn = await db;
+    final adInfo = await conn.execute(
+      Sql.named('SELECT user_id, day_number FROM sponsor_advertisements WHERE id = @id'),
+      parameters: {'id': int.parse(id)},
+    );
+    await conn.execute(
+      Sql.named("UPDATE sponsor_advertisements SET status = 'cancelled' WHERE id = @id"),
+      parameters: {'id': int.parse(id)},
+    );
+    if (adInfo.isNotEmpty) {
+      final info = adInfo.first.toColumnMap();
+      final orgId = await _getOrganizerUserId(conn);
+      if (orgId != null) {
+        final dayText = info['day_number'] != null ? ' for Day ${info['day_number']}' : ' (All Days)';
+        await _sendNotification(orgId, 'organizer', 'Sponsor Ad Cancelled', 'Sponsor has cancelled their advertisement$dayText.', 'sponsor_ad');
+      }
     }
     return _jsonResponse({'ok': true});
   } catch (e) {
@@ -3566,7 +3680,7 @@ Future<Response> _getUnreadCount(Request request) async {
 
 Future<Response> _createNotification(Request request) async {
   try {
-    final body = jsonDecode(await request.read().join()) as Map<String, dynamic>;
+    final body = await _getBody(request);
     final userId = body['user_id'] as int;
     final userType = body['user_type'] as String;
     final title = body['title'] as String;
@@ -3805,7 +3919,12 @@ RSAPrivateKey _parsePrivateKeyFromPem(String pem) {
   }
 
   void readTag(int expectedTag) {
-    if (derBytes[offset++] != expectedTag) throw Exception('Invalid PKCS8 tag');
+    if (derBytes[offset++] != expectedTag) throw Exception('Invalid PKCS8 tag 0x${derBytes[offset-1].toRadixString(16)}');
+  }
+
+  void skipElement() {
+    final len = readLength();
+    offset += len;
   }
 
   BigInt readInteger() {
@@ -3816,19 +3935,33 @@ RSAPrivateKey _parsePrivateKeyFromPem(String pem) {
     return _bytesToBigInt(bytes);
   }
 
-  void readSequence() {
-    readTag(0x30);
-    readLength();
-  }
-
   offset = 0;
-  readSequence();
-  readSequence();
+
+  // Outer SEQUENCE (PKCS#8)
+  readTag(0x30);
+  final outerLen = readLength();
+  final outerEnd = offset + outerLen;
+
+  // Version (INTEGER 0)
+  readTag(0x02);
+  readLength();
+  offset += 1; // skip the 0x00 byte
+
+  // AlgorithmIdentifier SEQUENCE
+  readTag(0x30);
+  skipElement();
+
+  // OCTET STRING containing PKCS#1 RSAPrivateKey
   readTag(0x04);
   final innerLen = readLength();
 
-  final innerStart = offset;
-  readSequence();
+  // Now parse PKCS#1 RSAPrivateKey
+  readTag(0x30);
+  readLength();
+  // PKCS#1 version (INTEGER 0)
+  readTag(0x02);
+  readLength();
+  offset += 1;
   final n = readInteger();
   final e = readInteger();
   final d = readInteger();

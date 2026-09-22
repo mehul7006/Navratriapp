@@ -30,7 +30,8 @@ class AuthProvider extends ChangeNotifier {
       final savedUser = prefs.getString('logged_in_user');
       if (savedUser != null && savedUser.isNotEmpty) {
         _currentUser = jsonDecode(savedUser);
-        FcmService.init();
+        await FcmService.init();
+        FcmService.bindToUser(_currentUser!['id'] as int, _currentUser!['user_type'] as String);
         notifyListeners();
       }
     } catch (_) {}

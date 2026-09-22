@@ -285,6 +285,10 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
   }
 
   Widget _buildTabBar() {
+    final pendingCount = _allAds.where((a) => a['status'] == 'pending').length;
+    final confirmedCount = _allAds.where((a) => a['status'] == 'confirmed').length;
+    final rejectedCount = _allAds.where((a) => a['status'] == 'rejected').length;
+    final cancelledCount = _allAds.where((a) => a['status'] == 'cancelled').length;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -296,6 +300,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
           Expanded(child: _buildTab('pending', 'Pending')),
           Expanded(child: _buildTab('confirmed', 'Confirmed')),
           Expanded(child: _buildTab('rejected', 'Rejected')),
+          Expanded(child: _buildTab('cancelled', 'Cancelled')),
         ],
       ),
     );
@@ -424,7 +429,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                     if (ad['status'] == 'pending' || ad['status'] == 'confirmed')
                       IconButton(
                         icon: const Icon(Icons.cancel, color: Colors.orange, size: 20),
-                        onPressed: () => _rejectAd(ad['id']),
+                        onPressed: () => _cancelAd(ad['id']),
                         tooltip: 'Cancel Ad',
                       ),
                     IconButton(
@@ -446,6 +451,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
     switch (status) {
       case 'confirmed': return Colors.green;
       case 'rejected': return Colors.red;
+      case 'cancelled': return Colors.grey;
       default: return Colors.orange;
     }
   }
@@ -454,6 +460,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
     switch (status) {
       case 'confirmed': return 'Confirmed';
       case 'rejected': return 'Rejected';
+      case 'cancelled': return 'Cancelled';
       default: return 'Pending';
     }
   }
@@ -461,6 +468,19 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
   Future<void> _rejectAd(int id) async {
     try {
       await DatabaseHelper.rejectSponsorAd(id);
+      _loadAds();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _cancelAd(int id) async {
+    try {
+      await DatabaseHelper.cancelSponsorAd(id);
       _loadAds();
     } catch (e) {
       if (mounted) {
