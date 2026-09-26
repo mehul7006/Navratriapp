@@ -91,6 +91,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final online = await DatabaseHelper.checkConnection();
+      if (!online) {
+        _error = 'Cannot connect to server. Check internet and try again.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
       final result = await DatabaseHelper.loginUser(
         houseNumber: houseNumber,
         mobileNumber: mobileNumber,
@@ -136,6 +143,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final online = await DatabaseHelper.checkConnection();
+      if (!online) {
+        _error = 'Cannot connect to server. Check internet and try again.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
       final result = await DatabaseHelper.loginOrganizer(
         username: username,
         password: password,
@@ -181,6 +195,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final online = await DatabaseHelper.checkConnection();
+      if (!online) {
+        _error = 'Cannot connect to server. Check internet and try again.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
       final result = await DatabaseHelper.loginSponsor(
         houseNumber: houseNumber,
         password: password,

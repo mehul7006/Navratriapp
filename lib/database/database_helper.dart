@@ -5,6 +5,10 @@ import 'package:http/http.dart' as http;
 final String _apiBase = kIsWeb ? '' : 'https://consuming-upriver-struck.ngrok-free.dev';
 
 class DatabaseHelper {
+  static Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+  };
   static Future<void> connect() async {
     try {
       await http.get(Uri.parse('$_apiBase/api/announcements')).timeout(
@@ -15,12 +19,23 @@ class DatabaseHelper {
 
   static bool get isConnected => true;
 
+  static Future<bool> checkConnection() async {
+    try {
+      final response = await http.get(Uri.parse('$_apiBase/api/announcements'), headers: _headers).timeout(
+        const Duration(seconds: 8),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ========== HTTP HELPERS ==========
 
   static Future<List<Map<String, dynamic>>> _get(String path, {Map<String, String>? queryParams}) async {
     try {
       final uri = Uri.parse('$_apiBase$path').replace(queryParameters: queryParams);
-      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      final response = await http.get(uri, headers: _headers).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return [];
       final data = jsonDecode(response.body);
       if (data == null) return [];
@@ -34,7 +49,7 @@ class DatabaseHelper {
     try {
       final response = await http.post(
         Uri.parse('$_apiBase$path'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return null;
@@ -49,7 +64,7 @@ class DatabaseHelper {
     try {
       final response = await http.post(
         Uri.parse('$_apiBase$path'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return [];
@@ -65,7 +80,7 @@ class DatabaseHelper {
     try {
       final response = await http.put(
         Uri.parse('$_apiBase$path'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return;
@@ -76,7 +91,7 @@ class DatabaseHelper {
     try {
       final response = await http.put(
         Uri.parse('$_apiBase$path'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return null;
@@ -89,7 +104,7 @@ class DatabaseHelper {
 
   static Future<void> _delete(String path) async {
     try {
-      final response = await http.delete(Uri.parse('$_apiBase$path'))
+      final response = await http.delete(Uri.parse('$_apiBase$path'), headers: _headers)
           .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return;
     } catch (_) {}
@@ -1109,7 +1124,7 @@ class DatabaseHelper {
       final uri = Uri.parse('$_apiBase/api/fcm-tokens');
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode({'token': token}),
       ).timeout(const Duration(seconds: 10));
     } catch (_) {}
@@ -1120,7 +1135,7 @@ class DatabaseHelper {
       final uri = Uri.parse('$_apiBase/api/fcm-tokens/$userId/$userType/bind');
       await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode({'token': token}),
       ).timeout(const Duration(seconds: 10));
     } catch (_) {}
@@ -1131,7 +1146,7 @@ class DatabaseHelper {
       final uri = Uri.parse('$_apiBase/api/config/$key');
       await http.put(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode({'value': value}),
       ).timeout(const Duration(seconds: 10));
     } catch (_) {}
