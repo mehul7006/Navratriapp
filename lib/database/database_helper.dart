@@ -149,14 +149,31 @@ class DatabaseHelper {
     String userType = 'user',
     String memberType = 'main',
   }) async {
-    final result = await _post('/api/auth/register', {
-      'house_number': houseNumber,
-      'name': name,
-      'mobile_number': mobileNumber,
-      'user_type': userType,
-      'member_type': memberType,
-    });
-    return result?['id'] ?? 0;
+    try {
+      final response = await http.post(
+        Uri.parse('$_apiBase/api/auth/register'),
+        headers: _headers,
+        body: jsonEncode({
+          'house_number': houseNumber,
+          'name': name,
+          'mobile_number': mobileNumber,
+          'user_type': userType,
+          'member_type': memberType,
+        }),
+      ).timeout(const Duration(seconds: 10));
+      final data = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+      if (response.statusCode == 409) {
+        final msg = data is Map && data['error'] != null
+            ? data['error'].toString()
+            : 'Member with same house number and name already exists';
+        throw Exception(msg);
+      }
+      if (response.statusCode != 200 || data is! Map) return 0;
+      return (data['id'] as int?) ?? 0;
+    } catch (e) {
+      if (e.toString().contains('already exists')) rethrow;
+      return 0;
+    }
   }
 
   // ========== MEMBERS ==========

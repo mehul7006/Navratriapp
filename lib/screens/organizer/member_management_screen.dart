@@ -192,10 +192,17 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             width: 50, height: 50,
             decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
             child: Center(
-              child: Text(
-                (member['house_number'] ?? '').toString().substring(0, (member['house_number'] ?? '').toString().length > 3 ? 3 : (member['house_number'] ?? '').toString().length),
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
-                textAlign: TextAlign.center,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    (member['house_number'] ?? '').toString(),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ),
               ),
             ),
           ),
