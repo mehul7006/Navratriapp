@@ -724,7 +724,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           child: Transform.translate(
             offset: Offset(_shakeOffset.toDouble(), 0),
             child: SizedBox(
-              width: 340,
+              width: max(300.0, min(MediaQuery.of(context).size.width - 24, 680.0)),
               height: 400,
               child: Stack(
                 alignment: Alignment.center,
