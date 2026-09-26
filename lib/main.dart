@@ -76,9 +76,14 @@ class NavratriApp extends StatelessWidget {
             ],
             builder: (context, child) {
               final locale = context.watch<LocaleProvider>().locale;
-              return KeyedSubtree(
-                key: ValueKey('app_${locale.languageCode}'),
-                child: child!,
+              return GestureDetector(
+                onTap: () {
+                  context.read<AuthProvider>().onUserActivity();
+                },
+                child: KeyedSubtree(
+                  key: ValueKey('app_${locale.languageCode}'),
+                  child: child!,
+                ),
               );
             },
             initialRoute: '/',

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
@@ -9,6 +11,10 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   late final Future<void> sessionReady;
+  Timer? _sessionTimer;
+  DateTime? _lastActivity;
+
+  static const Duration sessionTimeout = Duration(minutes: 30);
 
   AuthProvider() {
     sessionReady = _restoreSession();
@@ -24,6 +30,29 @@ class AuthProvider extends ChangeNotifier {
   bool get isSponsor => _currentUser?['user_type'] == 'sponsor';
   String? get houseNumber => _currentUser?['house_number'];
 
+  void _startSessionTimer() {
+    if (!kIsWeb) return;
+    _lastActivity = DateTime.now();
+    _sessionTimer?.cancel();
+    _sessionTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (_lastActivity != null && DateTime.now().difference(_lastActivity!) > sessionTimeout) {
+        logout();
+      }
+    });
+  }
+
+  void onUserActivity() {
+    if (kIsWeb && _currentUser != null) {
+      _lastActivity = DateTime.now();
+    }
+  }
+
+  void _stopSessionTimer() {
+    _sessionTimer?.cancel();
+    _sessionTimer = null;
+    _lastActivity = null;
+  }
+
   Future<void> _restoreSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -32,6 +61,7 @@ class AuthProvider extends ChangeNotifier {
         _currentUser = jsonDecode(savedUser);
         await FcmService.init();
         FcmService.bindToUser(_currentUser!['id'] as int, _currentUser!['user_type'] as String);
+        _startSessionTimer();
         notifyListeners();
       }
     } catch (_) {}
@@ -71,6 +101,7 @@ class AuthProvider extends ChangeNotifier {
         await _saveSession(result);
         await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
+        _startSessionTimer();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -115,6 +146,7 @@ class AuthProvider extends ChangeNotifier {
         await _saveSession(result);
         await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
+        _startSessionTimer();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -159,6 +191,7 @@ class AuthProvider extends ChangeNotifier {
         await _saveSession(result);
         await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
+        _startSessionTimer();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -233,6 +266,7 @@ class AuthProvider extends ChangeNotifier {
 
   // Logout
   void logout() {
+    _stopSessionTimer();
     _currentUser = null;
     _error = null;
     _clearSession();
