@@ -723,34 +723,73 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
               : null,
           child: Transform.translate(
             offset: Offset(_shakeOffset.toDouble(), 0),
-            child: Container(
-              width: 280,
-              height: 260,
+            child: SizedBox(
+              width: 340,
+              height: 400,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Pot body (glass effect)
+                  // Brass lid (top cap)
                   Positioned(
-                    top: 30,
-                    left: 20,
-                    right: 20,
-                    bottom: 0,
+                    top: 0,
+                    child: Container(
+                      width: 150,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFF2D59A), Color(0xFFD8AB5F), Color(0xFF9C7331)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Brass lid band with grooves
+                  Positioned(
+                    top: 18,
+                    child: Container(
+                      width: 138,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFFC9A06A), Color(0xFF8A6428)],
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Container(height: 3, margin: const EdgeInsets.symmetric(horizontal: 8), color: Colors.black.withOpacity(0.25)),
+                          Container(height: 3, margin: const EdgeInsets.symmetric(horizontal: 8), color: Colors.black.withOpacity(0.25)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Glass jar body
+                  Positioned(
+                    top: 54,
+                    left: 30,
+                    right: 30,
+                    bottom: 8,
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                          bottomLeft: Radius.circular(50),
-                          bottomRight: Radius.circular(50),
+                          topLeft: Radius.circular(28),
+                          topRight: Radius.circular(28),
+                          bottomLeft: Radius.circular(52),
+                          bottomRight: Radius.circular(52),
                         ),
-                        border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                        border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.white.withOpacity(0.15),
-                            Colors.white.withOpacity(0.05),
-                            Colors.white.withOpacity(0.1),
+                            const Color(0xFFD7E8F2).withOpacity(0.20),
+                            const Color(0xFFA5C3D7).withOpacity(0.09),
+                            const Color(0xFF82A0B6).withOpacity(0.16),
                           ],
                         ),
                         boxShadow: [
@@ -768,82 +807,86 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(28),
-                          topRight: Radius.circular(28),
-                          bottomLeft: Radius.circular(48),
-                          bottomRight: Radius.circular(48),
+                          topLeft: Radius.circular(26),
+                          topRight: Radius.circular(26),
+                          bottomLeft: Radius.circular(50),
+                          bottomRight: Radius.circular(50),
                         ),
                         child: Stack(
                           children: [
-                            // Glass highlight
+                            // Glass shine (left)
                             Positioned(
-                              top: 10,
-                              left: 15,
-                              width: 30,
-                              child: Container(
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.white.withOpacity(0.5),
-                                      Colors.transparent,
-                                    ],
+                              top: 20,
+                              left: 16,
+                              width: 26,
+                              height: 180,
+                              child: Transform.rotate(
+                                angle: -0.07,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white.withOpacity(0.14),
                                   ),
                                 ),
                               ),
                             ),
-                            // Tickets pile inside pot
-                            _buildTicketsPile(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Pot neck
-                  Positioned(
-                    top: 20,
-                    left: 10,
-                    right: 10,
-                    height: 30,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white.withOpacity(0.5),
-                            Colors.white.withOpacity(0.1),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Pot rim
-                  Positioned(
-                    top: 15,
-                    left: 5,
-                    right: 5,
-                    height: 18,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.6),
-                            Colors.white.withOpacity(0.2),
+                            // Glass shine (right, faint)
+                            Positioned(
+                              top: 120,
+                              right: 22,
+                              width: 18,
+                              height: 120,
+                              child: Transform.rotate(
+                                angle: 0.1,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.white.withOpacity(0.06),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Badge title
+                            const Positioned(
+                              top: 20,
+                              left: 0,
+                              right: 0,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Lucky Draw',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Georgia',
+                                      fontSize: 15,
+                                      color: Color(0xFF9AA0B4),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'A WORLD OF WINNERS',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      letterSpacing: 2,
+                                      color: Color(0xFF7A7F92),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Coupon field: padded inside the glass and clipped,
+                            // so coupons can never render outside the jar
+                            Positioned(
+                              left: 14,
+                              right: 14,
+                              top: 74,
+                              bottom: 14,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: _buildTicketsPile(),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -972,46 +1015,94 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     }
 
     final random = Random(42); // Fixed seed for consistent layout
-    final count = min(_potTickets.length, 30);
+    const int cols = 4;
+    const int maxRows = 6;
+    const int maxShown = cols * maxRows; // 24 coupons max, rest as "+N more"
+    final shown = _potTickets.length > maxShown
+        ? _potTickets.sublist(0, maxShown - 1)
+        : _potTickets;
+    final extra = _potTickets.length - shown.length;
 
-    return Stack(
-      children: List.generate(count, (i) {
-        final left = 15 + random.nextDouble() * 180;
-        final top = 20 + random.nextDouble() * 150;
-        final rotation = -30 + random.nextDouble() * 60;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fieldW = constraints.maxWidth;
+        final fieldH = constraints.maxHeight;
+        if (fieldW <= 0 || fieldH <= 0) return const SizedBox.shrink();
+        const double ticketW = 56;
+        const double ticketH = 24;
+        final cellW = fieldW / cols;
+        final cellH = fieldH / maxRows;
+        final maxLeft = (fieldW - ticketW).clamp(0.0, fieldW);
+        final maxTop = (fieldH - ticketH).clamp(0.0, fieldH);
 
-        return Positioned(
-          left: left,
-          top: top,
-          child: Transform.rotate(
-            angle: rotation * pi / 180,
-            child: Container(
-              width: 50,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7A1839), Color(0xFF3A0B1E)],
-                ),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.white.withOpacity(0.35), width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  '🎫',
-                  style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8)),
-                ),
+        final coupons = <Widget>[];
+        for (int i = 0; i < shown.length; i++) {
+          final t = shown[i];
+          final rawName = (t['user_name'] ?? '').toString();
+          final label = rawName.isNotEmpty ? rawName : (t['ticket_code'] ?? '').toString();
+          final col = i % cols;
+          final row = i ~/ cols;
+          final cx = col * cellW + cellW / 2 + (random.nextDouble() * 8 - 4);
+          final cy = row * cellH + cellH / 2 + (random.nextDouble() * 6 - 3);
+          final left = (cx - ticketW / 2).clamp(0.0, maxLeft);
+          final top = (cy - ticketH / 2).clamp(0.0, maxTop);
+          final rotation = (random.nextDouble() * 20 - 10) * pi / 180;
+          coupons.add(
+            Positioned(
+              left: left,
+              top: top,
+              child: Transform.rotate(
+                angle: rotation,
+                child: _drawCoupon(label, false),
               ),
             ),
+          );
+        }
+        if (extra > 0) {
+          coupons.add(
+            Positioned(
+              left: ((fieldW - ticketW) / 2).clamp(0.0, maxLeft),
+              top: (fieldH - ticketH - 2).clamp(0.0, maxTop),
+              child: _drawCoupon('+$extra more', true),
+            ),
+          );
+        }
+        return Stack(children: coupons);
+      },
+    );
+  }
+
+  Widget _drawCoupon(String label, bool highlight) {
+    return Container(
+      width: 56,
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: highlight
+              ? [const Color(0xFFF0D199), const Color(0xFFD8AB5F)]
+              : [const Color(0xFFFDFAF1), const Color(0xFFF3ECD8)],
+        ),
+        border: Border.all(color: Colors.black.withOpacity(0.12)),
+        borderRadius: BorderRadius.circular(2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
-        );
-      }),
+        ],
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: Color(0xFF3A3220)),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 
