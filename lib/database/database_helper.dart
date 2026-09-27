@@ -19,6 +19,50 @@ class DatabaseHelper {
 
   static bool get isConnected => true;
 
+  /// Next mobile in house sequence: 1st member 0000000000,
+  /// 2nd 1111111111, 3rd 2222222222, and so on.
+  static String nextHouseMobile(List<Map<String, dynamic>> sameHouse) {
+    final used = sameHouse.map((m) => m['mobile_number']?.toString() ?? '').toSet();
+    for (int d = 0; d <= 9; d++) {
+      final m = '$d' * 10;
+      if (!used.contains(m)) return m;
+    }
+    return '9' * 10;
+  }
+
+  /// Central house -> member rule used by EVERY new-entry path:
+  /// - house not found -> create 1st member
+  /// - house found + same name -> return existing member (no duplicate)
+  /// - house found + different name -> create separate member entry
+  ///   with the next mobile in the house sequence
+  static Future<int> resolveMember({
+    required String houseNumber,
+    required String name,
+    String userType = 'user',
+    String memberType = 'main',
+  }) async {
+    final house = houseNumber.trim().toUpperCase();
+    final nm = name.trim();
+    final sameHouse = await query(
+      'SELECT id, name, mobile_number FROM users WHERE UPPER(TRIM(house_number)) = @house',
+      substitutionValues: {'house': house},
+    );
+    if (nm.isNotEmpty) {
+      final match = sameHouse.where((m) =>
+        (m['name']?.toString().trim().toUpperCase() ?? '') == nm.toUpperCase()).toList();
+      if (match.isNotEmpty) return match.first['id'] as int;
+    } else if (sameHouse.isNotEmpty) {
+      return sameHouse.first['id'] as int;
+    }
+    return registerUser(
+      houseNumber: house,
+      name: nm.isNotEmpty ? nm : 'House $house',
+      mobileNumber: nextHouseMobile(sameHouse),
+      userType: userType,
+      memberType: memberType,
+    );
+  }
+
   static Future<bool> checkConnection() async {
     try {
       final response = await http.get(Uri.parse('$_apiBase/api/announcements'), headers: _headers).timeout(

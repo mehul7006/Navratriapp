@@ -44,14 +44,17 @@ class _MemberRegistrationScreenState extends State<MemberRegistrationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Check if house number already exists
+      // Central rule: same house + same name -> duplicate (blocked);
+      // same house + different name -> allowed as separate entry.
+      final house = _houseController.text.trim().toUpperCase();
+      final nm = _nameController.text.trim();
       final existingResult = await DatabaseHelper.query(
-        'SELECT id FROM users WHERE house_number = @house',
-        substitutionValues: {'house': _houseController.text.trim()},
+        'SELECT id FROM users WHERE UPPER(TRIM(house_number)) = @house AND UPPER(TRIM(name)) = @name',
+        substitutionValues: {'house': house, 'name': nm},
       );
 
       if (existingResult.isNotEmpty) {
-        _showError('House number already registered!');
+        _showError('Member with same house number and name already exists!');
         if (mounted) setState(() => _isLoading = false);
         return;
       }

@@ -760,56 +760,18 @@ class _AddPaymentSheetState extends State<_AddPaymentSheet> {
     if (picked != null) setState(() => _paymentDate = picked);
   }
 
-  /// Next mobile in house sequence: 1st member 0000000000,
-  /// 2nd 1111111111, 3rd 2222222222, and so on.
-  String _nextHouseMobile(List<Map<String, dynamic>> sameHouse) {
-    final used = sameHouse.map((m) => m['mobile_number']?.toString() ?? '').toSet();
-    for (int d = 0; d <= 9; d++) {
-      final m = '$d' * 10;
-      if (!used.contains(m)) return m;
-    }
-    return '9' * 10;
-  }
-
   Future<void> _submitPayment() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
       final house = _houseController.text.trim().toUpperCase();
       final payerName = _nameController.text.trim();
-      // Step 1: check house number (exact, case-insensitive)
-      final sameHouse = await DatabaseHelper.query(
-        'SELECT id, name, mobile_number FROM users WHERE UPPER(TRIM(house_number)) = @house',
-        substitutionValues: {'house': house},
+      // Central rule: check house, then member name (separate entry
+      // for a different name, reuse member for the same name)
+      final userId = await DatabaseHelper.resolveMember(
+        houseNumber: house,
+        name: payerName,
       );
-      int userId;
-      if (sameHouse.isEmpty) {
-        // New house: first member
-        userId = await DatabaseHelper.registerUser(
-          houseNumber: house,
-          name: payerName.isNotEmpty ? payerName : 'House $house',
-          mobileNumber: _nextHouseMobile(sameHouse),
-          userType: 'user',
-        );
-      } else if (payerName.isNotEmpty) {
-        // Step 2: same house -> match by member name
-        final match = sameHouse.where((m) =>
-          (m['name']?.toString().trim().toUpperCase() ?? '') == payerName.toUpperCase()).toList();
-        if (match.isNotEmpty) {
-          // Same house + same name -> existing member
-          userId = match.first['id'] as int;
-        } else {
-          // Same house + different name -> separate member entry
-          userId = await DatabaseHelper.registerUser(
-            houseNumber: house,
-            name: payerName,
-            mobileNumber: _nextHouseMobile(sameHouse),
-            userType: 'user',
-          );
-        }
-      } else {
-        userId = sameHouse.first['id'] as int;
-      }
       if (userId == 0) throw Exception('Could not resolve member for $house');
       final status = _paymentStatus == 'pay_later' ? 'pending' : 'paid';
       final paidDate = _paymentStatus == 'pay_later' ? _paymentDate : DateTime.now();

@@ -956,13 +956,21 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
                                 }
                                 if (nameController.text.trim().isNotEmpty) {
                                   try {
-                                    final userId = await DatabaseHelper.registerUser(
-                                      houseNumber: houseNumber,
-                                      name: nameController.text.trim(),
-                                      mobileNumber: mobileController.text.trim().isNotEmpty ? mobileController.text.trim() : '0000000000',
-                                      userType: 'user',
-                                      memberType: 'sub',
-                                    );
+                                    final typedMobile = mobileController.text.trim();
+                                    final userId = typedMobile.isNotEmpty
+                                        ? await DatabaseHelper.registerUser(
+                                            houseNumber: houseNumber,
+                                            name: nameController.text.trim(),
+                                            mobileNumber: typedMobile,
+                                            userType: 'user',
+                                            memberType: 'sub',
+                                          )
+                                        : await DatabaseHelper.resolveMember(
+                                            houseNumber: houseNumber,
+                                            name: nameController.text.trim(),
+                                            userType: 'user',
+                                            memberType: 'sub',
+                                          );
                                     final result = await DatabaseHelper.getMembersByHouse(houseNumber);
                                     if (!ctx.mounted) return;
                                     setDialogState(() {

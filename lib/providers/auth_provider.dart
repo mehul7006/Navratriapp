@@ -268,6 +268,8 @@ class AuthProvider extends ChangeNotifier {
       final msg = e.toString();
       if (msg.contains('SocketException') || msg.contains('Connection refused') || msg.contains('ConnectException')) {
         _error = 'Cannot connect to database. Please check your connection.';
+      } else if (msg.contains('already exists')) {
+        _error = 'Member with same house number and name already exists';
       } else if (msg.contains('timeout') || msg.contains('Timeout')) {
         _error = 'Database connection timed out. Please try again.';
       } else {
