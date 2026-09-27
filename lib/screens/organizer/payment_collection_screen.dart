@@ -17,6 +17,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   List<Map<String, dynamic>> _deletedPayments = [];
   bool _isLoading = true;
   String _selectedFilter = 'all';
+  String _selectedMethod = 'all';
   String _sortBy = 'date_desc';
   DateTime? _dateFrom;
   DateTime? _dateTo;
@@ -39,6 +40,19 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
     }
   }
 
+  /// Payment day = when money moved (paid_date), else due date for
+  /// pay-later (tentative_date), else entry time (created_at).
+  DateTime? _paymentDay(Map<String, dynamic> p) {
+    final raw = p['paid_date']?.toString() ?? p['tentative_date']?.toString() ?? p['created_at']?.toString() ?? '';
+    if (raw.isEmpty) return null;
+    try {
+      final d = DateTime.parse(raw);
+      return DateTime(d.year, d.month, d.day);
+    } catch (_) {
+      return null;
+    }
+  }
+
   List<Map<String, dynamic>> get _filteredPayments {
     var list = _payments;
     if (_selectedFilter == 'paid') {
@@ -48,6 +62,13 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
     } else if (_selectedFilter == 'denied') {
       list = list.where((p) => p['payment_status'] == 'denied').toList();
     }
+    if (_selectedMethod == 'cash') {
+      list = list.where((p) => p['payment_method'] == 'cash').toList();
+    } else if (_selectedMethod == 'online') {
+      list = list.where((p) => p['payment_method'] == 'online').toList();
+    } else if (_selectedMethod == 'pay_later') {
+      list = list.where((p) => p['payment_method'] == 'pending').toList();
+    }
     final search = _searchController.text.toLowerCase();
     if (search.isNotEmpty) {
       list = list.where((p) =>
@@ -56,29 +77,34 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
         (p['user_name']?.toString().toLowerCase().contains(search) ?? false)
       ).toList();
     }
-    if (_dateFrom != null) {
+    if (_dateFrom != null || _dateTo != null) {
+      final from = _dateFrom != null ? DateTime(_dateFrom!.year, _dateFrom!.month, _dateFrom!.day) : null;
+      final to = _dateTo != null ? DateTime(_dateTo!.year, _dateTo!.month, _dateTo!.day) : null;
       list = list.where((p) {
-        final d = p['created_at']?.toString() ?? '';
-        if (d.isEmpty) return false;
-        try { return DateTime.parse(d).isAfter(_dateFrom!.subtract(const Duration(days: 1))); } catch (_) { return false; }
-      }).toList();
-    }
-    if (_dateTo != null) {
-      list = list.where((p) {
-        final d = p['created_at']?.toString() ?? '';
-        if (d.isEmpty) return false;
-        try { return DateTime.parse(d).isBefore(_dateTo!.add(const Duration(days: 1))); } catch (_) { return false; }
+        final day = _paymentDay(p);
+        if (day == null) return false;
+        if (from != null && day.isBefore(from)) return false;
+        if (to != null && day.isAfter(to)) return false;
+        return true;
       }).toList();
     }
     list.sort((a, b) {
+      int cmpDay(Map<String, dynamic> x, Map<String, dynamic> y) {
+        final dx = _paymentDay(x);
+        final dy = _paymentDay(y);
+        if (dx == null && dy == null) return 0;
+        if (dx == null) return 1;
+        if (dy == null) return -1;
+        return dx.compareTo(dy);
+      }
       switch (_sortBy) {
         case 'name_asc': return (a['payer_name'] ?? a['user_name'] ?? '').toString().compareTo((b['payer_name'] ?? b['user_name'] ?? '').toString());
         case 'name_desc': return (b['payer_name'] ?? b['user_name'] ?? '').toString().compareTo((a['payer_name'] ?? a['user_name'] ?? '').toString());
         case 'house_asc': return (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString());
         case 'house_desc': return (b['house_number'] ?? '').toString().compareTo((a['house_number'] ?? '').toString());
-        case 'date_asc': return (a['created_at'] ?? '').toString().compareTo((b['created_at'] ?? '').toString());
+        case 'date_asc': return cmpDay(a, b);
         case 'date_desc':
-        default: return (b['created_at'] ?? '').toString().compareTo((a['created_at'] ?? '').toString());
+        default: return cmpDay(b, a);
       }
     });
     return list;
@@ -114,6 +140,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             children: [
               if (_selectedFilter != 'deleted') _buildSearchBar(),
               _buildFilterChips(),
+              if (_selectedFilter != 'deleted') _buildMethodChips(),
               if (_selectedFilter != 'deleted') _buildStatsRow(totalPaid, totalPending, _filteredPayments.length),
               if (_selectedFilter == 'deleted')
                 Container(
@@ -186,6 +213,38 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
           _chip(AppLocalizations.t('denied'), 'denied'), const SizedBox(width: 6),
           _chip(AppLocalizations.t('deleted'), 'deleted'),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMethodChips() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Row(
+        children: [
+          _mchip('All Modes', 'all'), const SizedBox(width: 6),
+          _mchip(AppLocalizations.t('cash'), 'cash'), const SizedBox(width: 6),
+          _mchip(AppLocalizations.t('upi'), 'online'), const SizedBox(width: 6),
+          _mchip(AppLocalizations.t('pay_later'), 'pay_later'),
+        ],
+      ),
+    );
+  }
+
+  Widget _mchip(String label, String value) {
+    final sel = _selectedMethod == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedMethod = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: sel ? AppTheme.cyanAccent : AppTheme.cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: sel ? AppTheme.cyanAccent : AppTheme.cyanAccent.withOpacity(0.5)),
+          ),
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sel ? AppTheme.purpleDark : AppTheme.textMuted)),
+        ),
       ),
     );
   }
@@ -265,6 +324,14 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       }
     }
     final name = p['payer_name'] ?? p['user_name'] ?? 'Unknown';
+    String dayLabel = '';
+    final daySrc = p['paid_date']?.toString() ?? p['tentative_date']?.toString() ?? '';
+    if (daySrc.isNotEmpty) {
+      try {
+        final d = DateTime.parse(daySrc);
+        dayLabel = ' • ${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+      } catch (_) {}
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -296,8 +363,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                     Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDeleted ? Colors.red : Colors.white)),
                     const SizedBox(height: 2),
                     Text(
-                      '₹${p['amount']} • ${p['payment_method']?.toString().toUpperCase() ?? ''}'
-                      '${(p['payment_method']?.toString() == 'pending' && p['tentative_date'] != null) ? ' • Date: ${p['tentative_date'].toString().split('T').first}' : ''}',
+                      '₹${p['amount']} • ${p['payment_method']?.toString().toUpperCase() ?? ''}$dayLabel',
                       style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                     ),
                   ],
