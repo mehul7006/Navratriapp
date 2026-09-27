@@ -1057,7 +1057,20 @@ class DatabaseHelper {
   }
 
   static Future<Map<String, dynamic>?> createSponsorAd({required int userId, required String imageData, int? dayNumber}) async {
-    return _post('/api/sponsor-ads', {'user_id': userId, 'image_data': imageData, 'day_number': dayNumber});
+    try {
+      final response = await http.post(
+        Uri.parse('$_apiBase/api/sponsor-ads'),
+        headers: _headers,
+        body: jsonEncode({'user_id': userId, 'image_data': imageData, 'day_number': dayNumber}),
+      ).timeout(const Duration(seconds: 60));
+      if (response.statusCode != 200) {
+        throw Exception('Server error ${response.statusCode}');
+      }
+      final data = jsonDecode(response.body);
+      return data is Map ? Map<String, dynamic>.from(data) : null;
+    } catch (e) {
+      throw Exception('Upload failed: $e');
+    }
   }
 
   static Future<void> deleteSponsorAd(int id) async {

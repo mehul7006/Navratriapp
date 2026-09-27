@@ -17,6 +17,7 @@ class SponsorAdvertisementScreen extends StatefulWidget {
 class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen> {
   List<Map<String, dynamic>> _allAds = [];
   bool _isLoading = true;
+  bool _isUploading = false;
   int _selectedDay = 0;
   String _activeTab = 'pending';
 
@@ -109,7 +110,7 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
                   onTap: () async {
                     try {
                       final picker = ImagePicker();
-                      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                      final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 60);
                       if (picked != null) {
                         final bytes = await picked.readAsBytes();
                         setDialogState(() {
@@ -173,13 +174,19 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
   }
 
   Future<void> _createAd(String imageData, int? dayNumber) async {
+    setState(() => _isUploading = true);
     try {
-      await DatabaseHelper.createSponsorAd(userId: _userId, imageData: imageData, dayNumber: dayNumber);
-      if (mounted) {
+      final result = await DatabaseHelper.createSponsorAd(userId: _userId, imageData: imageData, dayNumber: dayNumber);
+      if (!mounted) return;
+      if (result != null && result['id'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Advertisement added!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Advertisement submitted for approval!'), backgroundColor: Colors.green),
         );
         _loadAds();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to submit: empty server response'), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -187,6 +194,8 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
           SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
@@ -238,13 +247,15 @@ class _SponsorAdvertisementScreenState extends State<SponsorAdvertisementScreen>
           ? const Center(child: CircularProgressIndicator(color: AppTheme.goldPrimary))
           : Column(
               children: [
+                if (_isUploading)
+                  const LinearProgressIndicator(color: AppTheme.goldPrimary, backgroundColor: Colors.white10),
                 _buildDaySelector(),
                 _buildTabBar(),
                 Expanded(child: _buildAdList()),
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddAdDialog,
+        onPressed: _isUploading ? null : _showAddAdDialog,
         backgroundColor: AppTheme.goldPrimary,
         child: const Icon(Icons.add, color: AppTheme.purpleDark, size: 28),
       ),
