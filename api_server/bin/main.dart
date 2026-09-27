@@ -3006,18 +3006,14 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
   try {
     final conn = await db;
     final results = await conn.execute(Sql.named('''
-      SELECT u.house_number, u.name as owner_name, 
-             COALESCE(SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END), 0) as total_amount,
-             MAX(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.payment_method ELSE NULL END) as payment_method,
-             'paid' as payment_status,
-             COUNT(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.id END) as payment_count,
-             MAX(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.payer_name ELSE NULL END) as payer_name
-      FROM users u
-      LEFT JOIN fund_collections fc ON fc.user_id = u.id
-      WHERE u.member_type = 'main' AND u.user_type != 'organizer' AND u.is_active = TRUE
-      GROUP BY u.id, u.house_number, u.name
-      HAVING SUM(CASE WHEN fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE THEN fc.amount ELSE 0 END) > 0
-      ORDER BY u.house_number ASC
+      SELECT fc.id, fc.house_number, u.name as owner_name,
+             fc.amount as total_amount, fc.payment_method,
+             'paid' as payment_status, 1 as payment_count,
+             fc.payer_name, fc.paid_date, fc.created_at
+      FROM fund_collections fc
+      JOIN users u ON fc.user_id = u.id
+      WHERE fc.payment_status = 'paid' AND fc.is_deleted IS NOT TRUE
+      ORDER BY fc.house_number ASC, fc.paid_date ASC, fc.id ASC
     '''));
     final total = await conn.execute(Sql.named(
         "SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));

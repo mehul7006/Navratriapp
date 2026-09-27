@@ -72,7 +72,7 @@ class _SponsorReportsScreenState extends State<SponsorReportsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _sectionTitle('1. Income Report (by House)'),
+                      _sectionTitle('1. Income Report (All Entries)'),
                       _buildIncomeByHouse(),
                       const SizedBox(height: 16),
                       _sectionTitle('2. Expense Report (by Date)'),
@@ -553,7 +553,7 @@ class _SponsorReportsScreenState extends State<SponsorReportsScreen> {
       build: (ctx) => [
         pw.Header(level: 0, child: pw.Text('Navratri 2026 - Reports & Analytics', style: pw.TextStyle(font: fontBold, fontSize: 18))),
         pw.SizedBox(height: 12),
-        pw.Text('INCOME REPORT (by House)', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+        pw.Text('INCOME REPORT (All Entries)', style: pw.TextStyle(font: fontBold, fontSize: 14)),
         pw.SizedBox(height: 8),
         if (sortedPayments.isNotEmpty) ...[
           pw.Table.fromTextArray(

@@ -72,7 +72,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _sectionTitle('1. Income Report (by House)'),
+                      _sectionTitle('1. Income Report (All Entries)'),
                       _buildIncomeByHouse(),
                       const SizedBox(height: 16),
                       _sectionTitle('2. Expense Report (by Date)'),
