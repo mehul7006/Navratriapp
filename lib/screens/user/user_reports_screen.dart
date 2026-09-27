@@ -113,12 +113,17 @@ class _UserReportsScreenState extends State<UserReportsScreen> {
     final sortedPayments = List<Map<String, dynamic>>.from(payments)
       ..sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
 
+    int totalEntries = 0;
+    for (final p in sortedPayments) {
+      totalEntries += (int.tryParse(p['payment_count']?.toString() ?? '') ?? 0);
+    }
+
     return Column(
       children: [
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House', 'Owner Name', 'Amount', 'Status']),
+              _tableHeader(['#', 'House', 'Owner Name', 'Entries', 'Amount', 'Status']),
               ...sortedPayments.asMap().entries.map((entry) {
                 final p = entry.value;
                 final amount = _parseAmount(p['total_amount']);
@@ -128,12 +133,13 @@ class _UserReportsScreenState extends State<UserReportsScreen> {
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
                   '${p['owner_name'] ?? ''}',
+                  '${p['payment_count'] ?? 0}',
                   '₹${amount.toStringAsFixed(0)}',
                   isPaid ? 'Paid' : 'Unpaid',
                 ]);
               }),
               _divider(),
-              _tableRow(['', 'Subtotal (Fund Collection)', '', '₹${fundTotal.toStringAsFixed(0)}'], bold: true),
+              _tableRow(['', 'Subtotal (Fund Collection)', '', '$totalEntries entries', '₹${fundTotal.toStringAsFixed(0)}', ''], bold: true),
             ],
           ),
         ),
@@ -552,14 +558,14 @@ class _UserReportsScreenState extends State<UserReportsScreen> {
         if (sortedPayments.isNotEmpty) ...[
           pw.Table.fromTextArray(
             context: ctx,
-            headers: ['#', 'House', 'Owner', 'Amount', 'Status'],
+            headers: ['#', 'House', 'Owner', 'Entries', 'Amount', 'Status'],
             headerStyle: pw.TextStyle(font: fontBold, fontSize: 10),
             cellStyle: pw.TextStyle(font: font, fontSize: 10),
             data: sortedPayments.asMap().entries.map((entry) {
               final p = entry.value;
               final amount = _parseAmount(p['total_amount']);
               final isPaid = (p['payment_status'] ?? 'unpaid') == 'paid';
-              return ['${entry.key + 1}', '${p['house_number'] ?? ''}', '${p['owner_name'] ?? ''}', '₹${amount.toStringAsFixed(0)}', isPaid ? 'Paid' : 'Unpaid'];
+              return ['${entry.key + 1}', '${p['house_number'] ?? ''}', '${p['owner_name'] ?? ''}', '${p['payment_count'] ?? 0}', '₹${amount.toStringAsFixed(0)}', isPaid ? 'Paid' : 'Unpaid'];
             }).toList(),
           ),
           pw.SizedBox(height: 6),

@@ -117,12 +117,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     if (paidOnly.isEmpty) return _emptyCard('No paid income data');
 
+    int totalEntries = 0;
+    for (final p in paidOnly) {
+      totalEntries += (int.tryParse(p['payment_count']?.toString() ?? '') ?? 0);
+    }
+
     return Column(
       children: [
         _card(
           child: Column(
             children: [
-              _tableHeader(['#', 'House', 'Name', 'Amount']),
+              _tableHeader(['#', 'House', 'Name', 'Entries', 'Amount']),
               ...paidOnly.asMap().entries.map((entry) {
                 final p = entry.value;
                 final amount = _parseAmount(p['total_amount']);
@@ -131,11 +136,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   '${entry.key + 1}',
                   '${p['house_number'] ?? ''}',
                   name,
+                  '${p['payment_count'] ?? 1}',
                   '₹${amount.toStringAsFixed(0)}',
                 ]);
               }),
               _divider(),
-              _tableRow(['', 'Subtotal (Fund Collection)', '', '₹${fundTotal.toStringAsFixed(0)}'], bold: true),
+              _tableRow(['', 'Subtotal (Fund Collection)', '', '$totalEntries entries', '₹${fundTotal.toStringAsFixed(0)}'], bold: true),
             ],
           ),
         ),
@@ -143,9 +149,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _card(
           child: Column(
             children: [
-              _tableRow(['', 'Sponsor Income', '', '₹${sponsorTotal.toStringAsFixed(0)}'], bold: true),
+              _tableRow(['', 'Sponsor Income', '', '', '₹${sponsorTotal.toStringAsFixed(0)}'], bold: true),
               _divider(),
-              _tableRow(['', 'TOTAL INCOME', '', '₹${grandTotal.toStringAsFixed(0)}'], bold: true, color: Colors.green),
+              _tableRow(['', 'TOTAL INCOME', '', '', '₹${grandTotal.toStringAsFixed(0)}'], bold: true, color: Colors.green),
             ],
           ),
         ),
@@ -537,7 +543,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         pw.SizedBox(height: 10),
         pw.Table.fromTextArray(
           context: ctx,
-          headers: ['#', 'House', 'Name', 'Amount (₹)'],
+          headers: ['#', 'House', 'Name', 'Entries', 'Amount (₹)'],
           data: _buildIncomeTableRows(),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -642,6 +648,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         '${idx++}',
         '${p['house_number'] ?? ''}',
         name,
+        '${p['payment_count'] ?? 1}',
         '₹${amount.toStringAsFixed(0)}',
       ]);
     }
