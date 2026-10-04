@@ -3057,8 +3057,30 @@ Future<Response> _getExpensesByDateReport(Request request) async {
   }
 }
 
-Future<Response> _getDailyActivityReport(Request request) async {
-  try {
+/// Sponsor/organizer distributions are stored with user_id 0, so the report
+/// falls back to 'Organizer'. Recover the real distributor name from notes
+/// ("[HOUSE] Name|SPONSOR_EXPENSE:0:Name") for sponsor rows.
+String _distributorDisplayName(String? notes, String paidBy) {
+  if (paidBy == 'sponsor') {
+    final m = RegExp(r'\|(?:ORG|SPONSOR)_EXPENSE:[^:]*:(.+)$').firstMatch(notes ?? '');
+    final parsed = (m?.group(1) ?? '').trim();
+    if (parsed.isNotEmpty) return parsed;
+    return 'Sponsor';
+  }
+  return 'Organizer';
+}
+
+List<Map<String, dynamic>> _fixDistributorNames(List<Map<String, dynamic>> rows) {
+  for (final r in rows) {
+    final nm = (r['name'] ?? '').toString();
+    if (nm.isEmpty || nm == 'Organizer') {
+      r['name'] = _distributorDisplayName(r['notes']?.toString(), (r['paid_by'] ?? 'organizer').toString());
+    }
+  }
+  return rows;
+}
+
+Future<Response> _getDailyActivityReport(Request request) async {  try {
     final conn = await db;
     final days = await conn.execute(Sql.named('''
       SELECT nd.day_number, nd.goddess_name, nd.date::text, nd.dress_code, nd.is_active, nd.is_completed
@@ -3080,7 +3102,7 @@ Future<Response> _getDailyActivityReport(Request request) async {
       '''), parameters: {'day': dayNum});
 
       final foods = await conn.execute(Sql.named('''
-        SELECT so.house_number, COALESCE(u.name, 'Organizer') as name, s.name as snack_name, so.quantity, so.status,
+        SELECT so.house_number, COALESCE(u.name, 'Organizer') as name, COALESCE(NULLIF(so.snack_name, ''), s.name, '') as snack_name, so.quantity, so.status, so.notes,
                CASE WHEN so.notes LIKE '%|ORG_EXPENSE:%' THEN 'organizer'
                     WHEN so.notes LIKE '%|SPONSOR_EXPENSE:%' THEN 'sponsor'
                     ELSE 'organizer' END as paid_by
@@ -3092,7 +3114,7 @@ Future<Response> _getDailyActivityReport(Request request) async {
       '''), parameters: {'day': dayNum});
 
       final gifts = await conn.execute(Sql.named('''
-        SELECT ga.house_number, COALESCE(u.name, 'Organizer') as name, g.name as gift_name, ga.status,
+        SELECT ga.house_number, COALESCE(u.name, 'Organizer') as name, COALESCE(NULLIF(ga.gift_name, ''), g.name, '') as gift_name, ga.status, ga.notes,
                CASE WHEN ga.notes LIKE '%|ORG_EXPENSE:%' THEN 'organizer'
                     WHEN ga.notes LIKE '%|SPONSOR_EXPENSE:%' THEN 'sponsor'
                     ELSE 'organizer' END as paid_by
@@ -3111,8 +3133,8 @@ Future<Response> _getDailyActivityReport(Request request) async {
         'is_active': dayMap['is_active'],
         'is_completed': dayMap['is_completed'],
         'aarti_bookings': _parseResults(aarti),
-        'food_orders': _parseResults(foods),
-        'gift_assignments': _parseResults(gifts),
+        'food_orders': _fixDistributorNames(_parseResults(foods)),
+        'gift_assignments': _fixDistributorNames(_parseResults(gifts)),
       });
     }
 

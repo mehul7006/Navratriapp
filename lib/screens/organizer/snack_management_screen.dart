@@ -801,9 +801,14 @@ class _SnackManagementScreenState extends State<SnackManagementScreen> {
                     }
                     final snacks = await DatabaseHelper.getSnacks();
                     final snackId = snacks.isNotEmpty ? snacks.first['id'] as int? : null;
+                    final resolvedId = await DatabaseHelper.resolveMember(
+                      houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
+                      name: distributorController.text.trim(),
+                    );
                     await DatabaseHelper.orderSnack(
-                      userId: 0, houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
+                      userId: resolvedId, houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
                       snackId: snackId, dayNumber: formDay, quantity: 1, notes: notes,
+                      snackName: snackNameController.text.trim().isNotEmpty ? snackNameController.text.trim() : null,
                     );
                     Navigator.pop(ctx);
                     _loadData();

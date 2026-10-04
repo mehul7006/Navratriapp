@@ -727,9 +727,14 @@ class _GiftManagementScreenState extends State<GiftManagementScreen> {
                     }
                     final gifts = await DatabaseHelper.getGifts(dayNumber: formDay);
                     final giftId = gifts.isNotEmpty ? gifts.first['id'] : null;
+                    final resolvedId = await DatabaseHelper.resolveMember(
+                      houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
+                      name: distributorController.text.trim(),
+                    );
                     await DatabaseHelper.assignGift(
-                      giftId: giftId, userId: 0, houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
+                      giftId: giftId, userId: resolvedId, houseNumber: houseNum.isNotEmpty ? houseNum : 'ORG-DIST',
                       dayNumber: formDay, assignedBy: 0, notes: notes, status: 'pending',
+                      giftName: giftNameController.text.trim().isNotEmpty ? giftNameController.text.trim() : null,
                     );
                     Navigator.pop(ctx);
                     _loadData();
