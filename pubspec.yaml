@@ -1,7 +1,7 @@
 name: navratri_app
 description: Nishitpark Society Navratri Mahotsav 2026 - Digital Festival App
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -25,6 +25,8 @@ dependencies:
   firebase_core: ^3.8.1
   firebase_messaging: ^15.2.1
   package_info_plus: ^10.2.2
+  path_provider: ^2.1.6
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:
