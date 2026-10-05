@@ -244,6 +244,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Row(
+                      children: [
+                        const Spacer(),
+                        _buildApkCornerButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     _buildLogo(),
                     const SizedBox(height: 24),
                       Text(AppLocalizations.t('navratri_2026'), style: TextStyle(fontFamily: 'Cinzel', fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.goldPrimary, letterSpacing: 2)),
@@ -280,8 +287,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 16),
-                _buildDownloadButtons(),
               ],
             ),
           ),
@@ -291,45 +296,28 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildDownloadButtons() {
-    return Column(
-      children: [
-        Text('Download Application', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary, letterSpacing: 1)),
-        const SizedBox(height: 10),
-        Row(
+  Widget _buildApkCornerButton() {
+    return GestureDetector(
+      onTap: _downloadAndroidApk,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [AppTheme.goldPrimary, AppTheme.goldDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 2)],
+          border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _downloadAndroidApk,
-                icon: const Icon(Icons.android, color: Colors.green, size: 20),
-                label: const Text('Android APK', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.6)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('iOS version coming soon'), backgroundColor: Colors.blueGrey),
-                  );
-                },
-                icon: const Icon(Icons.phone_iphone, color: Colors.white70, size: 20),
-                label: const Text('iOS App', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.6)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
+            Icon(Icons.android, color: AppTheme.purpleDark, size: 20),
+            SizedBox(width: 6),
+            Text('APK', style: TextStyle(color: AppTheme.purpleDark, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1)),
+            SizedBox(width: 2),
+            Icon(Icons.download, color: AppTheme.purpleDark, size: 16),
           ],
         ),
-      ],
+      ),
     );
   }
 

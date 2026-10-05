@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../database/database_helper.dart';
 import 'auth/login_screen.dart';
 import '../widgets/background_scaffold.dart';
 
@@ -43,6 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateAfterDelay() async {
     final auth = context.read<AuthProvider>();
     await auth.sessionReady;
+    await _checkForUpdate();
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
 
@@ -70,6 +75,52 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       );
     }
+  }
+
+  /// Compares installed build number with the server's latest apk_version.
+  /// Prompts update (APK only, never on web) for new and returning users.
+  Future<void> _checkForUpdate() async {
+    if (kIsWeb) return;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final local = int.tryParse(info.buildNumber) ?? 0;
+      final remote = int.tryParse(await DatabaseHelper.getConfig('apk_version')) ?? 0;
+      if (remote > local && mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.purpleCard,
+            title: const Row(
+              children: [
+                Icon(Icons.system_update, color: AppTheme.goldPrimary),
+                SizedBox(width: 8),
+                Text('Update Available', style: TextStyle(color: Colors.white, fontSize: 17)),
+              ],
+            ),
+            content: Text(
+              'A new version of the app is available (v$remote). Please update to continue with the latest features.',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Later', style: TextStyle(color: Colors.white70)),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse(DatabaseHelper.apkDownloadUrl);
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+                icon: const Icon(Icons.android, size: 18),
+                label: const Text('Update Now', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   @override
