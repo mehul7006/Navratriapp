@@ -1231,7 +1231,7 @@ class DatabaseHelper {
   static Future<String> getConfig(String key) async {
     try {
       final uri = Uri.parse('$_apiBase/api/config/$key');
-      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      final response = await http.get(uri, headers: _headers).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return (data['value'] ?? '') as String;
