@@ -3076,8 +3076,24 @@ List<Map<String, dynamic>> _fixDistributorNames(List<Map<String, dynamic>> rows)
     if (nm.isEmpty || nm == 'Organizer') {
       r['name'] = _distributorDisplayName(r['notes']?.toString(), (r['paid_by'] ?? 'organizer').toString());
     }
+    // Item text was not always saved (snack_name/gift_name empty):
+    // recover it from notes ("[HOUSE] Distributor - Item|...").
+    for (final key in ['snack_name', 'gift_name']) {
+      if (r.containsKey(key) && (r[key] ?? '').toString().isEmpty) {
+        final item = _itemNameFromNotes(r['notes']?.toString());
+        if (item.isNotEmpty) r[key] = item;
+      }
+    }
   }
   return rows;
+}
+
+/// Extracts "Item" from notes shaped like "[HOUSE] Distributor - Item|...".
+String _itemNameFromNotes(String? notes) {
+  final prefix = (notes ?? '').split('|').first;
+  final idx = prefix.lastIndexOf(' - ');
+  if (idx < 0) return '';
+  return prefix.substring(idx + 3).trim();
 }
 
 Future<Response> _getDailyActivityReport(Request request) async {  try {
