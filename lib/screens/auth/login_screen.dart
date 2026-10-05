@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
@@ -30,10 +31,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Map<String, dynamic>? _dailyInfo;
   Timer? _marqueeTimer;
 
+  String _appVersion = '';
+
   @override
   void initState() {
     super.initState();
     _loadDailyInfo();
+    _loadVersion();
     _startMarquee();
   }
 
@@ -67,6 +71,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loadDailyInfo() async {
     final info = await DatabaseHelper.getDailyInfo();
     if (mounted) setState(() => _dailyInfo = info);
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _appVersion = 'v${info.version} (${info.buildNumber})');
+    } catch (_) {}
   }
 
   String get _marqueeText {
@@ -286,6 +297,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     }
                   },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Spacer(),
+                    if (_appVersion.isNotEmpty)
+                      Text(
+                        _appVersion,
+                        style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 11, fontWeight: FontWeight.w500),
+                      ),
+                  ],
                 ),
               ],
             ),
