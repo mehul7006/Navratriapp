@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
@@ -279,6 +280,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                   },
                 ),
+                const SizedBox(height: 16),
+                _buildDownloadButtons(),
               ],
             ),
           ),
@@ -286,6 +289,66 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     ),
     );
+  }
+
+  Widget _buildDownloadButtons() {
+    return Column(
+      children: [
+        Text('Download Application', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.goldPrimary, letterSpacing: 1)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _downloadAndroidApk,
+                icon: const Icon(Icons.android, color: Colors.green, size: 20),
+                label: const Text('Android APK', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.6)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('iOS version coming soon'), backgroundColor: Colors.blueGrey),
+                  );
+                },
+                icon: const Icon(Icons.phone_iphone, color: Colors.white70, size: 20),
+                label: const Text('iOS App', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.6)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _downloadAndroidApk() async {
+    final uri = Uri.parse(DatabaseHelper.apkDownloadUrl);
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open download link'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildLogo() {
