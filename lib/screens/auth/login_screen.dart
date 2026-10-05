@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -258,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       children: [
                         const Spacer(),
-                        _buildApkCornerButton(),
+                        if (kIsWeb) _buildApkCornerButton(),
                       ],
                     ),
                     const SizedBox(height: 8),
