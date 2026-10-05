@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../database/database_helper.dart';
@@ -22,6 +25,11 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _updateRequired = false;
+  bool _downloading = false;
+  bool _dlFailed = false;
+  double _dlProgress = 0;
+  String _dlStatus = '';
 
   @override
   void initState() {
@@ -47,10 +55,20 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateAfterDelay() async {
     final auth = context.read<AuthProvider>();
     await auth.sessionReady;
-    await _checkForUpdate();
+    if (!mounted) return;
+    // Hard update gate (APK only): outdated builds never proceed further.
+    if (await _isUpdateAvailable()) {
+      setState(() => _updateRequired = true);
+      _startDownload();
+      return;
+    }
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
+    _doNavigate(auth);
+  }
 
+  void _doNavigate(AuthProvider auth) {
+    if (!mounted) return;
     if (auth.isLoggedIn) {
       final userType = auth.currentUser?['user_type'];
       switch (userType) {
@@ -77,50 +95,147 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-  /// Compares installed build number with the server's latest apk_version.
-  /// Prompts update (APK only, never on web) for new and returning users.
-  Future<void> _checkForUpdate() async {
-    if (kIsWeb) return;
+  /// True when the server reports a newer build than installed.
+  /// Offline / unknown version fails OPEN (app stays usable).
+  Future<bool> _isUpdateAvailable() async {
+    if (kIsWeb) return false;
     try {
-      final info = await PackageInfo.fromPlatform();
-      final local = int.tryParse(info.buildNumber) ?? 0;
       final remote = int.tryParse(await DatabaseHelper.getConfig('apk_version')) ?? 0;
-      if (remote > local && mounted) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.purpleCard,
-            title: const Row(
+      if (remote <= 0) return false;
+      final local = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
+      if (local <= 0) return false;
+      return remote > local;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _startDownload() async {
+    if (_downloading) return;
+    setState(() {
+      _downloading = true;
+      _dlFailed = false;
+      _dlStatus = 'Downloading update...';
+    });
+    try {
+      await _downloadAndInstall();
+      if (!mounted) return;
+      setState(() {
+        _downloading = false;
+        _dlProgress = 1;
+        _dlStatus = 'Download complete. Tap INSTALL below, then Continue.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _downloading = false;
+        _dlFailed = true;
+        _dlStatus = 'Download failed. Check internet and tap Retry.';
+      });
+    }
+  }
+
+  Future<void> _downloadAndInstall() async {
+    final client = http.Client();
+    try {
+      final request = http.Request('GET', Uri.parse(DatabaseHelper.apkDownloadUrl));
+      final response = await client.send(request).timeout(const Duration(minutes: 5));
+      if (response.statusCode != 200) throw Exception('Server error ${response.statusCode}');
+      final total = response.contentLength ?? 0;
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/navratri-update.apk');
+      final sink = file.openWrite();
+      int received = 0;
+      await for (final chunk in response.stream) {
+        sink.add(chunk);
+        received += chunk.length;
+        if (total > 0 && mounted) {
+          setState(() => _dlProgress = received / total);
+        }
+      }
+      await sink.close();
+      await OpenFilex.open(file.path);
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _continueIfUpdated() async {
+    if (await _isUpdateAvailable()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Still on old version. Install the update to continue.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _updateRequired = false);
+    _doNavigate(context.read<AuthProvider>());
+  }
+
+  Widget _buildUpdateGate() {
+    return BackgroundScaffold(
+      backgroundImage: 'assets/images/LOGIN_BG.jpg',
+      child: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.system_update, color: AppTheme.goldPrimary),
-                SizedBox(width: 8),
-                Text('Update Available', style: TextStyle(color: Colors.white, fontSize: 17)),
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(colors: [AppTheme.goldPrimary, AppTheme.goldDark]),
+                    boxShadow: [BoxShadow(color: AppTheme.goldPrimary.withOpacity(0.5), blurRadius: 25)],
+                  ),
+                  child: const Icon(Icons.system_update, size: 44, color: AppTheme.purpleDark),
+                ),
+                const SizedBox(height: 20),
+                const Text('Update Required', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 8),
+                const Text(
+                  'A new version is available. You must update to continue using the app.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+                Text(_dlStatus, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: AppTheme.goldPrimary)),
+                const SizedBox(height: 10),
+                LinearProgressIndicator(
+                  value: _dlProgress > 0 ? _dlProgress : null,
+                  color: AppTheme.goldPrimary,
+                  backgroundColor: Colors.white10,
+                ),
+                if (_dlProgress > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('${(_dlProgress * 100).toStringAsFixed(0)}%', style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
+                  ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _downloading ? null : _startDownload,
+                  icon: const Icon(Icons.download, size: 18),
+                  label: Text(_dlFailed ? 'Retry Download' : 'Download / Install Update', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.goldPrimary,
+                    foregroundColor: AppTheme.purpleDark,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _downloading ? null : _continueIfUpdated,
+                  child: const Text("I've Updated — Continue", style: TextStyle(color: Colors.white70)),
+                ),
               ],
             ),
-            content: Text(
-              'A new version of the app is available (v$remote). Please update to continue with the latest features.',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Later', style: TextStyle(color: Colors.white70)),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final uri = Uri.parse(DatabaseHelper.apkDownloadUrl);
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                },
-                icon: const Icon(Icons.android, size: 18),
-                label: const Text('Update Now', style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.goldPrimary, foregroundColor: AppTheme.purpleDark),
-              ),
-            ],
           ),
-        );
-      }
-    } catch (_) {}
+        ),
+      ),
+    );
   }
 
   @override
@@ -131,6 +246,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_updateRequired) return _buildUpdateGate();
     return BackgroundScaffold(
       backgroundImage: 'assets/images/LOGIN_BG.jpg',
       child: AnimatedBuilder(
