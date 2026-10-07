@@ -26,6 +26,17 @@ API_PORT="8080"
 
 mkdir -p "$LOG_DIR"
 
+# Fail fast when the repo is not where the script expects it.
+check_paths() {
+    if [ ! -f "$API_DIR/bin/main.dart" ]; then
+        echo " [FAIL] API project not found at: $API_DIR"
+        echo "        Clone it first, e.g.:"
+        echo "          git clone <your-repo-url> $HOME/navratri_app"
+        echo "        or edit API_DIR at the top of this script."
+        return 1
+    fi
+}
+
 need_cmd() {
     command -v "$1" >/dev/null 2>&1 || { echo " [FAIL] '$1' not found. Install it first, then re-run."; exit 1; }
 }
@@ -68,7 +79,10 @@ start_api() {
     export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
     pkill -f "dart run bin/main.dart" 2>/dev/null
     sleep 1
-    cd "$API_DIR" || exit
+    if ! cd "$API_DIR"; then
+        echo " [FAIL] cannot enter $API_DIR"
+        return 1
+    fi
     "$DART_BIN" pub get >/dev/null 2>&1
     PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
     PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
@@ -180,6 +194,7 @@ start_app() {
     echo "   NAVRATRI 2026 - NISHPARK SOCIETY (EC2)   "
     echo "============================================"
     echo ""
+    check_paths || { show_menu; return; }
     setup_db || { show_menu; return; }
     echo ""
     start_api || { show_menu; return; }
@@ -222,7 +237,12 @@ handle_input() {
             export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
             pkill -f "dart run bin/main.dart" 2>/dev/null
             sleep 1
-            cd "$API_DIR" || exit
+            if ! cd "$API_DIR"; then
+                echo " [FAIL] cannot enter $API_DIR"
+                echo ""
+                handle_input
+                return
+            fi
             PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
             PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
             nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
