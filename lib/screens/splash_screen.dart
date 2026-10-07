@@ -97,12 +97,16 @@ class _SplashScreenState extends State<SplashScreen>
 
   /// True when the server reports a newer build than installed.
   /// Offline / unknown version fails OPEN (app stays usable).
+  /// NOTE: split-per-abi release builds report versionCode = 2000 + N
+  /// (verified: +2 -> 2002, +3 -> 2003, +4 -> 2004), NOT the raw N from
+  /// pubspec. Always normalize before comparing with the server value.
   Future<bool> _isUpdateAvailable() async {
     if (kIsWeb) return false;
     try {
       final remote = int.tryParse(await DatabaseHelper.getConfig('apk_version')) ?? 0;
       if (remote <= 0) return false;
-      final local = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
+      final raw = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
+      final local = _normalizeBuildNumber(raw);
       if (local <= 0) return false;
       return remote > local;
     } catch (_) {
@@ -158,6 +162,13 @@ class _SplashScreenState extends State<SplashScreen>
     } finally {
       client.close();
     }
+  }
+
+  /// Maps a device buildNumber back to the pubspec +N release number.
+  static int _normalizeBuildNumber(int raw) {
+    if (raw >= 2000 && raw < 3000) return raw - 2000; // our split builds
+    if (raw >= 1000) return raw ~/ 1000; // generic split-per-abi scheme
+    return raw; // plain (non-split) builds
   }
 
   Future<void> _continueIfUpdated() async {

@@ -77,7 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loadVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      if (mounted) setState(() => _appVersion = 'v${info.version} (${info.buildNumber})');
+      final raw = int.tryParse(info.buildNumber) ?? 0;
+      // Split-per-abi builds report versionCode = 2000 + N; show the N.
+      final shown = (raw >= 2000 && raw < 3000) ? raw - 2000 : (raw >= 1000 ? raw ~/ 1000 : raw);
+      if (mounted) setState(() => _appVersion = 'v${info.version} ($shown)');
     } catch (_) {}
   }
 
