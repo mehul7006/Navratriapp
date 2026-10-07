@@ -43,6 +43,7 @@ need_cmd() {
 need_cmd psql
 need_cmd pg_isready
 need_cmd curl
+need_cmd "$DART_BIN"
 
 export PGPASSWORD="$DB_PASS"
 
