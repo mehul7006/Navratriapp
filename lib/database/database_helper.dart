@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
-final String _apiBase = kIsWeb ? '' : 'https://consuming-upriver-struck.ngrok-free.dev';
+final String _apiBase = kIsWeb ? '' : 'https://nishitpark.nxvora.online';
 
 class DatabaseHelper {
   static Map<String, String> get _headers => {
