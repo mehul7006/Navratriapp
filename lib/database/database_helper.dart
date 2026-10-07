@@ -19,7 +19,7 @@ class DatabaseHelper {
 
   static bool get isConnected => true;
 
-  static String get apkDownloadUrl => '$_apiBase/downloads/app-arm64-v8a-release.apk';
+  static String get apkDownloadUrl => '$_apiBase/downloads/Nishitpark%20Navratri%202026.apk';
 
   /// Next mobile in house sequence: 1st member 0000000000,
   /// 2nd 1111111111, 3rd 2222222222, and so on.
