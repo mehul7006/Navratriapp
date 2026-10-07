@@ -105,9 +105,18 @@ bootstrap_schema() {
         echo "        git pull the latest code, then re-run."
         return 1
     fi
-    sudo -u postgres psql -d "$DB_NAME" -v ON_ERROR_STOP=1 \
-        -f "$API_DIR/schema/bootstrap.sql" > /dev/null
-    echo "        [OK] core schema created."
+    if [ ! -r "$API_DIR/schema/bootstrap.sql" ]; then
+        echo " [FAIL] cannot read $API_DIR/schema/bootstrap.sql (permission denied)."
+        echo "        Fix ownership, e.g.: sudo chown -R $(whoami):$(whoami) $HOME/Navratriapp"
+        return 1
+    fi
+    if sudo -u postgres psql -d "$DB_NAME" -v ON_ERROR_STOP=1 \
+        -f "$API_DIR/schema/bootstrap.sql" > /dev/null; then
+        echo "        [OK] core schema created."
+    else
+        echo " [FAIL] schema bootstrap failed - see error above."
+        return 1
+    fi
 }
 
 # ------------------------------------------------------------------ step 3: API
@@ -209,7 +218,12 @@ INSERT INTO expense_categories (name, description, is_active)
 SELECT 'Sponsor Expense', 'Sponsored distributions', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Sponsor Expense');
 SEED_EOF
-    echo "        [OK] seeds applied."
+    if [ $? -eq 0 ]; then
+        echo "        [OK] seeds applied."
+    else
+        echo " [FAIL] seeding failed - see error above."
+        return 1
+    fi
 }
 
 # ------------------------------------------------------------------ verify
@@ -250,7 +264,7 @@ start_app() {
     echo ""
     start_api || { show_menu; return; }
     echo ""
-    seed_db
+    seed_db || { show_menu; return; }
     echo ""
     verify_all
     echo ""
