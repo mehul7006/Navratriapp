@@ -52,6 +52,9 @@ need_cmd pg_isready
 need_cmd curl
 need_cmd "$DART_BIN"
 
+# NOTE: all `sudo -u postgres psql` calls below deliberately use the local
+# Unix socket (peer auth) with NO -h flag. `sudo` strips PGPASSWORD, so TCP
+# connections would prompt for a password. Do not add -h back.
 export PGPASSWORD="$DB_PASS"
 
 # ------------------------------------------------------------------ step 1: DB
@@ -64,15 +67,15 @@ setup_db() {
     fi
     echo "        [OK] PostgreSQL reachable."
 
-    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -v ON_ERROR_STOP=1 \
+    sudo -u postgres psql -v ON_ERROR_STOP=1 \
         -c "ALTER USER $DB_USER PASSWORD '$DB_PASS';"
     echo "        [OK] password set for user '$DB_USER'."
 
     local exists
-    exists=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -tAc \
+    exists=$(sudo -u postgres psql -tAc \
         "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")
     if [ "$exists" != "1" ]; then
-        sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -v ON_ERROR_STOP=1 \
+        sudo -u postgres psql -v ON_ERROR_STOP=1 \
             -c "CREATE DATABASE $DB_NAME;"
         echo "        [OK] database '$DB_NAME' created."
     else
@@ -81,6 +84,17 @@ setup_db() {
 }
 
 # ------------------------------------------------------------------ step 2: API
+# Wait up to ~2 min for the API (first boot runs `pub get` + migrations).
+wait_for_api() {
+    local i
+    for i in $(seq 1 24); do
+        if curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 5
+    done
+    return 1
+}
 start_api() {
     echo " [2/3] Starting API server (port $API_PORT, runs schema migrations)..."
     export PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME"
@@ -95,12 +109,12 @@ start_api() {
     PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
     PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
     nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
-    echo "        Waiting for API (migrations running)..."
-    sleep 10
-    if curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1; then
+    echo "        Waiting for API (migrations running, first boot is slow)..."
+    if wait_for_api; then
         echo "        [OK] API up, schema migrated."
     else
-        echo "        [WARN] API not ready - check $LOG_DIR/api.log"
+        echo "        [FAIL] API did not come up. Last log lines:"
+        tail -n 15 "$LOG_DIR/api.log" 2>/dev/null || echo "        (no log yet)"
         return 1
     fi
 }
@@ -108,7 +122,7 @@ start_api() {
 # ----------------------------------------------------------------- step 3: seed
 seed_db() {
     echo " [3/3] Seeding baseline data (skips what already exists)..."
-    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+    sudo -u postgres psql -d "$DB_NAME" \
         -v ON_ERROR_STOP=1 <<'SEED_EOF'
 -- 10 festival days (Day 1 = 11 Oct 2026 ... Day 10 Dussehra = 20 Oct 2026)
 INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
@@ -175,11 +189,11 @@ SEED_EOF
 verify_all() {
     echo " Verifying..."
     local days admins cats
-    days=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+    days=$(sudo -u postgres psql -d "$DB_NAME" -tAc \
         "SELECT COUNT(*) FROM navratri_days;")
-    admins=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+    admins=$(sudo -u postgres psql -d "$DB_NAME" -tAc \
         "SELECT COUNT(*) FROM users WHERE user_type = 'organizer';")
-    cats=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+    cats=$(sudo -u postgres psql -d "$DB_NAME" -tAc \
         "SELECT COUNT(*) FROM expense_categories;")
     echo "        days=$days (expect 10)  organizers=$admins (expect >=1)  categories=$cats (expect >=7)"
     if [ "$days" = "10" ] && [ "$admins" -ge 1 ] 2>/dev/null; then
@@ -254,11 +268,10 @@ handle_input() {
             PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
             PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
             nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
-            sleep 8
-            if curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1; then
+            if wait_for_api; then
                 echo " [OK] API + DB reconnected!"
             else
-                echo " [WARN] API not ready yet..."
+                echo " [WARN] API not ready yet - check logs (L)..."
             fi
             echo ""
             handle_input
