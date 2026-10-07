@@ -59,7 +59,7 @@ export PGPASSWORD="$DB_PASS"
 
 # ------------------------------------------------------------------ step 1: DB
 setup_db() {
-    echo " [1/4] DB credentials + database..."
+    echo " [1/3] DB credentials + database..."
     if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" >/dev/null 2>&1; then
         echo " [FAIL] PostgreSQL not reachable at $DB_HOST:$DB_PORT."
         echo "        Install PostgreSQL first, then re-run this script."
@@ -83,48 +83,6 @@ setup_db() {
     fi
 }
 
-# ------------------------------------------------------------------ schema
-# Fresh databases have NO tables and the API's first migration ALTERs a
-# table that doesn't exist yet (one shared try/catch swallows it), so the
-# API alone can never bootstrap a fresh DB. Create the core schema first.
-bootstrap_schema() {
-    echo " [2/4] Full schema (27 tables + timestamp trigger)..."
-    local have
-    have=$(sudo -u postgres psql -d "$DB_NAME" -tAc \
-        "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN
-         ('users','navratri_days','fund_collections','expenses','expense_categories',
-          'aarti_slots','aarti_bookings','snacks','snack_orders','gifts',
-          'gift_assignments','sponsors','draw_tickets','broadcasts',
-          'announcements','daily_schedules','daily_draws','song_requests',
-          'song_suggestions','song_upvotes','shoutouts','shoutout_reactions',
-          'sponsor_advertisements','notifications','fcm_tokens','app_config',
-          'audit_logs');")
-    if [ "$have" = "27" ]; then
-        echo "        [OK] full schema already present, skipping."
-        return 0
-    fi
-    if [ ! -f "$API_DIR/schema/bootstrap.sql" ]; then
-        echo " [FAIL] schema file missing: $API_DIR/schema/bootstrap.sql"
-        echo "        git pull the latest code, then re-run."
-        return 1
-    fi
-    if [ ! -r "$API_DIR/schema/bootstrap.sql" ]; then
-        echo " [FAIL] cannot read $API_DIR/schema/bootstrap.sql (permission denied)."
-        echo "        Fix ownership, e.g.: sudo chown -R $(whoami):$(whoami) $HOME/Navratriapp"
-        return 1
-    fi
-    # psql runs as the `postgres` OS user, which often cannot read files
-    # under $HOME - stage a world-readable copy under /tmp first.
-    install -m 644 "$API_DIR/schema/bootstrap.sql" /tmp/navratri_bootstrap.sql
-    if sudo -u postgres psql -d "$DB_NAME" -v ON_ERROR_STOP=1 \
-        -f /tmp/navratri_bootstrap.sql > /dev/null; then
-        echo "        [OK] full schema created."
-    else
-        echo " [FAIL] schema bootstrap failed - see error above."
-        return 1
-    fi
-}
-
 # ------------------------------------------------------------------ step 3: API
 # Wait up to ~2 min for the API (first boot runs `pub get` + migrations).
 wait_for_api() {
@@ -138,7 +96,7 @@ wait_for_api() {
     return 1
 }
 start_api() {
-    echo " [3/4] Starting API server PROD build (port $API_PORT)..."
+    echo " [2/3] Starting API server PROD build (port $API_PORT, runs migrations)..."
     export PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME"
     export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
     pkill -f "dart run bin/main.dart" 2>/dev/null
@@ -176,7 +134,7 @@ start_api() {
 
 # ------------------------------------------------------------------ step 4: seed
 seed_db() {
-    echo " [4/4] Seeding baseline data (skips what already exists)..."
+    echo " [3/3] Seeding baseline data (skips what already exists)..."
     sudo -u postgres psql -d "$DB_NAME" \
         -v ON_ERROR_STOP=1 <<'SEED_EOF'
 -- 10 festival days (Day 1 = 11 Oct 2026 ... Day 10 Dussehra = 20 Oct 2026)
@@ -278,8 +236,6 @@ start_app() {
     echo ""
     check_paths || { show_menu; return; }
     setup_db || { show_menu; return; }
-    echo ""
-    bootstrap_schema || { show_menu; return; }
     echo ""
     start_api || { show_menu; return; }
     echo ""
