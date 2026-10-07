@@ -142,6 +142,9 @@ start_api() {
     export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
     pkill -f "dart run bin/main.dart" 2>/dev/null
     pkill -f "api_server/server" 2>/dev/null
+    if command -v fuser >/dev/null 2>&1; then
+        fuser -k "$API_PORT/tcp" 2>/dev/null
+    fi
     sleep 1
     if ! cd "$API_DIR"; then
         echo " [FAIL] cannot enter $API_DIR"
@@ -317,6 +320,9 @@ handle_input() {
             export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
             pkill -f "dart run bin/main.dart" 2>/dev/null
             pkill -f "api_server/server" 2>/dev/null
+            if command -v fuser >/dev/null 2>&1; then
+                fuser -k "$API_PORT/tcp" 2>/dev/null
+            fi
             sleep 1
             if ! cd "$API_DIR"; then
                 echo " [FAIL] cannot enter $API_DIR"
@@ -391,6 +397,9 @@ stop_app() {
     echo " Stopping API server..."
     pkill -f "dart run bin/main.dart" 2>/dev/null
     pkill -f "api_server/server" 2>/dev/null
+    if command -v fuser >/dev/null 2>&1; then
+        fuser -k "$API_PORT/tcp" 2>/dev/null
+    fi
     sleep 2
     echo " Done. (PostgreSQL left running.)"
     echo "============================================"
