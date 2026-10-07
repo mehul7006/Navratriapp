@@ -1234,3 +1234,610 @@ ALTER TABLE ONLY public.sponsors
 
 \unrestrict NuHmSJuPhKG8yeEph2hGcFiTstavgrVwrQD8DaKGRQ5oFiFdkeoL2uq9BJOOSJu
 
+
+--
+-- PostgreSQL database dump
+--
+
+\restrict 2sBHSr3BIliHHRhzRuooJ6htRhy0ugyZdLi3W2cwffVXNENFgy3T5hTxerSEpLW
+
+-- Dumped from database version 18.6
+-- Dumped by pg_dump version 18.6
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: app_config; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.app_config (
+    key character varying(100) NOT NULL,
+    value text NOT NULL
+);
+
+
+ALTER TABLE public.app_config OWNER TO postgres;
+
+--
+-- Name: daily_draws; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.daily_draws (
+    id integer NOT NULL,
+    day_number integer NOT NULL,
+    draw_number integer NOT NULL,
+    winner_ticket_id integer,
+    winner_user_id integer,
+    winner_house_number character varying(50),
+    prize_description text,
+    drawn_at timestamp without time zone,
+    is_completed boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    draw_date date DEFAULT CURRENT_DATE,
+    winner_id integer,
+    ticket_id integer,
+    drawn_by integer,
+    ticket_code character varying,
+    house_number character varying,
+    prize_level integer,
+    status character varying DEFAULT 'drawn'::character varying,
+    is_available boolean,
+    rescheduled_to_day integer,
+    cancelled_reason text,
+    cancelled_at timestamp without time zone
+);
+
+
+ALTER TABLE public.daily_draws OWNER TO postgres;
+
+--
+-- Name: daily_draws_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.daily_draws_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.daily_draws_id_seq OWNER TO postgres;
+
+--
+-- Name: daily_draws_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.daily_draws_id_seq OWNED BY public.daily_draws.id;
+
+
+--
+-- Name: fcm_tokens; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.fcm_tokens (
+    id integer NOT NULL,
+    token text NOT NULL,
+    user_id integer,
+    user_type character varying(20),
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.fcm_tokens OWNER TO postgres;
+
+--
+-- Name: fcm_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.fcm_tokens_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.fcm_tokens_id_seq OWNER TO postgres;
+
+--
+-- Name: fcm_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.fcm_tokens_id_seq OWNED BY public.fcm_tokens.id;
+
+
+--
+-- Name: notifications; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notifications (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    user_type character varying(20) DEFAULT 'user'::character varying NOT NULL,
+    title character varying(200) NOT NULL,
+    message text NOT NULL,
+    type character varying(50) DEFAULT 'general'::character varying NOT NULL,
+    is_read boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.notifications OWNER TO postgres;
+
+--
+-- Name: notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.notifications_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.notifications_id_seq OWNER TO postgres;
+
+--
+-- Name: notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.notifications_id_seq OWNED BY public.notifications.id;
+
+
+--
+-- Name: shoutout_reactions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.shoutout_reactions (
+    id integer NOT NULL,
+    shoutout_id integer,
+    user_id integer,
+    reaction character varying(5) NOT NULL,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.shoutout_reactions OWNER TO postgres;
+
+--
+-- Name: shoutout_reactions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.shoutout_reactions_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.shoutout_reactions_id_seq OWNER TO postgres;
+
+--
+-- Name: shoutout_reactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.shoutout_reactions_id_seq OWNED BY public.shoutout_reactions.id;
+
+
+--
+-- Name: shoutouts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.shoutouts (
+    id integer NOT NULL,
+    from_user_id integer,
+    to_user_id integer,
+    message text NOT NULL,
+    emoji character varying(10) DEFAULT '🎉'::character varying,
+    day_number integer NOT NULL,
+    shoutout_type character varying DEFAULT 'general'::character varying,
+    is_approved boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.shoutouts OWNER TO postgres;
+
+--
+-- Name: shoutouts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.shoutouts_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.shoutouts_id_seq OWNER TO postgres;
+
+--
+-- Name: shoutouts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.shoutouts_id_seq OWNED BY public.shoutouts.id;
+
+
+--
+-- Name: song_requests; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.song_requests (
+    id integer NOT NULL,
+    user_id integer,
+    song_name character varying NOT NULL,
+    youtube_link character varying,
+    day_number integer NOT NULL,
+    request_type character varying DEFAULT 'live'::character varying,
+    status character varying DEFAULT 'pending'::character varying,
+    request_count integer DEFAULT 1,
+    played_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.song_requests OWNER TO postgres;
+
+--
+-- Name: song_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.song_requests_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.song_requests_id_seq OWNER TO postgres;
+
+--
+-- Name: song_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.song_requests_id_seq OWNED BY public.song_requests.id;
+
+
+--
+-- Name: song_suggestions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.song_suggestions (
+    id integer NOT NULL,
+    user_id integer,
+    song_name character varying NOT NULL,
+    youtube_link character varying,
+    target_day integer NOT NULL,
+    upvotes integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.song_suggestions OWNER TO postgres;
+
+--
+-- Name: song_suggestions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.song_suggestions_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.song_suggestions_id_seq OWNER TO postgres;
+
+--
+-- Name: song_suggestions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.song_suggestions_id_seq OWNED BY public.song_suggestions.id;
+
+
+--
+-- Name: song_upvotes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.song_upvotes (
+    id integer NOT NULL,
+    song_suggestion_id integer,
+    user_id integer,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.song_upvotes OWNER TO postgres;
+
+--
+-- Name: song_upvotes_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.song_upvotes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.song_upvotes_id_seq OWNER TO postgres;
+
+--
+-- Name: song_upvotes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.song_upvotes_id_seq OWNED BY public.song_upvotes.id;
+
+
+--
+-- Name: sponsor_advertisements; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sponsor_advertisements (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    image_data text NOT NULL,
+    day_number integer,
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT now(),
+    status character varying(20) DEFAULT 'pending'::character varying
+);
+
+
+ALTER TABLE public.sponsor_advertisements OWNER TO postgres;
+
+--
+-- Name: sponsor_advertisements_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sponsor_advertisements_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sponsor_advertisements_id_seq OWNER TO postgres;
+
+--
+-- Name: sponsor_advertisements_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.sponsor_advertisements_id_seq OWNED BY public.sponsor_advertisements.id;
+
+
+--
+-- Name: daily_draws id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.daily_draws ALTER COLUMN id SET DEFAULT nextval('public.daily_draws_id_seq'::regclass);
+
+
+--
+-- Name: fcm_tokens id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.fcm_tokens ALTER COLUMN id SET DEFAULT nextval('public.fcm_tokens_id_seq'::regclass);
+
+
+--
+-- Name: notifications id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications ALTER COLUMN id SET DEFAULT nextval('public.notifications_id_seq'::regclass);
+
+
+--
+-- Name: shoutout_reactions id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shoutout_reactions ALTER COLUMN id SET DEFAULT nextval('public.shoutout_reactions_id_seq'::regclass);
+
+
+--
+-- Name: shoutouts id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shoutouts ALTER COLUMN id SET DEFAULT nextval('public.shoutouts_id_seq'::regclass);
+
+
+--
+-- Name: song_requests id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_requests ALTER COLUMN id SET DEFAULT nextval('public.song_requests_id_seq'::regclass);
+
+
+--
+-- Name: song_suggestions id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_suggestions ALTER COLUMN id SET DEFAULT nextval('public.song_suggestions_id_seq'::regclass);
+
+
+--
+-- Name: song_upvotes id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_upvotes ALTER COLUMN id SET DEFAULT nextval('public.song_upvotes_id_seq'::regclass);
+
+
+--
+-- Name: sponsor_advertisements id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sponsor_advertisements ALTER COLUMN id SET DEFAULT nextval('public.sponsor_advertisements_id_seq'::regclass);
+
+
+--
+-- Name: app_config app_config_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.app_config
+    ADD CONSTRAINT app_config_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: daily_draws daily_draws_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.daily_draws
+    ADD CONSTRAINT daily_draws_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: fcm_tokens fcm_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.fcm_tokens
+    ADD CONSTRAINT fcm_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: fcm_tokens fcm_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.fcm_tokens
+    ADD CONSTRAINT fcm_tokens_token_key UNIQUE (token);
+
+
+--
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shoutout_reactions shoutout_reactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shoutout_reactions
+    ADD CONSTRAINT shoutout_reactions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shoutout_reactions shoutout_reactions_shoutout_id_user_id_reaction_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shoutout_reactions
+    ADD CONSTRAINT shoutout_reactions_shoutout_id_user_id_reaction_key UNIQUE (shoutout_id, user_id, reaction);
+
+
+--
+-- Name: shoutouts shoutouts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shoutouts
+    ADD CONSTRAINT shoutouts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: song_requests song_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_requests
+    ADD CONSTRAINT song_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: song_suggestions song_suggestions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_suggestions
+    ADD CONSTRAINT song_suggestions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: song_upvotes song_upvotes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_upvotes
+    ADD CONSTRAINT song_upvotes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: song_upvotes song_upvotes_song_suggestion_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.song_upvotes
+    ADD CONSTRAINT song_upvotes_song_suggestion_id_user_id_key UNIQUE (song_suggestion_id, user_id);
+
+
+--
+-- Name: sponsor_advertisements sponsor_advertisements_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sponsor_advertisements
+    ADD CONSTRAINT sponsor_advertisements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_notifications_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_user ON public.notifications USING btree (user_id, user_type, is_read);
+
+
+--
+-- Name: daily_draws daily_draws_winner_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.daily_draws
+    ADD CONSTRAINT daily_draws_winner_ticket_id_fkey FOREIGN KEY (winner_ticket_id) REFERENCES public.draw_tickets(id);
+
+
+--
+-- Name: daily_draws daily_draws_winner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.daily_draws
+    ADD CONSTRAINT daily_draws_winner_user_id_fkey FOREIGN KEY (winner_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: sponsor_advertisements sponsor_advertisements_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sponsor_advertisements
+    ADD CONSTRAINT sponsor_advertisements_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict 2sBHSr3BIliHHRhzRuooJ6htRhy0ugyZdLi3W2cwffVXNENFgy3T5hTxerSEpLW
+

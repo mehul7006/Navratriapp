@@ -88,16 +88,18 @@ setup_db() {
 # table that doesn't exist yet (one shared try/catch swallows it), so the
 # API alone can never bootstrap a fresh DB. Create the core schema first.
 bootstrap_schema() {
-    echo " [2/4] Core schema (16 tables + timestamp trigger)..."
+    echo " [2/4] Full schema (26 tables + timestamp trigger)..."
     local have
     have=$(sudo -u postgres psql -d "$DB_NAME" -tAc \
         "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN
          ('users','navratri_days','fund_collections','expenses','expense_categories',
           'aarti_slots','aarti_bookings','snacks','snack_orders','gifts',
           'gift_assignments','sponsors','draw_tickets','broadcasts',
-          'announcements','daily_schedules');")
-    if [ "$have" = "16" ]; then
-        echo "        [OK] core schema already present, skipping."
+          'announcements','daily_schedules','daily_draws','song_requests',
+          'song_suggestions','song_upvotes','shoutouts','shoutout_reactions',
+          'sponsor_advertisements','notifications','fcm_tokens','app_config');")
+    if [ "$have" = "26" ]; then
+        echo "        [OK] full schema already present, skipping."
         return 0
     fi
     if [ ! -f "$API_DIR/schema/bootstrap.sql" ]; then
@@ -115,7 +117,7 @@ bootstrap_schema() {
     install -m 644 "$API_DIR/schema/bootstrap.sql" /tmp/navratri_bootstrap.sql
     if sudo -u postgres psql -d "$DB_NAME" -v ON_ERROR_STOP=1 \
         -f /tmp/navratri_bootstrap.sql > /dev/null; then
-        echo "        [OK] core schema created."
+        echo "        [OK] full schema created."
     else
         echo " [FAIL] schema bootstrap failed - see error above."
         return 1
