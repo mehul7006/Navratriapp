@@ -27,14 +27,21 @@ API_PORT="8080"
 mkdir -p "$LOG_DIR"
 
 # Fail fast when the repo is not where the script expects it.
+# Also auto-detects a plain `git clone <url>` checkout (~/Navratriapp).
 check_paths() {
-    if [ ! -f "$API_DIR/bin/main.dart" ]; then
-        echo " [FAIL] API project not found at: $API_DIR"
-        echo "        Clone it first, e.g.:"
-        echo "          git clone <your-repo-url> $HOME/navratri_app"
-        echo "        or edit API_DIR at the top of this script."
-        return 1
-    fi
+    for candidate in "$API_DIR" "$HOME/Navratriapp/api_server" "$HOME/navratriapp/api_server"; do
+        if [ -f "$candidate/bin/main.dart" ]; then
+            if [ "$candidate" != "$API_DIR" ]; then
+                echo "        (found API project at $candidate - using it)"
+                API_DIR="$candidate"
+            fi
+            return 0
+        fi
+    done
+    echo " [FAIL] API project not found (looked in $API_DIR, ~/Navratriapp, ~/navratriapp)."
+    echo "        Clone it first, e.g.:"
+    echo "          git clone <your-repo-url> $HOME/navratri_app"
+    return 1
 }
 
 need_cmd() {
