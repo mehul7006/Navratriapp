@@ -1,71 +1,193 @@
 #!/bin/bash
 
 # ==============================================================================
-# CONFIGURATION - CHANGE THESE PATHS ACCORDING TO YOUR UBUNTU ENVIRONMENT
-# ==============================================================================
-API_DIR="$HOME/navratri_app/api_server"
-LOG_DIR="$HOME/navratri_app/logs"
-NGROK_BIN="ngrok"          # Assumes ngrok is installed in your system PATH
-DART_BIN="dart"            # Assumes Dart/Flutter SDK is added to system PATH
-FLUTTER_BIN="flutter"      # Assumes Flutter is added to system PATH
+# NAVRATRI 2026 - EC2 setup & run script
+# --------------------------------------
+# No nginx. No ngrok. No "systemctl postgresql" handling here.
+# YOU install PostgreSQL yourself. This script then:
+#   [1/3] sets DB credentials (postgres/navratri) + creates database if missing
+#   [2/3] boots the API server (it runs every schema migration on boot,
+#         so the schema is always migrated "till today")
+#   [3/3] seeds baseline data (10 days, organizer admin, expense categories)
+#         + verifies counts and API health
+# Idempotent: safe to re-run any time. Re-runs never duplicate data.
 # ==============================================================================
 
-# Ensure log directory exists
+API_DIR="$HOME/navratri_app/api_server"
+LOG_DIR="$HOME/navratri_app/logs"
+DART_BIN="dart"
+
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_NAME="navratri_2026"
+DB_USER="postgres"
+DB_PASS="navratri"
+API_PORT="8080"
+
 mkdir -p "$LOG_DIR"
+
+need_cmd() {
+    command -v "$1" >/dev/null 2>&1 || { echo " [FAIL] '$1' not found. Install it first, then re-run."; exit 1; }
+}
+need_cmd psql
+need_cmd pg_isready
+need_cmd curl
+
+export PGPASSWORD="$DB_PASS"
+
+# ------------------------------------------------------------------ step 1: DB
+setup_db() {
+    echo " [1/3] DB credentials + database..."
+    if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" >/dev/null 2>&1; then
+        echo " [FAIL] PostgreSQL not reachable at $DB_HOST:$DB_PORT."
+        echo "        Install PostgreSQL first, then re-run this script."
+        return 1
+    fi
+    echo "        [OK] PostgreSQL reachable."
+
+    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -v ON_ERROR_STOP=1 \
+        -c "ALTER USER $DB_USER PASSWORD '$DB_PASS';"
+    echo "        [OK] password set for user '$DB_USER'."
+
+    local exists
+    exists=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -tAc \
+        "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")
+    if [ "$exists" != "1" ]; then
+        sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE $DB_NAME;"
+        echo "        [OK] database '$DB_NAME' created."
+    else
+        echo "        [OK] database '$DB_NAME' already present."
+    fi
+}
+
+# ------------------------------------------------------------------ step 2: API
+start_api() {
+    echo " [2/3] Starting API server (port $API_PORT, runs schema migrations)..."
+    export PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME"
+    export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
+    pkill -f "dart run bin/main.dart" 2>/dev/null
+    sleep 1
+    cd "$API_DIR" || exit
+    "$DART_BIN" pub get >/dev/null 2>&1
+    PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
+    PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
+    nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
+    echo "        Waiting for API (migrations running)..."
+    sleep 10
+    if curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1; then
+        echo "        [OK] API up, schema migrated."
+    else
+        echo "        [WARN] API not ready - check $LOG_DIR/api.log"
+        return 1
+    fi
+}
+
+# ----------------------------------------------------------------- step 3: seed
+seed_db() {
+    echo " [3/3] Seeding baseline data (skips what already exists)..."
+    sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+        -v ON_ERROR_STOP=1 <<'SEED_EOF'
+-- 10 festival days (Day 1 = 11 Oct 2026 ... Day 10 Dussehra = 20 Oct 2026)
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 1, '2026-10-11 05:30:00', 'Shailputri', 'Royal Blue & Bandhani', TRUE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 1);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 2, '2026-10-12 05:30:00', 'Brahmacharini', 'White & Silver', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 2);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 3, '2026-10-13 05:30:00', 'Chandraghanta', 'Red & Gold', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 3);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 4, '2026-10-14 05:30:00', 'Kushmanda', 'Green & Yellow', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 4);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 5, '2026-10-15 05:30:00', 'Skandamata', 'Orange & Pink', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 5);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 6, '2026-10-16 05:30:00', 'Katyayani', 'Purple & Magenta', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 6);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 7, '2026-10-17 05:30:00', 'Kalaratri', 'Black & Red', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 7);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 8, '2026-10-18 05:30:00', 'Mahagauri', 'Peacock Blue', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 8);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 9, '2026-10-19 05:30:00', 'Siddhidatri', 'Multi-color', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 9);
+INSERT INTO navratri_days (day_number, date, goddess_name, dress_code, is_active, is_completed, max_winners)
+SELECT 10, '2026-10-20 05:30:00', 'Dussehra', 'Celebration Colors', FALSE, FALSE, 3
+WHERE NOT EXISTS (SELECT 1 FROM navratri_days WHERE day_number = 10);
+-- organizer login (admin / admin123)
+INSERT INTO users (house_number, name, mobile_number, user_type, member_type, is_active, password)
+SELECT 'admin', 'Organizer Admin', '9999999999', 'organizer', 'main', TRUE, 'admin123'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE house_number = 'admin' AND user_type = 'organizer');
+-- expense categories
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Light', 'Lighting and electrical expenses', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Light');
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Sound', 'Sound system and music expenses', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Sound');
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Decoration', 'Decoration and setup expenses', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Decoration');
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Food & Drinks', 'Food and beverages', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Food & Drinks');
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Prizes & Gifts', 'Prizes for winners and gifts', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Prizes & Gifts');
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Miscellaneous', 'Other expenses', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Miscellaneous');
+INSERT INTO expense_categories (name, description, is_active)
+SELECT 'Sponsor Expense', 'Sponsored distributions', TRUE
+WHERE NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = 'Sponsor Expense');
+SEED_EOF
+    echo "        [OK] seeds applied."
+}
+
+# ------------------------------------------------------------------ verify
+verify_all() {
+    echo " Verifying..."
+    local days admins cats
+    days=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+        "SELECT COUNT(*) FROM navratri_days;")
+    admins=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+        "SELECT COUNT(*) FROM users WHERE user_type = 'organizer';")
+    cats=$(sudo -u postgres psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+        "SELECT COUNT(*) FROM expense_categories;")
+    echo "        days=$days (expect 10)  organizers=$admins (expect >=1)  categories=$cats (expect >=7)"
+    if [ "$days" = "10" ] && [ "$admins" -ge 1 ] 2>/dev/null; then
+        echo "        [OK] database ready."
+    else
+        echo "        [FAIL] counts look wrong - inspect manually."
+        return 1
+    fi
+    if curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1; then
+        echo "        [OK] API health OK."
+    else
+        echo "        [WARN] API health check failed."
+        return 1
+    fi
+}
 
 start_app() {
     clear
     echo "============================================"
-    echo "   NAVRATRI 2026 - NISHPARK SOCIETY APP     "
+    echo "   NAVRATRI 2026 - NISHPARK SOCIETY (EC2)   "
     echo "============================================"
     echo ""
-
-    echo " Stopping old servers..."
-    pkill -f "dart" 2>/dev/null
-    sudo systemctl stop nginx 2>/dev/null
-    pkill -f "ngrok" 2>/dev/null
-    sleep 2
-
+    setup_db || { show_menu; return; }
     echo ""
-    echo " [1/4] Checking PostgreSQL Database..."
-    if systemctl is-active --quiet postgresql; then
-        echo "        [OK] Database running!"
-    else
-        echo "        Starting PostgreSQL..."
-        sudo systemctl start postgresql
-        sleep 3
-        if systemctl is-active --quiet postgresql; then
-            echo "        [OK] Database started!"
-        else
-            echo "        [FAIL] Database failed to start. Ensure you have sudo permissions."
-            read -p "Press Enter to continue..." confirm
-            show_menu
-            return
-        fi
-    fi
-
-    echo " [2/4] Starting API Server (port 8080)..."
-    cd "$API_DIR" || exit
-    nohup "$DART_BIN" run bin/main.dart 8080 > "$LOG_DIR/api.log" 2>&1 &
-    
-    echo "        Waiting for API..."
-    sleep 8
-    
-    if curl -s http://localhost:8080/api/daily-info >/dev/null 2>&1; then
-        echo "        [OK] API + DB connected!"
-    else
-        echo "        [WARN] API not ready - check logs"
-    fi
-
-    echo " [3/4] Restarting Nginx (port 80)..."
-    sudo systemctl restart nginx
-    echo "        [OK] Nginx restarted!"
-
-    echo " [4/4] Starting ngrok tunnel..."
-    nohup $NGROK_BIN http 80 > "$LOG_DIR/ngrok.log" 2>&1 &
-    sleep 5
-    echo "        [OK] ngrok started!"
-
+    start_api || { show_menu; return; }
+    echo ""
+    seed_db
+    echo ""
+    verify_all
+    echo ""
     show_menu
 }
 
@@ -73,41 +195,39 @@ show_menu() {
     echo ""
     echo "============================================"
     echo ""
-    echo "  Local:   http://localhost"
-    echo "  API:     http://localhost:8080"
-    echo "  Public:  https://ngrok-free.dev"
+    echo "  Local:   http://localhost:$API_PORT"
     echo ""
     echo "============================================"
     echo ""
     echo "  COMMANDS:"
-    echo "    R  = Hot Restart  (restart API server only, keeps DB/nginx/ngrok)"
-    echo "    F  = Full Restart (stop everything and start fresh)"
-    echo "    H  = Hot Reload   (rebuild web + restart API)"
+    echo "    R  = Hot Restart  (restart API server only, re-runs migrations)"
     echo "    L  = Show API logs"
     echo "    S  = Show status"
-    echo "    Q  = Quit (stop all)"
+    echo "    Q  = Quit (stop API)"
     echo ""
     echo "============================================"
     echo ""
-    
     handle_input
 }
 
 handle_input() {
     read -p "  > " CHOICE
-    # Convert input to uppercase
     CHOICE=$(echo "$CHOICE" | tr '[:lower:]' '[:upper:]')
 
     case "$CHOICE" in
         "R")
             echo ""
             echo " Hot restarting API server..."
+            export PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME"
+            export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
             pkill -f "dart run bin/main.dart" 2>/dev/null
             sleep 1
             cd "$API_DIR" || exit
-            nohup "$DART_BIN" run bin/main.dart 8080 > "$LOG_DIR/api.log" 2>&1 &
-            sleep 6
-            if curl -s http://localhost:8080/api/daily-info >/dev/null 2>&1; then
+            PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
+            PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
+            nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
+            sleep 8
+            if curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1; then
                 echo " [OK] API + DB reconnected!"
             else
                 echo " [WARN] API not ready yet..."
@@ -115,36 +235,7 @@ handle_input() {
             echo ""
             handle_input
             ;;
-            
-        "F")
-            start_app
-            ;;
-            
-        "H")
-            echo ""
-            echo " Rebuilding web and restarting API..."
-            pkill -f "dart run bin/main.dart" 2>/dev/null
-            echo " Building Flutter web..."
-            cd "$API_DIR/.." || exit # Adjust if your root flutter project folder is different
-            "$FLUTTER_BIN" build web --release --no-tree-shake-icons --no-pub > "$LOG_DIR/web_build.log" 2>&1
-            
-            echo " Restarting Nginx..."
-            sudo systemctl restart nginx
-            
-            echo " Restarting API server..."
-            cd "$API_DIR" || exit
-            nohup "$DART_BIN" run bin/main.dart 8080 > "$LOG_DIR/api.log" 2>&1 &
-            sleep 6
-            if curl -s http://localhost:8080/api/daily-info >/dev/null 2>&1; then
-                echo " [OK] Web rebuilt + API + DB reconnected!"
-            else
-                echo " [WARN] API not ready yet..."
-            fi
-            echo " TIP: Hard refresh browser (Ctrl+Shift+R) to clear cache."
-            echo ""
-            handle_input
-            ;;
-            
+
         "L")
             echo ""
             echo " === API LOGS (last 20 lines) ==="
@@ -156,25 +247,29 @@ handle_input() {
             echo ""
             handle_input
             ;;
-            
+
         "S")
             echo ""
             echo " === STATUS ==="
-            systemctl is-active --quiet postgresql && echo " [OK] PostgreSQL: RUNNING" || echo " [OFF] PostgreSQL: STOPPED"
-            pgrep -f "dart run bin/main.dart" >/dev/null && echo " [OK] API Server: RUNNING" || echo " [OFF] API Server: STOPPED"
-            systemctl is-active --quiet nginx && echo " [OK] Nginx: RUNNING" || echo " [OFF] Nginx: STOPPED"
-            pgrep -f "ngrok http" >/dev/null && echo " [OK] ngrok: RUNNING" || echo " [OFF] ngrok: STOPPED"
-            curl -s http://localhost:8080/api/daily-info >/dev/null 2>&1 && echo " [OK] API Health: OK" || echo " [OFF] API Health: FAIL"
+            pg_isready -h "$DB_HOST" -p "$DB_PORT" >/dev/null 2>&1 \
+                && echo " [OK] PostgreSQL: RUNNING" \
+                || echo " [OFF] PostgreSQL: STOPPED"
+            pgrep -f "dart run bin/main.dart" >/dev/null \
+                && echo " [OK] API Server: RUNNING" \
+                || echo " [OFF] API Server: STOPPED"
+            curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1 \
+                && echo " [OK] API Health: OK" \
+                || echo " [OFF] API Health: FAIL"
             echo ""
             handle_input
             ;;
-            
+
         "Q")
             stop_app
             ;;
-            
+
         *)
-            echo " Unknown command. Use R, F, H, L, S, or Q."
+            echo " Unknown command. Use R, L, S, or Q."
             handle_input
             ;;
     esac
@@ -182,13 +277,10 @@ handle_input() {
 
 stop_app() {
     echo ""
-    echo " Stopping all servers..."
-    pkill -f "dart" 2>/dev/null
-    pkill -f "ngrok" 2>/dev/null
-    # Note: We keep system nginx/postgres running as standard Linux practices, 
-    # but you can add 'sudo systemctl stop nginx' here if desired.
+    echo " Stopping API server..."
+    pkill -f "dart run bin/main.dart" 2>/dev/null
     sleep 2
-    echo " Application services stopped!"
+    echo " Done. (PostgreSQL left running.)"
     echo "============================================"
     exit 0
 }
