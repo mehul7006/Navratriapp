@@ -116,6 +116,16 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _startDownload() async {
     if (_downloading) return;
+    try {
+      final auth = context.read<AuthProvider>();
+      DatabaseHelper.auditLog(
+        userId: auth.currentUser?['id'] as int?,
+        userType: auth.currentUser?['user_type']?.toString(),
+        houseNumber: auth.houseNumber,
+        event: 'app_download',
+        details: 'splash-auto-updater',
+      );
+    } catch (_) {}
     setState(() {
       _downloading = true;
       _dlFailed = false;

@@ -109,6 +109,12 @@ class AuthProvider extends ChangeNotifier {
         await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _startSessionTimer();
+        DatabaseHelper.auditLog(
+          userId: result['id'] as int?,
+          userType: result['user_type']?.toString(),
+          houseNumber: result['house_number']?.toString(),
+          event: 'login',
+        );
         _isLoading = false;
         notifyListeners();
         return true;
@@ -161,6 +167,12 @@ class AuthProvider extends ChangeNotifier {
         await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _startSessionTimer();
+        DatabaseHelper.auditLog(
+          userId: result['id'] as int?,
+          userType: result['user_type']?.toString(),
+          houseNumber: result['house_number']?.toString(),
+          event: 'login',
+        );
         _isLoading = false;
         notifyListeners();
         return true;
@@ -213,6 +225,12 @@ class AuthProvider extends ChangeNotifier {
         await FcmService.init();
         FcmService.bindToUser(result['id'] as int, result['user_type'] as String);
         _startSessionTimer();
+        DatabaseHelper.auditLog(
+          userId: result['id'] as int?,
+          userType: result['user_type']?.toString(),
+          houseNumber: result['house_number']?.toString(),
+          event: 'login',
+        );
         _isLoading = false;
         notifyListeners();
         return true;

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
@@ -26,6 +28,16 @@ class _SponsorReportsScreenState extends State<SponsorReportsScreen> {
   void initState() {
     super.initState();
     _loadData();
+    try {
+      final auth = context.read<AuthProvider>();
+      DatabaseHelper.auditLog(
+        userId: auth.currentUser?['id'] as int?,
+        userType: auth.currentUser?['user_type']?.toString(),
+        houseNumber: auth.houseNumber,
+        event: 'report_viewed',
+        details: 'sponsor-reports',
+      );
+    } catch (_) {}
   }
 
   Future<void> _loadData() async {

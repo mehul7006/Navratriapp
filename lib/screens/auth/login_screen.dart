@@ -348,6 +348,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _downloadAndroidApk() async {
+    final auth = context.read<AuthProvider>();
+    DatabaseHelper.auditLog(
+      userId: auth.currentUser?['id'] as int?,
+      userType: auth.currentUser?['user_type']?.toString(),
+      houseNumber: auth.houseNumber,
+      event: 'app_download',
+      details: 'login-apk-button',
+    );
     final uri = Uri.parse(DatabaseHelper.apkDownloadUrl);
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);

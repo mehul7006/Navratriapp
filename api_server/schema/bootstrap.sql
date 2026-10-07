@@ -1841,3 +1841,16 @@ ALTER TABLE ONLY public.sponsor_advertisements
 
 \unrestrict 2sBHSr3BIliHHRhzRuooJ6htRhy0ugyZdLi3W2cwffVXNENFgy3T5hTxerSEpLW
 
+
+-- Audit log (login / app_download / report_viewed, no UI)
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id SERIAL PRIMARY KEY,
+  user_id INT,
+  user_type VARCHAR(20),
+  house_number VARCHAR,
+  event VARCHAR(50) NOT NULL,
+  details TEXT,
+  ip_address VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_logs(event, created_at);

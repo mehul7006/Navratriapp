@@ -1239,4 +1239,24 @@ class DatabaseHelper {
     } catch (_) {}
     return '';
   }
+
+  /// Fire-and-forget audit event (login / app_download / report_viewed).
+  /// Never throws - analytics must not break app flows.
+  static Future<void> auditLog({
+    int? userId,
+    String? userType,
+    String? houseNumber,
+    required String event,
+    String? details,
+  }) async {
+    try {
+      await _post('/api/audit-log', {
+        'user_id': userId,
+        'user_type': userType,
+        'house_number': houseNumber,
+        'event': event,
+        'details': details,
+      });
+    } catch (_) {}
+  }
 }

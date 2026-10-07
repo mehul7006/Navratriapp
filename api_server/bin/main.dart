@@ -169,6 +169,18 @@ Future<Connection> get db async {
       key VARCHAR(100) PRIMARY KEY,
       value TEXT NOT NULL
     )''');
+    // ========== AUDIT LOG (login / app_download / report_viewed, no UI) ==
+    await _db!.execute('''CREATE TABLE IF NOT EXISTS audit_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INT,
+      user_type VARCHAR(20),
+      house_number VARCHAR,
+      event VARCHAR(50) NOT NULL,
+      details TEXT,
+      ip_address VARCHAR(50),
+      created_at TIMESTAMP DEFAULT NOW()
+    )''');
+    try { await _db!.execute("CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_logs(event, created_at)"); } catch (_) {}
   } catch (_) {}
   return _db!;
 }
@@ -315,7 +327,8 @@ final router = Router()
   ..put('/api/fcm-tokens/<userId>/<userType>', _updateFcmTokenUser)
   ..post('/api/fcm-tokens/<userId>/<userType>/bind', _bindFcmToken)
   ..put('/api/config/<key>', _setConfig)
-  ..get('/api/config/<key>', _getConfig);
+  ..get('/api/config/<key>', _getConfig)
+  ..post('/api/audit-log', _logAudit);
 
 Map<String, dynamic> _parseRow(ResultRow row) {
   final map = row.toColumnMap();
@@ -4095,6 +4108,32 @@ Future<Response> _getConfig(Request request, String key) async {
     );
     if (results.isEmpty) return _jsonResponse({'value': ''});
     return _jsonResponse({'value': results.first.toColumnMap()['value']});
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _logAudit(Request request) async {
+  try {
+    final body = await _getBody(request);
+    final event = (body['event'] ?? '').toString().trim();
+    if (event.isEmpty) return _errorResponse('event required', status: 400);
+    final conn = await db;
+    final fwd = request.headers['x-forwarded-for'] ?? '';
+    final ip = fwd.isNotEmpty ? fwd.split(',').first.trim() : '';
+    await conn.execute(
+      Sql.named('''INSERT INTO audit_logs (user_id, user_type, house_number, event, details, ip_address)
+        VALUES (@userId, @userType, @house, @event, @details, @ip)'''),
+      parameters: {
+        'userId': body['user_id'],
+        'userType': body['user_type']?.toString(),
+        'house': body['house_number']?.toString(),
+        'event': event,
+        'details': body['details']?.toString(),
+        'ip': ip.isNotEmpty ? ip : null,
+      },
+    );
+    return _jsonResponse({'ok': true});
   } catch (e) {
     return _errorResponse(e.toString(), status: 500);
   }

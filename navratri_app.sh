@@ -88,7 +88,7 @@ setup_db() {
 # table that doesn't exist yet (one shared try/catch swallows it), so the
 # API alone can never bootstrap a fresh DB. Create the core schema first.
 bootstrap_schema() {
-    echo " [2/4] Full schema (26 tables + timestamp trigger)..."
+    echo " [2/4] Full schema (27 tables + timestamp trigger)..."
     local have
     have=$(sudo -u postgres psql -d "$DB_NAME" -tAc \
         "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public' AND tablename IN
@@ -97,8 +97,9 @@ bootstrap_schema() {
           'gift_assignments','sponsors','draw_tickets','broadcasts',
           'announcements','daily_schedules','daily_draws','song_requests',
           'song_suggestions','song_upvotes','shoutouts','shoutout_reactions',
-          'sponsor_advertisements','notifications','fcm_tokens','app_config');")
-    if [ "$have" = "26" ]; then
+          'sponsor_advertisements','notifications','fcm_tokens','app_config',
+          'audit_logs');")
+    if [ "$have" = "27" ]; then
         echo "        [OK] full schema already present, skipping."
         return 0
     fi
