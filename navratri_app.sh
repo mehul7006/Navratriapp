@@ -110,8 +110,11 @@ bootstrap_schema() {
         echo "        Fix ownership, e.g.: sudo chown -R $(whoami):$(whoami) $HOME/Navratriapp"
         return 1
     fi
+    # psql runs as the `postgres` OS user, which often cannot read files
+    # under $HOME - stage a world-readable copy under /tmp first.
+    install -m 644 "$API_DIR/schema/bootstrap.sql" /tmp/navratri_bootstrap.sql
     if sudo -u postgres psql -d "$DB_NAME" -v ON_ERROR_STOP=1 \
-        -f "$API_DIR/schema/bootstrap.sql" > /dev/null; then
+        -f /tmp/navratri_bootstrap.sql > /dev/null; then
         echo "        [OK] core schema created."
     else
         echo " [FAIL] schema bootstrap failed - see error above."
@@ -132,19 +135,29 @@ wait_for_api() {
     return 1
 }
 start_api() {
-    echo " [3/4] Starting API server (port $API_PORT, runs remaining migrations)..."
+    echo " [3/4] Starting API server PROD build (port $API_PORT)..."
     export PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME"
     export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
     pkill -f "dart run bin/main.dart" 2>/dev/null
+    pkill -f "api_server/server" 2>/dev/null
     sleep 1
     if ! cd "$API_DIR"; then
         echo " [FAIL] cannot enter $API_DIR"
         return 1
     fi
     "$DART_BIN" pub get >/dev/null 2>&1
+    if [ ! -f "$API_DIR/server" ] || [ "$API_DIR/bin/main.dart" -nt "$API_DIR/server" ]; then
+        echo "        Compiling release binary (only on code change)..."
+        if ! "$DART_BIN" compile exe bin/main.dart -o server; then
+            echo " [FAIL] compile failed - see output above."
+            return 1
+        fi
+    else
+        echo "        (binary up to date, skipping compile)"
+    fi
     PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
     PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
-    nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
+    nohup "$API_DIR/server" "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
     echo "        Waiting for API (migrations running, first boot is slow)..."
     if wait_for_api; then
         echo "        [OK] API up, schema migrated."
@@ -301,6 +314,7 @@ handle_input() {
             export PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME"
             export PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS"
             pkill -f "dart run bin/main.dart" 2>/dev/null
+            pkill -f "api_server/server" 2>/dev/null
             sleep 1
             if ! cd "$API_DIR"; then
                 echo " [FAIL] cannot enter $API_DIR"
@@ -308,9 +322,19 @@ handle_input() {
                 handle_input
                 return
             fi
+            "$DART_BIN" pub get >/dev/null 2>&1
+            if [ ! -f "$API_DIR/server" ] || [ "$API_DIR/bin/main.dart" -nt "$API_DIR/server" ]; then
+                echo " Recompiling release binary..."
+                if ! "$DART_BIN" compile exe bin/main.dart -o server; then
+                    echo " [FAIL] compile failed."
+                    echo ""
+                    handle_input
+                    return
+                fi
+            fi
             PG_HOST="$DB_HOST" PG_PORT="$DB_PORT" PG_DATABASE="$DB_NAME" \
             PG_USER="$DB_USER" PG_PASSWORD="$DB_PASS" \
-            nohup "$DART_BIN" run bin/main.dart "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
+            nohup "$API_DIR/server" "$API_PORT" > "$LOG_DIR/api.log" 2>&1 &
             if wait_for_api; then
                 echo " [OK] API + DB reconnected!"
             else
@@ -338,7 +362,8 @@ handle_input() {
             pg_isready -h "$DB_HOST" -p "$DB_PORT" >/dev/null 2>&1 \
                 && echo " [OK] PostgreSQL: RUNNING" \
                 || echo " [OFF] PostgreSQL: STOPPED"
-            pgrep -f "dart run bin/main.dart" >/dev/null \
+            (pgrep -f "dart run bin/main.dart" >/dev/null \
+                || pgrep -f "api_server/server" >/dev/null) \
                 && echo " [OK] API Server: RUNNING" \
                 || echo " [OFF] API Server: STOPPED"
             curl -s "http://localhost:$API_PORT/api/daily-info" >/dev/null 2>&1 \
@@ -363,6 +388,7 @@ stop_app() {
     echo ""
     echo " Stopping API server..."
     pkill -f "dart run bin/main.dart" 2>/dev/null
+    pkill -f "api_server/server" 2>/dev/null
     sleep 2
     echo " Done. (PostgreSQL left running.)"
     echo "============================================"
