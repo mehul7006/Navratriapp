@@ -621,6 +621,11 @@ class _LoginScreenState extends State<LoginScreen> {
                    : Text(AppLocalizations.t('login'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
             ),
             const SizedBox(height: 16),
+            if (_selectedUserType == 'user')
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/register'),
+                child: Text(AppLocalizations.t('new_user_register'), style: TextStyle(color: AppTheme.goldPrimary, decoration: TextDecoration.underline)),
+              ),
           ],
         ),
       ),
