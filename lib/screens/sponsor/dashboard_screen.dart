@@ -19,6 +19,10 @@ import 'sponsor_reports_screen.dart';
 class SponsorDashboardScreen extends StatefulWidget {
   const SponsorDashboardScreen({super.key});
 
+  // Flip to true to show the Reports & Analytics card again.
+  // The screen + logic stay intact, only hidden for now.
+  static const bool showReportsCard = false;
+
   @override
   State<SponsorDashboardScreen> createState() => _SponsorDashboardScreenState();
 }
@@ -143,14 +147,15 @@ class _SponsorDashboardScreenState extends State<SponsorDashboardScreen> {
                       builder: (_) => const SponsorPaymentHistoryScreen(),
                     )).then((_) => _loadData()),
                   ),
-                  _buildActionCard(
-                    icon: Icons.assessment,
-                    title: AppLocalizations.t('reports_analytics_title'),
-                    subtitle: 'View reports and analytics',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => const SponsorReportsScreen(),
-                    )),
-                  ),
+                  if (SponsorDashboardScreen.showReportsCard)
+                    _buildActionCard(
+                      icon: Icons.assessment,
+                      title: AppLocalizations.t('reports_analytics_title'),
+                      subtitle: 'View reports and analytics',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => const SponsorReportsScreen(),
+                      )),
+                    ),
                 ],
               ),
             ),
