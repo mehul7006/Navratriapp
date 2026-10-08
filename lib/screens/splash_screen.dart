@@ -30,6 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
   bool _dlFailed = false;
   double _dlProgress = 0;
   String _dlStatus = '';
+  String? _apkPath;
 
   @override
   void initState() {
@@ -116,6 +117,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _startDownload() async {
     if (_downloading) return;
+    if (_apkPath != null && await File(_apkPath!).exists()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Already downloaded. Tap Install.'), backgroundColor: Colors.green),
+      );
+      return;
+    }
     try {
       final auth = context.read<AuthProvider>();
       DatabaseHelper.auditLog(
@@ -132,24 +140,38 @@ class _SplashScreenState extends State<SplashScreen>
       _dlStatus = 'Downloading update...';
     });
     try {
-      await _downloadAndInstall();
+      final path = await _downloadApk();
       if (!mounted) return;
       setState(() {
         _downloading = false;
         _dlProgress = 1;
-        _dlStatus = 'Download complete. Tap INSTALL below, then Continue.';
+        _apkPath = path;
+        _dlStatus = 'Download complete. Tap Install to update.';
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _downloading = false;
         _dlFailed = true;
-        _dlStatus = 'Download failed. Check internet and tap Retry.';
+        _dlStatus = 'Download failed. Check internet and tap Download to retry.';
       });
     }
   }
 
-  Future<void> _downloadAndInstall() async {
+  Future<void> _installUpdate() async {
+    final path = _apkPath;
+    if (path == null || !(await File(path).exists())) {
+      if (!mounted) return;
+      setState(() => _apkPath = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File missing. Tap Download again.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    await OpenFilex.open(path);
+  }
+
+  Future<String> _downloadApk() async {
     final client = http.Client();
     try {
       final request = http.Request('GET', Uri.parse(DatabaseHelper.apkDownloadUrl));
@@ -168,7 +190,7 @@ class _SplashScreenState extends State<SplashScreen>
         }
       }
       await sink.close();
-      await OpenFilex.open(file.path);
+      return file.path;
     } finally {
       client.close();
     }
@@ -237,12 +259,23 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
-                  onPressed: _downloading ? null : _startDownload,
+                  onPressed: (_downloading || _apkPath != null) ? null : _startDownload,
                   icon: const Icon(Icons.download, size: 18),
-                  label: Text(_dlFailed ? 'Retry Download' : 'Download / Install Update', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(_dlFailed ? 'Retry Download' : 'Download', style: const TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.goldPrimary,
                     foregroundColor: AppTheme.purpleDark,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: (_downloading || _apkPath == null) ? null : _installUpdate,
+                  icon: const Icon(Icons.system_update, size: 18),
+                  label: const Text('Install Update', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   ),
                 ),
