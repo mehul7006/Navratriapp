@@ -1,7 +1,7 @@
 name: navratri_app
 description: Nishitpark Society Navratri Mahotsav 2026 - Digital Festival App
 publish_to: 'none'
-version: 1.0.0+12
+version: 1.0.0+13
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
