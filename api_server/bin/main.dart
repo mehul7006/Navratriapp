@@ -1674,17 +1674,19 @@ Future<Response> _generateTickets(Request request) async {
     final dayNumber = body['day_number'] as int;
     final count = body['count'] as int;
 
-    // Get the next sequential number
+    // Ticket codes are 4-digit only, sequential from 1001 to 9999.
     final maxResult = await conn.execute(Sql.named(
-        "SELECT ticket_code FROM draw_tickets ORDER BY id DESC LIMIT 1"));
-    int nextNum = 2026100001;
+        "SELECT MAX(CAST(ticket_code AS INT)) as m FROM draw_tickets WHERE ticket_code ~ '^[0-9]{4}\$'"));
+    int nextNum = 1001;
     if (maxResult.isNotEmpty) {
-      final lastCode =
-          maxResult.first.toColumnMap()['ticket_code']?.toString() ?? '';
-      final parsed = int.tryParse(lastCode);
-      if (parsed != null && parsed >= 2026100001) {
+      final m = maxResult.first.toColumnMap()['m'];
+      final parsed = m is int ? m : int.tryParse(m?.toString() ?? '');
+      if (parsed != null && parsed >= 1001 && parsed < 9999) {
         nextNum = parsed + 1;
       }
+    }
+    if (nextNum + count - 1 > 9999) {
+      return _errorResponse('Ticket range 1001-9999 exhausted', status: 400);
     }
 
     for (int i = 0; i < count; i++) {
