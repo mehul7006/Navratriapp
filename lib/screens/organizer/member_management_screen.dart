@@ -291,6 +291,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   }
 
   void _showEditMemberDialog(Map<String, dynamic> member) {
+    final isSponsor = (member['user_type'] ?? '') == 'sponsor';
     final nameController = TextEditingController(text: member['name'] ?? '');
     final houseController = TextEditingController(text: member['house_number'] ?? '');
     final mobileController = TextEditingController(text: member['mobile_number'] ?? '');
@@ -355,22 +356,35 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Default Password', prefixIcon: const Icon(Icons.lock, color: AppTheme.goldPrimary),
-                  labelStyle: const TextStyle(color: AppTheme.textMuted),
-                  hintText: 'Set login password (blank keeps current)',
-                  hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5), fontSize: 11),
-                  filled: true,
-                  fillColor: AppTheme.purpleDark.withOpacity(0.5),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
+              if (isSponsor)
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Default Password', prefixIcon: const Icon(Icons.lock, color: AppTheme.goldPrimary),
+                    labelStyle: const TextStyle(color: AppTheme.textMuted),
+                    hintText: 'Set login password (blank keeps current)',
+                    hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5), fontSize: 11),
+                    filled: true,
+                    fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
+                  ),
                 ),
-              ),
+              if (!isSponsor)
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: AppTheme.cyanAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.cyanAccent.withOpacity(0.3))),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppTheme.cyanAccent, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(child: Text('Login ID = House No., Password = Mobile No. (no separate password)', style: TextStyle(fontSize: 11, color: AppTheme.cyanAccent))),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -389,7 +403,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   name: nameController.text.trim(),
                   houseNumber: houseController.text.trim(),
                   mobileNumber: mobileController.text.trim(),
-                  password: passwordController.text.trim().isNotEmpty ? passwordController.text.trim() : null,
+                  password: isSponsor && passwordController.text.trim().isNotEmpty ? passwordController.text.trim() : null,
                 );
                 Navigator.pop(ctx);
                 _loadMembers();
