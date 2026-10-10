@@ -31,9 +31,27 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Shared release key (android/key.properties + upload-keystore.jks).
+            // Falls back to debug keys only if the key files are absent, so
+            // every published APK carries the SAME signature and updates
+            // install cleanly instead of "conflicting package" errors.
+            signingConfig = signingConfigs.getByName(
+                if (rootProject.file("key.properties").exists()) "release" else "debug"
+            )
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("key.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = java.util.Properties()
+                keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 }

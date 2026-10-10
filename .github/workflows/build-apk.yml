@@ -35,6 +35,24 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Restore release keystore (same signature every build)
+        shell: pwsh
+        run: |
+          $ks = $env:KEYSTORE_BASE64
+          if ([string]::IsNullOrWhiteSpace($ks)) { Write-Output 'No signing secrets - build falls back to debug keys'; exit 0 }
+          [IO.File]::WriteAllBytes('android/upload-keystore.jks', [Convert]::FromBase64String($ks))
+          @(
+            "storePassword=$env:KEYSTORE_PASSWORD",
+            "keyPassword=$env:KEY_PASSWORD",
+            "keyAlias=$env:KEY_ALIAS",
+            'storeFile=upload-keystore.jks'
+          ) | Set-Content android/key.properties
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
       - name: Build APK (arm64 only, release)
         run: flutter build apk --split-per-abi --target-platform=android-arm64 --release
 
