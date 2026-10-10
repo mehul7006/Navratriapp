@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -13,6 +16,23 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("key.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                println("SIGNING: using release keystore ${keystoreProperties["keyAlias"]}")
+            } else {
+                println("SIGNING: key.properties missing, release config left empty")
+            }
+        }
     }
 
     defaultConfig {
@@ -32,25 +52,15 @@ android {
     buildTypes {
         release {
             // Shared release key (android/key.properties + upload-keystore.jks).
-            // Falls back to debug keys only if the key files are absent, so
+            // Falls back to debug keys only if key.properties is absent, so
             // every published APK carries the SAME signature and updates
             // install cleanly instead of "conflicting package" errors.
-            signingConfig = signingConfigs.getByName(
-                if (rootProject.file("key.properties").exists()) "release" else "debug"
-            )
-        }
-    }
-
-    signingConfigs {
-        create("release") {
-            val keystorePropertiesFile = rootProject.file("key.properties")
-            if (keystorePropertiesFile.exists()) {
-                val keystoreProperties = java.util.Properties()
-                keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
+            signingConfig = if (rootProject.file("key.properties").exists()) {
+                println("SIGNING: release build will use the shared release key")
+                signingConfigs.getByName("release")
+            } else {
+                println("SIGNING: no key.properties, using debug keys")
+                signingConfigs.getByName("debug")
             }
         }
     }
