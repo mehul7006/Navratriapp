@@ -294,6 +294,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
     final nameController = TextEditingController(text: member['name'] ?? '');
     final houseController = TextEditingController(text: member['house_number'] ?? '');
     final mobileController = TextEditingController(text: member['mobile_number'] ?? '');
+    final passwordController = TextEditingController();
 
     showDialog(
       context: context,
@@ -353,6 +354,23 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
                 ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Default Password', prefixIcon: const Icon(Icons.lock, color: AppTheme.goldPrimary),
+                  labelStyle: const TextStyle(color: AppTheme.textMuted),
+                  hintText: 'Set login password (blank keeps current)',
+                  hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5), fontSize: 11),
+                  filled: true,
+                  fillColor: AppTheme.purpleDark.withOpacity(0.5),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.goldPrimary.withOpacity(0.3))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.goldPrimary)),
+                ),
+              ),
             ],
           ),
         ),
@@ -371,6 +389,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                   name: nameController.text.trim(),
                   houseNumber: houseController.text.trim(),
                   mobileNumber: mobileController.text.trim(),
+                  password: passwordController.text.trim().isNotEmpty ? passwordController.text.trim() : null,
                 );
                 Navigator.pop(ctx);
                 _loadMembers();

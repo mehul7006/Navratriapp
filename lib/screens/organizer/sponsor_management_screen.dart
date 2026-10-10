@@ -294,10 +294,10 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
   }
 
   void _showAddSponsorDialog() {
-    final houseController = TextEditingController();
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
     final companyController = TextEditingController();
+    final passwordController = TextEditingController();
     final adController = TextEditingController();
     final amountController = TextEditingController();
     final remarksController = TextEditingController();
@@ -310,17 +310,22 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _field(houseController, AppLocalizations.t('house_number'),
-                textCapitalization: TextCapitalization.characters,
-                onChanged: (v) {
-                  final upper = v.toUpperCase();
-                  if (v != upper) {
-                    houseController.value = houseController.value.copyWith(text: upper, selection: TextSelection.collapsed(offset: upper.length));
-                  }
-                }),
               _field(nameController, AppLocalizations.t('contact_name')),
               _field(mobileController, AppLocalizations.t('mobile_number'), inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)], maxLength: 10),
               _field(companyController, AppLocalizations.t('company_name')),
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppTheme.goldPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.3))),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: AppTheme.goldPrimary, size: 14),
+                    SizedBox(width: 6),
+                    Expanded(child: Text('Login ID will be the Company Name', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 11))),
+                  ],
+                ),
+              ),
+              _field(passwordController, 'Login Password'),
               _field(adController, AppLocalizations.t('ad_text')),
               _field(amountController, AppLocalizations.t('sponsorship_amount'), isNumber: true),
               _field(remarksController, AppLocalizations.t('remarks')),
@@ -331,19 +336,24 @@ class _SponsorManagementScreenState extends State<SponsorManagementScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.t('cancel'))),
           TextButton(
             onPressed: () async {
-              if (mobileController.text.trim().isNotEmpty && mobileController.text.trim().length != 10) {
+              if (mobileController.text.trim().length != 10) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t('enter_valid_10_digit_mobile')), backgroundColor: Colors.red));
                 return;
               }
-              if (houseController.text.isNotEmpty && nameController.text.isNotEmpty) {
+              if (companyController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Company name is required (used as login ID)'), backgroundColor: Colors.red));
+                return;
+              }
+              if (nameController.text.isNotEmpty) {
                 await DatabaseHelper.addSponsor(
-                  houseNumber: houseController.text,
-                  name: nameController.text,
-                  mobile: mobileController.text,
-                  companyName: companyController.text,
+                  houseNumber: companyController.text.trim().toUpperCase(),
+                  name: nameController.text.trim(),
+                  mobile: mobileController.text.trim(),
+                  companyName: companyController.text.trim(),
                   adText: adController.text,
                   amount: double.tryParse(amountController.text),
                   remarks: remarksController.text,
+                  password: passwordController.text.trim().isNotEmpty ? passwordController.text.trim() : null,
                 );
                 Navigator.pop(ctx);
                 _loadData();

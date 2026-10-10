@@ -68,6 +68,7 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
       final payments = await DatabaseHelper.getAllPayments();
       final expenses = await DatabaseHelper.getExpenses();
       final bookings = await DatabaseHelper.getAartiBookings(status: 'pending');
+      final sponsors = await DatabaseHelper.getAllSponsors();
 
       double totalIncome = 0;
       int totalPaid = 0;
@@ -83,6 +84,12 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
           totalPending++;
         } else if (status == 'denied') {
           totalDenied++;
+        }
+      }
+      // Sponsor paid amounts count inside the same income total (no separate tile).
+      for (var s in sponsors) {
+        if ((s['payment_status'] ?? '').toString().toLowerCase() == 'paid') {
+          totalIncome += double.tryParse(s['sponsorship_amount'].toString()) ?? 0;
         }
       }
 

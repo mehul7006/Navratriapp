@@ -23,6 +23,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Map<String, dynamic>? _expenseReport;
   Map<String, dynamic>? _activityReport;
   Map<String, dynamic>? _summary;
+  List<Map<String, dynamic>> _sponsors = [];
 
   @override
   void initState() {
@@ -48,12 +49,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         DatabaseHelper.getExpensesByDateReport(),
         DatabaseHelper.getDailyActivityReport(),
         DatabaseHelper.getReportSummary(),
+        DatabaseHelper.getAllSponsors(),
       ]);
       setState(() {
-        _paymentReport = results[0];
-        _expenseReport = results[1];
-        _activityReport = results[2];
-        _summary = results[3];
+        _paymentReport = results[0] as Map<String, dynamic>?;
+        _expenseReport = results[1] as Map<String, dynamic>?;
+        _activityReport = results[2] as Map<String, dynamic>?;
+        _summary = results[3] as Map<String, dynamic>?;
+        _sponsors = (results[4] as List).map((e) => Map<String, dynamic>.from(e)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -164,6 +167,35 @@ class _ReportsScreenState extends State<ReportsScreen> {
               _tableRow(['', 'Sponsor Income', '', '', '₹${sponsorTotal.toStringAsFixed(0)}'], bold: true),
               _divider(),
               _tableRow(['', 'TOTAL INCOME', '', '', '₹${grandTotal.toStringAsFixed(0)}'], bold: true, color: Colors.green),
+            ],
+          ),
+        ),
+        _buildSponsorList(),
+      ],
+    );
+  }
+
+  Widget _buildSponsorList() {
+    if (_sponsors.isEmpty) return const SizedBox.shrink();
+    final sorted = List<Map<String, dynamic>>.from(_sponsors)
+      ..sort((a, b) => (a['company_name'] ?? '').toString().compareTo((b['company_name'] ?? '').toString()));
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        _card(
+          child: Column(
+            children: [
+              _tableHeader(['#', 'Company', 'Amount', 'Status']),
+              ...sorted.asMap().entries.map((entry) {
+                final s = entry.value;
+                final paid = (s['payment_status'] ?? '').toString().toLowerCase() == 'paid';
+                return _tableRow([
+                  '${entry.key + 1}',
+                  '${s['company_name'] ?? ''}',
+                  '₹${_parseAmount(s['sponsorship_amount']).toStringAsFixed(0)}',
+                  paid ? 'Paid' : 'Pending',
+                ], color: paid ? Colors.green : Colors.orange);
+              }),
             ],
           ),
         ),

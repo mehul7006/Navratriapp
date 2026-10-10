@@ -232,11 +232,12 @@ class DatabaseHelper {
     await _put('/api/members/$userId/status', {'is_active': isActive});
   }
 
-  static Future<void> updateMember(int userId, {String? name, String? houseNumber, String? mobileNumber}) async {
+  static Future<void> updateMember(int userId, {String? name, String? houseNumber, String? mobileNumber, String? password}) async {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (houseNumber != null) body['house_number'] = houseNumber;
     if (mobileNumber != null) body['mobile_number'] = mobileNumber;
+    if (password != null && password.isNotEmpty) body['password'] = password;
     await _put('/api/members/$userId', body);
   }
 
@@ -707,7 +708,7 @@ class DatabaseHelper {
     return _get('/api/sponsors');
   }
 
-  static Future<void> addSponsor({required String houseNumber, required String name, required String mobile, String? companyName, String? adText, double? amount, String? remarks}) async {
+  static Future<void> addSponsor({required String houseNumber, required String name, required String mobile, String? companyName, String? adText, double? amount, String? remarks, String? password}) async {
     await _post('/api/sponsors', {
       'house_number': houseNumber,
       'name': name,
@@ -716,6 +717,7 @@ class DatabaseHelper {
       'advertisement_text': adText ?? '',
       'sponsorship_amount': amount ?? 0,
       'remarks': remarks ?? '',
+      'password': password ?? '',
     });
   }
 

@@ -144,6 +144,7 @@ Future<Connection> get db async {
       is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW()
     )''');
     try { await _db!.execute("ALTER TABLE sponsor_advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'"); } catch (_) {}
+    try { await _db!.execute("ALTER TABLE sponsors ADD COLUMN IF NOT EXISTS admin_remarks TEXT"); } catch (_) {}
     // ========== NOTIFICATIONS ==========
     await _db!.execute('''CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
@@ -556,6 +557,10 @@ Future<Response> _updateMember(Request request, String id) async {
     if (body.containsKey('mobile_number')) {
       updates.add('mobile_number = @mobile');
       params['mobile'] = body['mobile_number'];
+    }
+    if (body.containsKey('password') && (body['password'] ?? '').toString().isNotEmpty) {
+      updates.add('password = @password');
+      params['password'] = body['password'];
     }
     if (updates.isEmpty) return _jsonResponse({'ok': true});
     await conn.execute(
@@ -1911,7 +1916,7 @@ Future<Response> _getAllSponsors(Request request) async {
       Sql.named('''
         SELECT u.id, u.house_number, u.name, u.mobile_number, u.is_active,
                s.company_name, s.advertisement_text, s.sponsorship_amount, s.payment_status,
-               s.advertisement_image
+               s.advertisement_image, s.admin_remarks
         FROM users u
         LEFT JOIN sponsors s ON u.id = s.user_id
         WHERE u.user_type = 'sponsor'
@@ -1928,29 +1933,35 @@ Future<Response> _addSponsor(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
+    // Company name IS the sponsor's login ID (users.house_number).
+    final company = (body['company_name'] ?? '').toString().trim();
+    final loginId = company.isNotEmpty
+        ? company.toUpperCase()
+        : (body['house_number'] ?? '').toString().trim().toUpperCase();
     final userResult = await conn.execute(
       Sql.named('''
         INSERT INTO users (house_number, name, mobile_number, user_type, password)
         VALUES (@house, @name, @mobile, 'sponsor', @password) RETURNING id
       '''),
       parameters: {
-        'house': body['house_number'],
+        'house': loginId,
         'name': body['name'],
         'mobile': body['mobile_number'],
-        'password': body['password'] ?? body['house_number'],
+        'password': (body['password'] ?? '').toString().isNotEmpty ? body['password'] : loginId,
       },
     );
     final userId = userResult.first.toColumnMap()['id'];
     await conn.execute(
       Sql.named('''
-        INSERT INTO sponsors (user_id, company_name, advertisement_text, sponsorship_amount, payment_status)
-        VALUES (@userId, @company, @ad, @amount, 'pending')
+        INSERT INTO sponsors (user_id, company_name, advertisement_text, sponsorship_amount, payment_status, admin_remarks)
+        VALUES (@userId, @company, @ad, @amount, 'pending', @remarks)
       '''),
       parameters: {
         'userId': userId,
         'company': body['company_name'] ?? '',
         'ad': body['advertisement_text'] ?? '',
         'amount': body['sponsorship_amount'] ?? 0,
+        'remarks': body['remarks'] ?? body['admin_remarks'] ?? '',
       },
     );
     return _jsonResponse({'ok': true, 'id': userId});
@@ -1965,7 +1976,9 @@ Future<Response> _updateSponsor(Request request, String id) async {
     final conn = await db;
     if (body.containsKey('company_name') ||
         body.containsKey('sponsorship_amount') ||
-        body.containsKey('payment_status')) {
+        body.containsKey('payment_status') ||
+        body.containsKey('advertisement_text') ||
+        body.containsKey('admin_remarks')) {
       final updates = <String>[];
       final params = <String, dynamic>{'userId': int.parse(id)};
       if (body.containsKey('company_name')) {
@@ -1983,6 +1996,10 @@ Future<Response> _updateSponsor(Request request, String id) async {
       if (body.containsKey('payment_status')) {
         updates.add('payment_status = @status');
         params['status'] = body['payment_status'];
+      }
+      if (body.containsKey('admin_remarks')) {
+        updates.add('admin_remarks = @remarks');
+        params['remarks'] = body['admin_remarks'];
       }
       if (updates.isNotEmpty) {
         await conn.execute(
@@ -3031,7 +3048,7 @@ Future<Response> _getPaymentsByHouseReport(Request request) async {
     final total = await conn.execute(Sql.named(
         "SELECT COALESCE(SUM(amount), 0) as total FROM fund_collections WHERE payment_status = 'paid' AND is_deleted IS NOT TRUE"));
     final sponsorTotal = await conn.execute(Sql.named(
-        "SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE is_active = TRUE"));
+        "SELECT COALESCE(SUM(sponsorship_amount), 0) as total FROM sponsors WHERE COALESCE(payment_status, 'pending') = 'paid'"));
     return _jsonResponse({
       'payments': _parseResults(results),
       'fund_total': _parseRow(total.first)['total'],

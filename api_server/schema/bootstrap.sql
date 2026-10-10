@@ -1093,11 +1093,10 @@ CREATE INDEX idx_users_house ON public.users USING btree (house_number);
 CREATE INDEX idx_users_mobile ON public.users USING btree (mobile_number);
 
 
---
--- Name: users update_users_timestamp; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER update_users_timestamp BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_timestamp();
+-- update_users_timestamp trigger REMOVED (2026-10-10): the trigger function
+-- breaks every UPDATE on users through this API stack, so member edits
+-- never saved. updated_at is informational only; nothing depends on it.
+-- (Kept update_timestamp() function above harmlessly unused.)
 
 
 --
