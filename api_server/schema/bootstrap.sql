@@ -1853,3 +1853,5 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_logs(event, created_at);
+-- Sponsor remarks (edit dialog)
+ALTER TABLE sponsors ADD COLUMN IF NOT EXISTS admin_remarks TEXT;
