@@ -78,10 +78,10 @@ class DatabaseHelper {
 
   // ========== HTTP HELPERS ==========
 
-  static Future<List<Map<String, dynamic>>> _get(String path, {Map<String, String>? queryParams}) async {
+  static Future<List<Map<String, dynamic>>> _get(String path, {Map<String, String>? queryParams, Duration timeout = const Duration(seconds: 30)}) async {
     try {
       final uri = Uri.parse('$_apiBase$path').replace(queryParameters: queryParams);
-      final response = await http.get(uri, headers: _headers).timeout(const Duration(seconds: 10));
+      final response = await http.get(uri, headers: _headers).timeout(timeout);
       if (response.statusCode != 200) return [];
       final data = jsonDecode(response.body);
       if (data == null) return [];
@@ -1101,7 +1101,7 @@ class DatabaseHelper {
   // ========== SPONSOR ADVERTISEMENTS ==========
 
   static Future<List<Map<String, dynamic>>> getSponsorAds(int userId) async {
-    return _get('/api/sponsor-ads/$userId');
+    return _get('/api/sponsor-ads/$userId', timeout: const Duration(seconds: 60));
   }
 
   static Future<Map<String, dynamic>?> createSponsorAd({required int userId, required String imageData, int? dayNumber}) async {
@@ -1142,11 +1142,11 @@ class DatabaseHelper {
   }
 
   static Future<List<Map<String, dynamic>>> getAllSponsorAdsForOrganizer() async {
-    return _get('/api/sponsor-ads/all/ads');
+    return _get('/api/sponsor-ads/all/ads', timeout: const Duration(seconds: 60));
   }
 
   static Future<List<Map<String, dynamic>>> getConfirmedAdsForLogin() async {
-    return _get('/api/sponsor-ads/confirmed/ads');
+    return _get('/api/sponsor-ads/confirmed/ads', timeout: const Duration(seconds: 60));
   }
 
   // ========== NOTIFICATIONS ==========
