@@ -177,7 +177,10 @@ class _SplashScreenState extends State<SplashScreen>
   Future<String> _downloadApk() async {
     final client = http.Client();
     try {
-      final request = http.Request('GET', Uri.parse(DatabaseHelper.apkDownloadUrl));
+      final url = _remoteVersion > 0
+          ? DatabaseHelper.apkDownloadUrlFor(_remoteVersion.toString())
+          : DatabaseHelper.apkDownloadUrl;
+      final request = http.Request('GET', Uri.parse(url));
       final response = await client.send(request).timeout(const Duration(minutes: 5));
       if (response.statusCode != 200) throw Exception('Server error ${response.statusCode}');
       final total = response.contentLength ?? 0;

@@ -19,6 +19,12 @@ class DatabaseHelper {
 
   static bool get isConnected => true;
 
+  static String apkDownloadFileName(String version) =>
+      'Nishitpark Navratri 2026 v$version.apk';
+
+  static String apkDownloadUrlFor(String version) =>
+      '$_apiBase/downloads/${Uri.encodeComponent(apkDownloadFileName(version))}';
+
   static String get apkDownloadUrl => '$_apiBase/downloads/Nishitpark%20Navratri%202026.apk';
 
   /// Next mobile in house sequence: 1st member 0000000000,

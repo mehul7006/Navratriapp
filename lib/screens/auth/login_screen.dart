@@ -366,7 +366,10 @@ class _LoginScreenState extends State<LoginScreen> {
       event: 'app_download',
       details: 'login-apk-button',
     );
-    final uri = Uri.parse(DatabaseHelper.apkDownloadUrl);
+    final url = _latestVersion.isNotEmpty
+        ? DatabaseHelper.apkDownloadUrlFor(_latestVersion)
+        : DatabaseHelper.apkDownloadUrl;
+    final uri = Uri.parse(url);
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
