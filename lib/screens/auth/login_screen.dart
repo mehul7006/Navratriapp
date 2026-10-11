@@ -33,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Timer? _marqueeTimer;
 
   String _appVersion = '';
+  String _latestVersion = '';
 
   @override
   void initState() {
@@ -81,6 +82,12 @@ class _LoginScreenState extends State<LoginScreen> {
       // Split-per-abi builds report versionCode = 2000 + N; show the N.
       final shown = (raw >= 2000 && raw < 3000) ? raw - 2000 : (raw >= 1000 ? raw ~/ 1000 : raw);
       if (mounted) setState(() => _appVersion = 'v${info.version} ($shown)');
+    } catch (_) {}
+    try {
+      final remote = await DatabaseHelper.getConfig('apk_version');
+      if (remote.trim().isNotEmpty && mounted) {
+        setState(() => _latestVersion = remote.trim());
+      }
     } catch (_) {}
   }
 
@@ -333,14 +340,17 @@ class _LoginScreenState extends State<LoginScreen> {
           boxShadow: [BoxShadow(color: AppTheme.goldPrimary.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 2)],
           border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.android, color: AppTheme.purpleDark, size: 20),
-            SizedBox(width: 6),
-            Text('APK', style: TextStyle(color: AppTheme.purpleDark, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1)),
-            SizedBox(width: 2),
-            Icon(Icons.download, color: AppTheme.purpleDark, size: 16),
+            const Icon(Icons.android, color: AppTheme.purpleDark, size: 20),
+            const SizedBox(width: 6),
+            Text(
+              _latestVersion.isNotEmpty ? 'APK v$_latestVersion' : 'APK',
+              style: const TextStyle(color: AppTheme.purpleDark, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.download, color: AppTheme.purpleDark, size: 16),
           ],
         ),
       ),
