@@ -31,6 +31,8 @@ class _SplashScreenState extends State<SplashScreen>
   double _dlProgress = 0;
   String _dlStatus = '';
   String? _apkPath;
+  int _remoteVersion = 0;
+  int _localVersion = 0;
 
   @override
   void initState() {
@@ -109,6 +111,7 @@ class _SplashScreenState extends State<SplashScreen>
       final raw = int.tryParse((await PackageInfo.fromPlatform()).buildNumber) ?? 0;
       final local = _normalizeBuildNumber(raw);
       if (local <= 0) return false;
+      if (mounted) setState(() { _remoteVersion = remote; _localVersion = local; });
       return remote > local;
     } catch (_) {
       return false;
@@ -243,6 +246,12 @@ class _SplashScreenState extends State<SplashScreen>
                   'A new version is available. You must update to continue using the app.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: Colors.white70),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Installed v$_localVersion • Latest v$_remoteVersion',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
                 ),
                 const SizedBox(height: 20),
                 Text(_dlStatus, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: AppTheme.goldPrimary)),
