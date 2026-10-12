@@ -145,23 +145,6 @@ Future<Connection> get db async {
     )''');
     try { await _db!.execute("ALTER TABLE sponsor_advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'"); } catch (_) {}
     try { await _db!.execute("ALTER TABLE sponsors ADD COLUMN IF NOT EXISTS admin_remarks TEXT"); } catch (_) {}
-    // ========== AARTI BOOKINGS (self-heal older EC2/dev schemas) ==========
-    try {
-      await _db!.execute('''CREATE TABLE IF NOT EXISTS aarti_bookings (
-        id SERIAL PRIMARY KEY, user_id INT, house_number VARCHAR(50) NOT NULL,
-        day_number INT NOT NULL, slot_id INT, status VARCHAR(20) DEFAULT 'pending',
-        notes TEXT, approved_by INT, approved_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )''');
-    } catch (_) {}
-    try { await _db!.execute("ALTER TABLE aarti_bookings ADD COLUMN IF NOT EXISTS user_id INT"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE aarti_bookings ADD COLUMN IF NOT EXISTS house_number VARCHAR(50)"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE aarti_bookings ADD COLUMN IF NOT EXISTS day_number INT"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE aarti_bookings ADD COLUMN IF NOT EXISTS slot_id INT"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE aarti_bookings ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending'"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE aarti_bookings ADD COLUMN IF NOT EXISTS notes TEXT"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE navratri_days ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE"); } catch (_) {}
-    try { await _db!.execute("ALTER TABLE navratri_days ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT FALSE"); } catch (_) {}
     // ========== NOTIFICATIONS ==========
     await _db!.execute('''CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
