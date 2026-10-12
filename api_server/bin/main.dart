@@ -641,12 +641,30 @@ Future<Response> _addGarbaMember(Request request) async {
     final body = await _getBody(request);
     final conn = await db;
     final name = body['name'] as String;
-    final houseNumber = body['house_number'] as String;
+    final houseNumber = (body['house_number'] ?? '').toString().trim().toUpperCase();
     final memberType = body['member_type'] as String? ?? 'sub';
-    
+    var mobile = (body['mobile_number'] ?? '').toString().trim();
+    if (mobile.isEmpty) {
+      // users.mobile_number is NOT NULL: pick next free house-sequence
+      // number (0000000000, 1111111111, ...) so login stays unambiguous.
+      final existing = await conn.execute(
+        Sql.named('SELECT mobile_number FROM users WHERE UPPER(TRIM(house_number)) = @house'),
+        parameters: {'house': houseNumber},
+      );
+      final used = existing.map((r) => r.toColumnMap()['mobile_number']?.toString() ?? '').toSet();
+      mobile = '9999999999';
+      for (int d = 0; d <= 9; d++) {
+        final candidate = '$d' * 10;
+        if (!used.contains(candidate)) {
+          mobile = candidate;
+          break;
+        }
+      }
+    }
+
     final result = await conn.execute(Sql.named(
-      'INSERT INTO users (name, house_number, user_type, member_type, is_active) VALUES (@name, @house, @userType, @memberType, true) RETURNING id'),
-      parameters: {'name': name, 'house': houseNumber, 'userType': 'user', 'memberType': memberType});
+      'INSERT INTO users (name, house_number, mobile_number, user_type, member_type, is_active) VALUES (@name, @house, @mobile, @userType, @memberType, true) RETURNING id'),
+      parameters: {'name': name, 'house': houseNumber, 'mobile': mobile, 'userType': 'user', 'memberType': memberType});
     
     return _jsonResponse({'ok': true, 'id': result.first.toColumnMap()['id']});
   } catch (e) {
@@ -692,7 +710,7 @@ Future<Response> _getGarbaMemberDetails(Request request, String id) async {
       Sql.named('SELECT * FROM users WHERE id = @id'),
       parameters: {'id': userId});
     if (userResult.isEmpty) return _errorResponse('Member not found');
-    final user = userResult.first.toColumnMap();
+    final user = _parseRow(userResult.first);
     
     // Get tickets with day info
     final ticketsResult = await conn.execute(Sql.named('''
@@ -1153,7 +1171,11 @@ Future<Response> _bookAartiSlot(Request request) async {
   try {
     final body = await _getBody(request);
     final conn = await db;
-    final dayNumber = body['day_number'] as int;
+    final dayNumber = int.tryParse(body['day_number']?.toString() ?? '');
+    if (dayNumber == null) {
+      return _errorResponse('Invalid day_number', status: 400);
+    }
+    final userId = int.tryParse(body['user_id']?.toString() ?? '');
     if (!await _isDayBookable(conn, dayNumber)) {
       return _errorResponse('Bookings are closed for Day $dayNumber', status: 403);
     }
@@ -1163,9 +1185,9 @@ Future<Response> _bookAartiSlot(Request request) async {
         VALUES (@userId, @house, @day, NULL, 'pending', @notes) RETURNING id
       '''),
       parameters: {
-        'userId': body['user_id'],
+        'userId': userId,
         'house': body['house_number'],
-        'day': body['day_number'],
+        'day': dayNumber,
         'notes': '[${body['house_number']}] ${body['name'] ?? ''}|day:$dayNumber|booked_by:organizer',
       },
     );

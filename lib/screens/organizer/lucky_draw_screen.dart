@@ -1015,12 +1015,13 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     }
 
     final random = Random(42); // Fixed seed for consistent layout
-    const int cols = 4;
-    const int maxRows = 6;
-    const int maxShown = cols * maxRows; // 24 coupons max, rest as "+N more"
-    final shown = _potTickets.length > maxShown
-        ? _potTickets.sublist(0, maxShown - 1)
-        : _potTickets;
+    const int maxShown = 24;
+    // Shuffle display positions so no coupon can be guessed by order.
+    // The actual draw pick stays server-side random (logic untouched).
+    final shuffled = List<Map<String, dynamic>>.from(_potTickets)..shuffle(Random(7));
+    final shown = shuffled.length > maxShown
+        ? shuffled.sublist(0, maxShown - 1)
+        : shuffled;
     final extra = _potTickets.length - shown.length;
 
     return LayoutBuilder(
@@ -1030,30 +1031,28 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
         if (fieldW <= 0 || fieldH <= 0) return const SizedBox.shrink();
         const double ticketW = 56;
         const double ticketH = 24;
-        final cellW = fieldW / cols;
-        final cellH = fieldH / maxRows;
         final maxLeft = (fieldW - ticketW).clamp(0.0, fieldW);
         final maxTop = (fieldH - ticketH).clamp(0.0, fieldH);
 
         final coupons = <Widget>[];
         for (int i = 0; i < shown.length; i++) {
-          final t = shown[i];
-          final rawName = (t['user_name'] ?? '').toString();
-          final label = rawName.isNotEmpty ? rawName : (t['ticket_code'] ?? '').toString();
-          final col = i % cols;
-          final row = i ~/ cols;
-          final cx = col * cellW + cellW / 2 + (random.nextDouble() * 8 - 4);
-          final cy = row * cellH + cellH / 2 + (random.nextDouble() * 6 - 3);
+          // Real-jar pile: random horizontal spread, stacked from the
+          // bottom up with jitter, like tickets settling in glass.
+          final rise = maxShown <= 1
+              ? 0.0
+              : (i / (maxShown - 1)) * (fieldH - ticketH) * 0.85;
+          final cx = random.nextDouble() * fieldW;
+          final cy = fieldH - ticketH / 2 - rise + (random.nextDouble() * 8 - 4);
           final left = (cx - ticketW / 2).clamp(0.0, maxLeft);
           final top = (cy - ticketH / 2).clamp(0.0, maxTop);
-          final rotation = (random.nextDouble() * 20 - 10) * pi / 180;
+          final rotation = (random.nextDouble() * 50 - 25) * pi / 180;
           coupons.add(
             Positioned(
               left: left,
               top: top,
               child: Transform.rotate(
                 angle: rotation,
-                child: _drawCoupon(label, false),
+                child: _drawCoupon('', false),
               ),
             ),
           );
@@ -1072,21 +1071,24 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     );
   }
 
+  /// Face-down coupon back cover: never shows names inside the jar.
+  /// Names appear only after a draw + double-click reveal.
   Widget _drawCoupon(String label, bool highlight) {
     return Container(
       width: 56,
       height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: highlight
               ? [const Color(0xFFF0D199), const Color(0xFFD8AB5F)]
-              : [const Color(0xFFFDFAF1), const Color(0xFFF3ECD8)],
+              : [const Color(0xFF7A1839), const Color(0xFF3A0B1E)],
         ),
-        border: Border.all(color: Colors.black.withOpacity(0.12)),
+        border: Border.all(
+          color: highlight ? Colors.black.withOpacity(0.12) : AppTheme.goldPrimary.withOpacity(0.7),
+        ),
         borderRadius: BorderRadius.circular(2),
         boxShadow: [
           BoxShadow(
@@ -1096,13 +1098,15 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           ),
         ],
       ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: Color(0xFF3A3220)),
-        textAlign: TextAlign.center,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      child: highlight
+          ? Text(
+              label,
+              style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w600, color: Color(0xFF3A3220)),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : const Text('🎫', style: TextStyle(fontSize: 12)),
     );
   }
 
