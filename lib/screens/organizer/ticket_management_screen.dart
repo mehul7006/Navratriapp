@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../database/database_helper.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/auth_provider.dart';
 import 'package:navratri_app/widgets/background_scaffold.dart';
 
 class TicketManagementScreen extends StatefulWidget {
@@ -463,6 +465,103 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
     );
   }
 
+  String _ordinal(int n) {
+    if (n >= 11 && n <= 13) return '${n}th';
+    switch (n % 10) {
+      case 1: return '${n}st';
+      case 2: return '${n}nd';
+      case 3: return '${n}rd';
+      default: return '${n}th';
+    }
+  }
+
+  /// Ask which winner badge (1..max_winners) this ticket gets.
+  /// Already-taken badges for the day are shown but disabled.
+  Future<int?> _showBadgePicker(int day) async {
+    final dayCfg = _days.firstWhere((d) => d['day_number'] == day, orElse: () => {});
+    final maxWinners = ((dayCfg['max_winners'] ?? 3) is int)
+        ? dayCfg['max_winners'] as int
+        : int.tryParse('${dayCfg['max_winners']}') ?? 3;
+
+    final taken = <int>{};
+    try {
+      final history = await DatabaseHelper.getDailyDrawHistory(dayNumber: day);
+      for (final h in history) {
+        if (h['status'] == 'confirmed' && h['prize_level'] != null) {
+          taken.add(int.tryParse('${h['prize_level']}') ?? 0);
+        }
+      }
+    } catch (_) {}
+
+    if (taken.length >= maxWinners) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.cardBg,
+            title: const Text('No Badges Left', style: TextStyle(color: Colors.white)),
+            content: Text(
+              'All $maxWinners winner badges are already assigned for Day $day. '
+              'Cancel a winner from Draw History first.',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK', style: TextStyle(color: AppTheme.goldPrimary))),
+            ],
+          ),
+        );
+      }
+      return null;
+    }
+
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Select Winner Badge', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Day $day — which place does this ticket win?',
+                style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 12),
+            ...List.generate(maxWinners, (i) {
+              final badge = i + 1;
+              final isTaken = taken.contains(badge);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isTaken ? null : () => Navigator.pop(ctx, badge),
+                    icon: Icon(isTaken ? Icons.lock : Icons.emoji_events, size: 18),
+                    label: Text(
+                      '${_ordinal(badge)} Winner${isTaken ? ' (taken)' : ''}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.goldPrimary,
+                      foregroundColor: AppTheme.purpleDark,
+                      disabledBackgroundColor: Colors.white12,
+                      disabledForegroundColor: Colors.white38,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleTicketAction(String action, Map<String, dynamic> ticket) async {
     if (action == 'winner') {
       final confirm = await showDialog<bool>(
@@ -476,10 +575,40 @@ class _TicketManagementScreenState extends State<TicketManagementScreen> {
           ],
         ),
       );
-      if (confirm == true) {
-        await DatabaseHelper.markWinner(ticket['id']);
-        _loadData();
+      if (confirm != true || !mounted) return;
+
+      final day = (ticket['day_number'] as int?) ?? 1;
+      final badge = await _showBadgePicker(day);
+      if (badge == null || !mounted) return;
+
+      try {
+        final auth = context.read<AuthProvider>();
+        final userId = auth.currentUser?['id'] ?? 0;
+        final draw = await DatabaseHelper.createDraw(
+          dayNumber: day,
+          ticketId: ticket['id'] as int,
+          ticketCode: ticket['ticket_code']?.toString() ?? '',
+          winnerId: (ticket['user_id'] as int?) ?? 0,
+          houseNumber: (ticket['assigned_house'] ?? ticket['house_number'] ?? '').toString(),
+          drawnBy: userId as int,
+        );
+        await DatabaseHelper.confirmDraw(draw['id'] as int, day, prizeLevel: badge);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ticket ${ticket['ticket_code']} marked as ${_ordinal(badge)} Winner'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to mark winner: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
+      await _loadData();
     } else if (action == 'cancel_prize') {
       final reason = await _showCancelDialog();
       if (reason == null || reason.isEmpty) return;
