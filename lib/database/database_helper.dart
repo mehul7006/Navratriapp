@@ -852,12 +852,16 @@ class DatabaseHelper {
     }
   }
 
-  static Future<Map<String, dynamic>> confirmDraw(int drawId, int dayNumber) async {
+  static Future<Map<String, dynamic>> confirmDraw(int drawId, int dayNumber, {int? prizeLevel}) async {
     final response = await http.post(
       Uri.parse('$_apiBase/api/daily-draws/confirm'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'draw_id': drawId, 'day_number': dayNumber}),
-    );
+      headers: _headers,
+      body: jsonEncode({
+        'draw_id': drawId,
+        'day_number': dayNumber,
+        if (prizeLevel != null) 'prize_level': prizeLevel,
+      }),
+    ).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -867,9 +871,9 @@ class DatabaseHelper {
   static Future<Map<String, dynamic>> disqualifyDraw(int drawId, int dayNumber) async {
     final response = await http.post(
       Uri.parse('$_apiBase/api/daily-draws/disqualify'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode({'draw_id': drawId, 'day_number': dayNumber}),
-    );
+    ).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -882,12 +886,12 @@ class DatabaseHelper {
   }) async {
     final response = await http.post(
       Uri.parse('$_apiBase/api/daily-draws/cancel'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode({
         'draw_id': drawId,
         'reason': reason,
       }),
-    );
+    ).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -904,7 +908,7 @@ class DatabaseHelper {
   }) async {
     final response = await http.post(
       Uri.parse('$_apiBase/api/daily-draws/create'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode({
         'day_number': dayNumber,
         'ticket_id': ticketId,
@@ -913,7 +917,7 @@ class DatabaseHelper {
         'house_number': houseNumber,
         'drawn_by': drawnBy,
       }),
-    );
+    ).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }

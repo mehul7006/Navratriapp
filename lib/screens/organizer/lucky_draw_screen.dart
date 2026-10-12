@@ -27,6 +27,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
   bool _isProcessing = false;
   int? _currentDrawId;
   int? _assignedPrizeLevel;
+  int? _chosenBadge;
   bool _isCancelling = false;
   bool _isRedrawing = false;
   String? _cancelledReason;
@@ -188,9 +189,117 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     setState(() {
       _drawnTicket = ticket;
       _potTickets.removeAt(index);
+      _chosenBadge = null;
       _isRevealed = false;
       _isDrawing = false;
     });
+  }
+
+  /// Tap a specific coupon in the jar: ask "Mark as Winner?", then pick
+  /// badge 1/2/3, then flows exactly like a spin draw:
+  /// reveal (double-click) -> availability -> confirm with chosen badge.
+  Future<void> _selectCoupon(int potIndex) async {
+    if (_isDrawing || !_isDayBookable(_selectedDay) || _isMaxWinnersReached) return;
+    if (_drawnTicket != null && _currentDrawId != null) {
+      _showAvailabilityDialog();
+      return;
+    }
+    if (potIndex < 0 || potIndex >= _potTickets.length) return;
+
+    final markIt = await _showMarkWinnerDialog();
+    if (markIt != true || !mounted) return;
+
+    final badge = await _showBadgePicker();
+    if (badge == null || !mounted) return;
+
+    setState(() {
+      _drawnTicket = _potTickets.removeAt(potIndex);
+      _chosenBadge = badge;
+      _isRevealed = false;
+    });
+    _startShake();
+  }
+
+  Future<bool?> _showMarkWinnerDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Mark as Winner?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'This coupon will be treated exactly like a spin draw: reveal it, '
+          'check availability, then confirm the selected winner badge.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.emoji_events, size: 18),
+            label: const Text('Mark as Winner', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.goldPrimary,
+              foregroundColor: AppTheme.purpleDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _ordinal(int n) {
+    if (n >= 11 && n <= 13) return '${n}th';
+    switch (n % 10) {
+      case 1: return '${n}st';
+      case 2: return '${n}nd';
+      case 3: return '${n}rd';
+      default: return '${n}th';
+    }
+  }
+
+  Future<int?> _showBadgePicker() async {
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardBg,
+        title: const Text('Select Winner Badge', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('This coupon wins which place?', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 12),
+            ...List.generate(_maxWinners, (i) {
+              final badge = i + 1;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(ctx, badge),
+                    icon: const Icon(Icons.emoji_events, size: 18),
+                    label: Text('${_ordinal(badge)} Winner', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.goldPrimary,
+                      foregroundColor: AppTheme.purpleDark,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _revealTicket() {
@@ -274,10 +383,11 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
     if (_currentDrawId == null) return;
     setState(() => _isProcessing = true);
     try {
-      final result = await DatabaseHelper.confirmDraw(_currentDrawId!, _selectedDay);
+      final result = await DatabaseHelper.confirmDraw(_currentDrawId!, _selectedDay, prizeLevel: _chosenBadge);
       if (mounted) {
         setState(() {
           _assignedPrizeLevel = result['prize_level'];
+          _chosenBadge = null;
           _confirmedCount++;
           _isProcessing = false;
         });
@@ -285,7 +395,12 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
         _showPrizeResult(result['prize_level']);
       }
     } catch (e) {
-      if (mounted) setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not confirm: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -299,6 +414,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           _drawnTicket = null;
           _isRevealed = false;
           _currentDrawId = null;
+          _chosenBadge = null;
           _isProcessing = false;
         });
         _loadTickets();
@@ -1046,13 +1162,17 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
           final left = (cx - ticketW / 2).clamp(0.0, maxLeft);
           final top = (cy - ticketH / 2).clamp(0.0, maxTop);
           final rotation = (random.nextDouble() * 50 - 25) * pi / 180;
+          final ticketIndex = _potTickets.indexOf(shown[i]);
           coupons.add(
             Positioned(
               left: left,
               top: top,
-              child: Transform.rotate(
-                angle: rotation,
-                child: _drawCoupon('', false),
+              child: GestureDetector(
+                onTap: () => _selectCoupon(ticketIndex),
+                child: Transform.rotate(
+                  angle: rotation,
+                  child: _drawCoupon('', false),
+                ),
               ),
             ),
           );
@@ -1128,6 +1248,32 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
 
     return Column(
       children: [
+        if (_chosenBadge != null && _assignedPrizeLevel == null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [AppTheme.goldPrimary.withOpacity(0.3), AppTheme.purpleCard]),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.goldPrimary, width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.emoji_events, color: AppTheme.goldPrimary, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Selected for ${_ordinal(_chosenBadge!)} Winner',
+                  style: const TextStyle(
+                    color: AppTheme.goldPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (!_isRevealed)
           Text(
             'Double-click the ticket to reveal',
@@ -1165,7 +1311,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
             style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
           ),
           if (_assignedPrizeLevel == null && _currentDrawId != null && !_isProcessing) ...[
-            if (_nextBadge != null) ...[
+            if (_chosenBadge != null || _nextBadge != null) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -1174,18 +1320,7 @@ class _LuckyDrawScreenState extends State<LuckyDrawScreen> {
                   border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
                 ),
                 child: Text(
-                  (() {
-                    String ordinal(int n) {
-                      if (n >= 11 && n <= 13) return '${n}th';
-                      switch (n % 10) {
-                        case 1: return '${n}st';
-                        case 2: return '${n}nd';
-                        case 3: return '${n}rd';
-                        default: return '${n}th';
-                      }
-                    }
-                    return 'This ticket is for ${ordinal(_nextBadge!)} Winner badge';
-                  })(),
+                  'This ticket is for ${_ordinal(_chosenBadge ?? _nextBadge!)} Winner badge',
                   style: const TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),

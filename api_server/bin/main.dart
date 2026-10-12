@@ -2722,10 +2722,36 @@ Future<Response> _confirmDraw(Request request) async {
     // Get max winners for this day
     final maxWinners = await _getMaxWinners(conn, dayNumber);
 
-    // Find the highest available badge number
-    final badgeNumber = await _findAvailableBadge(conn, dayNumber, maxWinners);
-    if (badgeNumber == null) {
-      return _errorResponse('Maximum $maxWinners winners already confirmed for Day $dayNumber');
+    // Taken badges (confirmed only)
+    final takenResult = await conn.execute(
+      Sql.named(
+        "SELECT prize_level FROM daily_draws WHERE day_number = @day AND status = 'confirmed' AND prize_level IS NOT NULL",
+      ),
+      parameters: {'day': dayNumber},
+    );
+    final takenBadges = takenResult.map((r) => r.toColumnMap()['prize_level'] as int).toSet();
+
+    // Manual pick (tap-a-coupon) or auto-assign highest available.
+    int? badgeNumber;
+    if (body.containsKey('prize_level') && body['prize_level'] != null) {
+      final picked = int.tryParse(body['prize_level'].toString()) ?? 0;
+      if (picked < 1 || picked > maxWinners) {
+        return _errorResponse('Badge must be between 1 and $maxWinners');
+      }
+      if (takenBadges.contains(picked)) {
+        return _errorResponse('Badge #$picked already taken for Day $dayNumber');
+      }
+      badgeNumber = picked;
+    } else {
+      for (int badge = maxWinners; badge >= 1; badge--) {
+        if (!takenBadges.contains(badge)) {
+          badgeNumber = badge;
+          break;
+        }
+      }
+      if (badgeNumber == null) {
+        return _errorResponse('Maximum $maxWinners winners already confirmed for Day $dayNumber');
+      }
     }
 
     // Update the daily_draws record
