@@ -197,6 +197,7 @@ final router = Router()
   ..put('/api/members/<id>', _updateMember)
   ..delete('/api/members/<id>', _deleteMember)
   ..get('/api/garba/houses', _getGarbaHouses)
+  ..get('/api/garba/members', _getAllGarbaMembers)
   ..get('/api/garba/members/<house>', _getGarbaMembersByHouse)
   ..post('/api/garba/members', _addGarbaMember)
   ..put('/api/garba/members/<id>/move', _moveGarbaMember)
@@ -618,8 +619,28 @@ Future<Response> _getGarbaHouses(Request request) async {
   }
 }
 
-Future<Response> _getGarbaMembersByHouse(Request request, String house) async {
+// All garba members in ONE query (the page used 1+N round trips before).
+Future<Response> _getAllGarbaMembers(Request request) async {
   try {
+    final conn = await db;
+    final results = await conn.execute(Sql.named('''
+      SELECT u.id, u.name, u.house_number, u.user_type, u.member_type, u.is_active,
+             COUNT(dt.id) as total_tickets,
+             COUNT(dt.id) FILTER (WHERE dt.is_winner = TRUE) as winning_tickets,
+             (SELECT dd.prize_level FROM daily_draws dd WHERE dd.winner_id = u.id AND dd.status = 'confirmed' ORDER BY dd.drawn_at DESC LIMIT 1) as last_prize_level
+      FROM users u
+      LEFT JOIN draw_tickets dt ON dt.user_id = u.id
+      WHERE u.user_type != 'organizer'
+      GROUP BY u.id, u.name, u.house_number, u.user_type, u.member_type, u.is_active
+      ORDER BY u.house_number, u.name
+    '''));
+    return _jsonResponse(_parseResults(results));
+  } catch (e) {
+    return _errorResponse(e.toString(), status: 500);
+  }
+}
+
+Future<Response> _getGarbaMembersByHouse(Request request, String house) async {  try {
     final conn = await db;
     final results = await conn.execute(Sql.named('''
       SELECT u.id, u.name, u.house_number, u.user_type, u.member_type, u.is_active,

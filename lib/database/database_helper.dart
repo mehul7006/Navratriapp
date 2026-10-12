@@ -261,6 +261,10 @@ class DatabaseHelper {
     return _get('/api/garba/houses');
   }
 
+  static Future<List<Map<String, dynamic>>> getGarbaMembers() async {
+    return _get('/api/garba/members', timeout: const Duration(seconds: 30));
+  }
+
   static Future<List<Map<String, dynamic>>> getGarbaMembersByHouse(String houseNumber) async {
     return _get('/api/garba/members/$houseNumber');
   }

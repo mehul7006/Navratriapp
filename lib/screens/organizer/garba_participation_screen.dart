@@ -36,12 +36,17 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      _houses = await DatabaseHelper.getGarbaHouses();
-      _allMembers = [];
-      for (final house in _houses) {
-        final members = await DatabaseHelper.getGarbaMembersByHouse(house['house_number']);
-        _allMembers.addAll(members);
+      // Single round trip (was 1+N per-house calls, too slow on mobile).
+      _allMembers = await DatabaseHelper.getGarbaMembers();
+      final seen = <String>{};
+      _houses = [];
+      for (final m in _allMembers) {
+        final h = (m['house_number'] ?? '').toString();
+        if (h.isNotEmpty && seen.add(h.toUpperCase())) {
+          _houses.add({'house_number': m['house_number']});
+        }
       }
+      _houses.sort((a, b) => (a['house_number'] ?? '').toString().compareTo((b['house_number'] ?? '').toString()));
       _applyFilters();
     } catch (e) {}
     if (mounted) setState(() => _isLoading = false);
@@ -251,10 +256,17 @@ class _GarbaParticipationScreenState extends State<GarbaParticipationScreen> {
             width: 50, height: 50,
             decoration: BoxDecoration(gradient: AppTheme.goldGradient, borderRadius: BorderRadius.circular(12)),
             child: Center(
-              child: Text(
-                houseNumber.toString().substring(0, houseNumber.toString().length > 3 ? 3 : houseNumber.toString().length),
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
-                textAlign: TextAlign.center,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    houseNumber.toString(),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.purpleDark),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ),
               ),
             ),
           ),
