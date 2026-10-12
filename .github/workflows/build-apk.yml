@@ -1,4 +1,5 @@
 name: Build Release APK
+# Release signing via GitHub Secrets (KEYSTORE_BASE64/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD).
 
 on:
   workflow_dispatch:
